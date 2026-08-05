@@ -146,7 +146,7 @@
   - `OpenAICompatibleLLM` 内部改为 `init_chat_model(...).bind_tools(...)`；对外保持 `complete(messages,tools)->AssistantMessage` 签名。
   - 复用 `agent_runtime/config.py` 的 model/base_url/api_key 解析。
   - **配置兼容性审计**：用当前 `agent.local.yaml` 实际初始化 `init_chat_model` 与 `OpenAICompatibleLLM`，对比两者解析后的实际参数（model/provider/base_url/api_key），确认 1:1 兼容；参考 `utils/provider_presets.py::resolve_chat_model_config`。
-- **验证**：`test_agent_llm`、`test_agent_loop`、Phase0 golden JSONL 全绿。
+- **验证（已通过✅）**：`test_agent_llm` 重写为 15 测试（wrapper 行为+转换器单测）全绿；`test_robustness::TestLLMClient` 重写为 2 测试（max_retries 配置+错误传播）全绿；`test_agent_loop`+golden 契约不变（用 FakeLLM 不受影响）；全量 209 passed 无回归；配置兼容性审计 openai 路径 1:1 一致。
 - **回滚**：还原 `llm.py`。
 
 ### Phase 2 - 工具框架统一（中风险）
