@@ -219,7 +219,7 @@ OS: Linux, Windows
 ### 📥 **Clone and Install**
 We use uv to manage the environment. For uv installation, please refer to the https://docs.astral.sh/uv/getting-started/installation/.
 ```bash
-git clone https://github.com/HKUDS/InsightForge.git
+git clone https://github.com/gx-ui/Insightforge.git
 cd InsightForge
 uv sync
 ```
