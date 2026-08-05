@@ -12,6 +12,8 @@ dependencies = [
     "langchain>=0.3.26",
     "langchain-community>=0.3.27",
     "langchain-openai>=0.3.27",
+    "langgraph>=1.0.1",
+    "langgraph-checkpoint-sqlite>=3.0.3",
     "moviepy>=2.2.1",
     "openai>=1.95.0",
     "opencv-python",
