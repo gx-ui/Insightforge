@@ -1,0 +1,33 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# working directory
+.working_dir/
+.vimax/
+.test/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Node dependencies
+node_modules/
+
+# Local agent secrets
+configs/*.local.json
+configs/*.local.yaml
+
+# Internal planning and local instructions
+AGENTS.md
+project_plan/
+project_working/
+user_idea/
