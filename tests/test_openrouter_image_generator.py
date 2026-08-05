@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 
 from PIL import Image
 
-from agent_runtime.vimax_adapters import _build_image_generator
+from agent_runtime.insightforge_adapters import _build_image_generator
 from tools.image_generator_openrouter_api import (
     ImageGeneratorOpenRouterAPI,
     OpenRouterImageAPIError,
@@ -76,9 +76,9 @@ class OpenRouterImageGeneratorTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(_is_retryable_image_error(ValueError("invalid reference image")))
 
     def test_agent_factory_selects_openrouter_from_image_base_url(self):
-        with patch("agent_runtime.vimax_adapters.image_api_key", return_value="secret"), \
-             patch("agent_runtime.vimax_adapters.image_model", return_value="openai/gpt-image-2"), \
-             patch("agent_runtime.vimax_adapters.image_base_url", return_value="https://openrouter.ai/api/v1"):
+        with patch("agent_runtime.insightforge_adapters.image_api_key", return_value="secret"), \
+             patch("agent_runtime.insightforge_adapters.image_model", return_value="openai/gpt-image-2"), \
+             patch("agent_runtime.insightforge_adapters.image_base_url", return_value="https://openrouter.ai/api/v1"):
             generator = _build_image_generator()
         self.assertIsInstance(generator, ImageGeneratorOpenRouterAPI)
         self.assertEqual(generator.model, "openai/gpt-image-2")

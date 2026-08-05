@@ -12,14 +12,14 @@ ROOT="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 usage() {
   cat <<EOF
 Usage:
-  vimax tui                         Resume the current active session
-  vimax tui new                     Create and activate a new empty session
-  vimax tui resume                  Resume the current active session
-  vimax tui resume <session_id>     Resume a specific existing session
-  vimax tui --new-session           Same as: vimax tui new
-  vimax tui --session <session_id>  Same as: vimax tui resume <session_id>
-  vimax web                         Start the ViMax Web development server
-  vimax web start                   Serve a built ViMax Web app
+  insightforge tui                         Resume the current active session
+  insightforge tui new                     Create and activate a new empty session
+  insightforge tui resume                  Resume the current active session
+  insightforge tui resume <session_id>     Resume a specific existing session
+  insightforge tui --new-session           Same as: insightforge tui new
+  insightforge tui --session <session_id>  Same as: insightforge tui resume <session_id>
+  insightforge web                         Start the InsightForge Web development server
+  insightforge web start                   Serve a built InsightForge Web app
 EOF
 }
 

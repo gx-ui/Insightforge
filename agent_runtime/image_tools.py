@@ -28,8 +28,8 @@ class ViewImageHandler:
             try:
                 data_url, display = _encode_for_model(
                     image,
-                    max_dimension=_env_int("VIMAX_IMAGE_VIEW_MAX_DIMENSION", 1568, minimum=256),
-                    max_bytes=_env_int("VIMAX_IMAGE_VIEW_MAX_BYTES", 5_000_000, minimum=100_000),
+                    max_dimension=_env_int("INSIGHTFORGE_IMAGE_VIEW_MAX_DIMENSION", 1568, minimum=256),
+                    max_bytes=_env_int("INSIGHTFORGE_IMAGE_VIEW_MAX_BYTES", 5_000_000, minimum=100_000),
                 )
             finally:
                 image.close()

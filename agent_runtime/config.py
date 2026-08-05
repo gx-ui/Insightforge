@@ -47,82 +47,82 @@ def config_value(section: str, key: str, env_names: list[str], default: str = ""
 
 
 def llm_model(workspace_root: str | Path = ".") -> str:
-    return config_value("llm", "model", ["VIMAX_LLM_MODEL"], DEFAULT_LLM_MODEL, workspace_root)
+    return config_value("llm", "model", ["INSIGHTFORGE_LLM_MODEL"], DEFAULT_LLM_MODEL, workspace_root)
 
 
 def llm_model_provider(workspace_root: str | Path = ".") -> str:
-    return config_value("llm", "model_provider", ["VIMAX_LLM_MODEL_PROVIDER"], DEFAULT_LLM_MODEL_PROVIDER, workspace_root)
+    return config_value("llm", "model_provider", ["INSIGHTFORGE_LLM_MODEL_PROVIDER"], DEFAULT_LLM_MODEL_PROVIDER, workspace_root)
 
 
 def llm_base_url(workspace_root: str | Path = ".") -> str:
-    return config_value("llm", "base_url", ["VIMAX_LLM_BASE_URL"], DEFAULT_LLM_BASE_URL, workspace_root)
+    return config_value("llm", "base_url", ["INSIGHTFORGE_LLM_BASE_URL"], DEFAULT_LLM_BASE_URL, workspace_root)
 
 
 def llm_api_key(workspace_root: str | Path = ".") -> str:
-    return config_value("llm", "api_key", ["VIMAX_LLM_API_KEY", "VIMAX_API_KEY"], "", workspace_root)
+    return config_value("llm", "api_key", ["INSIGHTFORGE_LLM_API_KEY", "INSIGHTFORGE_API_KEY"], "", workspace_root)
 
 
 def image_model(workspace_root: str | Path = ".") -> str:
-    return config_value("image", "model", ["VIMAX_IMAGE_MODEL"], DEFAULT_IMAGE_MODEL, workspace_root)
+    return config_value("image", "model", ["INSIGHTFORGE_IMAGE_MODEL"], DEFAULT_IMAGE_MODEL, workspace_root)
 
 
 def image_base_url(workspace_root: str | Path = ".") -> str:
-    return config_value("image", "base_url", ["VIMAX_IMAGE_BASE_URL"], DEFAULT_IMAGE_BASE_URL, workspace_root)
+    return config_value("image", "base_url", ["INSIGHTFORGE_IMAGE_BASE_URL"], DEFAULT_IMAGE_BASE_URL, workspace_root)
 
 
 def image_api_key(workspace_root: str | Path = ".") -> str:
-    return config_value("image", "api_key", ["VIMAX_IMAGE_API_KEY", "VIMAX_LLM_API_KEY", "VIMAX_API_KEY"], llm_api_key(workspace_root), workspace_root)
+    return config_value("image", "api_key", ["INSIGHTFORGE_IMAGE_API_KEY", "INSIGHTFORGE_LLM_API_KEY", "INSIGHTFORGE_API_KEY"], llm_api_key(workspace_root), workspace_root)
 
 
 
 def embedding_model(workspace_root: str | Path = ".") -> str:
-    return config_value("embedding", "model", ["VIMAX_EMBEDDING_MODEL"], DEFAULT_EMBEDDING_MODEL, workspace_root)
+    return config_value("embedding", "model", ["INSIGHTFORGE_EMBEDDING_MODEL"], DEFAULT_EMBEDDING_MODEL, workspace_root)
 
 
 def embedding_model_provider(workspace_root: str | Path = ".") -> str:
-    return config_value("embedding", "model_provider", ["VIMAX_EMBEDDING_MODEL_PROVIDER"], DEFAULT_EMBEDDING_MODEL_PROVIDER, workspace_root)
+    return config_value("embedding", "model_provider", ["INSIGHTFORGE_EMBEDDING_MODEL_PROVIDER"], DEFAULT_EMBEDDING_MODEL_PROVIDER, workspace_root)
 
 
 def embedding_base_url(workspace_root: str | Path = ".") -> str:
-    return config_value("embedding", "base_url", ["VIMAX_EMBEDDING_BASE_URL"], "", workspace_root)
+    return config_value("embedding", "base_url", ["INSIGHTFORGE_EMBEDDING_BASE_URL"], "", workspace_root)
 
 
 def embedding_api_key(workspace_root: str | Path = ".") -> str:
-    return config_value("embedding", "api_key", ["VIMAX_EMBEDDING_API_KEY"], "", workspace_root)
+    return config_value("embedding", "api_key", ["INSIGHTFORGE_EMBEDDING_API_KEY"], "", workspace_root)
 
 
 def reranker_model(workspace_root: str | Path = ".") -> str:
-    return config_value("reranker", "model", ["VIMAX_RERANKER_MODEL"], DEFAULT_RERANKER_MODEL, workspace_root)
+    return config_value("reranker", "model", ["INSIGHTFORGE_RERANKER_MODEL"], DEFAULT_RERANKER_MODEL, workspace_root)
 
 
 def reranker_base_url(workspace_root: str | Path = ".") -> str:
-    return config_value("reranker", "base_url", ["VIMAX_RERANKER_BASE_URL"], "", workspace_root)
+    return config_value("reranker", "base_url", ["INSIGHTFORGE_RERANKER_BASE_URL"], "", workspace_root)
 
 
 def reranker_api_key(workspace_root: str | Path = ".") -> str:
-    return config_value("reranker", "api_key", ["VIMAX_RERANKER_API_KEY"], "", workspace_root)
+    return config_value("reranker", "api_key", ["INSIGHTFORGE_RERANKER_API_KEY"], "", workspace_root)
 
 
 def video_model(workspace_root: str | Path = ".") -> str:
-    return config_value("video", "model", ["VIMAX_VIDEO_MODEL"], DEFAULT_VIDEO_MODEL, workspace_root)
+    return config_value("video", "model", ["INSIGHTFORGE_VIDEO_MODEL"], DEFAULT_VIDEO_MODEL, workspace_root)
 
 
 def video_base_url(workspace_root: str | Path = ".") -> str:
-    return config_value("video", "base_url", ["VIMAX_VIDEO_BASE_URL"], DEFAULT_VIDEO_BASE_URL, workspace_root)
+    return config_value("video", "base_url", ["INSIGHTFORGE_VIDEO_BASE_URL"], DEFAULT_VIDEO_BASE_URL, workspace_root)
 
 
 def video_api_key(workspace_root: str | Path = ".") -> str:
-    return config_value("video", "api_key", ["VIMAX_VIDEO_API_KEY", "VIMAX_LLM_API_KEY", "VIMAX_API_KEY"], llm_api_key(workspace_root), workspace_root)
+    return config_value("video", "api_key", ["INSIGHTFORGE_VIDEO_API_KEY", "INSIGHTFORGE_LLM_API_KEY", "INSIGHTFORGE_API_KEY"], llm_api_key(workspace_root), workspace_root)
 
 
 def video_t2v_model(workspace_root: str | Path = ".") -> str:
     """Text-to-video model ID for the video section. Falls back to video.model."""
-    return config_value("video", "t2v_model", ["VIMAX_VIDEO_T2V_MODEL"], video_model(workspace_root), workspace_root)
+    return config_value("video", "t2v_model", ["INSIGHTFORGE_VIDEO_T2V_MODEL"], video_model(workspace_root), workspace_root)
 
 
 def video_i2v_model(workspace_root: str | Path = ".") -> str:
     """Image-to-video model ID for the video section. Falls back to video.model."""
-    return config_value("video", "i2v_model", ["VIMAX_VIDEO_I2V_MODEL"], video_model(workspace_root), workspace_root)
+    return config_value("video", "i2v_model", ["INSIGHTFORGE_VIDEO_I2V_MODEL"], video_model(workspace_root), workspace_root)
 
 
 def api_provider_from_base_url(base_url: str) -> str:

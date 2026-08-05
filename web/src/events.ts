@@ -143,7 +143,7 @@ export function humanize(value: string) {
   return value
     .replace(/[_-]+/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
-    .replace(/\bVimax\b/g, 'ViMax');
+    .replace(/\bInsightforge\b/g, 'InsightForge');
 }
 
 function cleanError(value: string) {

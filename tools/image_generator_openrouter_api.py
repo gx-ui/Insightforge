@@ -25,7 +25,7 @@ class OpenRouterImageAPIError(RuntimeError):
 
 
 def _request_timeout_seconds() -> float:
-    raw = os.environ.get("VIMAX_IMAGE_REQUEST_TIMEOUT_SECONDS", "300")
+    raw = os.environ.get("INSIGHTFORGE_IMAGE_REQUEST_TIMEOUT_SECONDS", "300")
     try:
         return max(1.0, float(raw))
     except ValueError:
@@ -53,7 +53,7 @@ class ImageGeneratorOpenRouterAPI:
         output_compression: int | None = None,
         rate_limiter: RateLimiter | None = None,
         http_referer: str = "",
-        app_title: str = "ViMax",
+        app_title: str = "InsightForge",
     ) -> None:
         self.api_key = api_key
         self.model = model

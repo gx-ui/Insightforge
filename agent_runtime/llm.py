@@ -46,7 +46,7 @@ class OpenAICompatibleLLM:
         self.base_url = base_url or llm_base_url()
         self.api_key = api_key or llm_api_key()
         if not self.api_key:
-            raise RuntimeError("VIMAX_LLM_API_KEY is required for the agent LLM client")
+            raise RuntimeError("INSIGHTFORGE_LLM_API_KEY is required for the agent LLM client")
         self.client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url, timeout=LLM_REQUEST_TIMEOUT_SECONDS)
 
     async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> AssistantMessage:

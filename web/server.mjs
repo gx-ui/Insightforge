@@ -18,9 +18,9 @@ import {
 const webRoot = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(webRoot, '..');
 const isDev = process.argv.includes('--dev');
-const host = process.env.VIMAX_WEB_HOST || '127.0.0.1';
-const port = Number(process.env.VIMAX_WEB_PORT || 4173);
-const configuredUploadLimit = Number(process.env.VIMAX_WEB_UPLOAD_MAX_BYTES || 100 * 1024 * 1024);
+const host = process.env.INSIGHTFORGE_WEB_HOST || '127.0.0.1';
+const port = Number(process.env.INSIGHTFORGE_WEB_PORT || 4173);
+const configuredUploadLimit = Number(process.env.INSIGHTFORGE_WEB_UPLOAD_MAX_BYTES || 100 * 1024 * 1024);
 const uploadMaxBytes = Number.isFinite(configuredUploadLimit) && configuredUploadLimit > 0
   ? configuredUploadLimit
   : 100 * 1024 * 1024;
@@ -108,9 +108,9 @@ const server = createServer(async (request, response) => {
     if (url.pathname === '/api/health' && request.method === 'GET') {
       return sendJson(response, 200, {ok: true, agentRunning: Boolean(agentProcess), activeSessionId});
     }
-    if (url.pathname === '/assets/vimax.png' && request.method === 'GET') {
+    if (url.pathname === '/assets/insightforge.png' && request.method === 'GET') {
       response.writeHead(200, {'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600'});
-      createReadStream(path.join(repoRoot, 'assets', 'vimax.png')).pipe(response);
+      createReadStream(path.join(repoRoot, 'assets', 'insightforge.png')).pipe(response);
       return;
     }
     if (vite) {
@@ -133,7 +133,7 @@ if (isDev) {
 }
 
 server.listen(port, host, () => {
-  console.log(`ViMax Web: http://${host}:${port}`);
+  console.log(`InsightForge Web: http://${host}:${port}`);
 });
 
 process.on('SIGINT', shutdown);
@@ -243,12 +243,12 @@ function stopAgent(reason) {
 }
 
 function agentCommand() {
-  if (process.env.VIMAX_AGENT_COMMAND) {
-    return {command: process.env.VIMAX_AGENT_COMMAND, args: splitArgs(process.env.VIMAX_AGENT_ARGS || '')};
+  if (process.env.INSIGHTFORGE_AGENT_COMMAND) {
+    return {command: process.env.INSIGHTFORGE_AGENT_COMMAND, args: splitArgs(process.env.INSIGHTFORGE_AGENT_ARGS || '')};
   }
-  const configuredPython = process.env.VIMAX_PYTHON_CMD;
+  const configuredPython = process.env.INSIGHTFORGE_PYTHON_CMD;
   if (configuredPython) return {command: configuredPython, args: []};
-  const bundledUv = process.env.VIMAX_UV_CMD || path.join(process.env.HOME || '', '.local', 'bin', 'uv');
+  const bundledUv = process.env.INSIGHTFORGE_UV_CMD || path.join(process.env.HOME || '', '.local', 'bin', 'uv');
   if (bundledUv && existsSync(bundledUv)) return {command: bundledUv, args: ['run', 'python']};
   const venvPython = path.join(repoRoot, '.venv', 'bin', 'python3');
   if (existsSync(venvPython)) return {command: venvPython, args: []};

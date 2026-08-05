@@ -10,11 +10,11 @@ input.on('line', async (line) => {
   emit({type: 'prompt_trace', turn_id: turnId, prompt_trace: {totals: {total_tokens: 6840}}});
   emit({type: 'status', turn_id: turnId, phase: 'sampling_assistant', message: 'Sampling assistant'});
   await wait(120);
-  emit({type: 'tool_start', turn_id: turnId, tool: {id: 'tool-demo', name: 'vimax_narrative_planning'}});
+  emit({type: 'tool_start', turn_id: turnId, tool: {id: 'tool-demo', name: 'insightforge_narrative_planning'}});
   await wait(120);
-  emit({type: 'tool_progress', turn_id: turnId, tool: {name: 'vimax_narrative_planning'}, progress: {stage: 'design_storyboard', message: 'Designing storyboard'}});
+  emit({type: 'tool_progress', turn_id: turnId, tool: {name: 'insightforge_narrative_planning'}, progress: {stage: 'design_storyboard', message: 'Designing storyboard'}});
   await wait(220);
-  emit({type: 'tool_result', turn_id: turnId, tool_result: {name: 'vimax_narrative_planning', ok: true, content: 'Narrative planning complete'}});
+  emit({type: 'tool_result', turn_id: turnId, tool_result: {name: 'insightforge_narrative_planning', ok: true, content: 'Narrative planning complete'}});
   await wait(100);
   const assistant = `The text plan is ready for **${prompt}**.\n\nI created the script, storyboard, shot decomposition, and camera plan. Would you like to revise the plan or continue to render?`;
   emit({type: 'token', turn_id: turnId, delta: assistant});

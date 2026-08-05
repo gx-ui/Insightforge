@@ -22,7 +22,7 @@ class ToolRegistryTests(unittest.IsolatedAsyncioTestCase):
             record = await executor.execute(ToolCall(name="write_json", arguments={"path": "data/a.json", "data": {"x": 1}}), TurnControl())
             self.assertTrue(record.result.ok)
             self.assertEqual(json.loads((Path(tmp) / "data" / "a.json").read_text())["x"], 1)
-            self.assertTrue((Path(tmp) / ".vimax" / "logs" / "tool_calls.jsonl").exists())
+            self.assertTrue((Path(tmp) / ".insightforge" / "logs" / "tool_calls.jsonl").exists())
 
     async def test_unknown_and_missing_argument_return_tool_errors(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -63,7 +63,7 @@ class ToolRegistryTests(unittest.IsolatedAsyncioTestCase):
             items = [{"content": "实现 TUI", "status": "in_progress"}, {"content": "补测试"}]
             written = await executor.execute(ToolCall(name="todo_write", arguments={"items": items}), TurnControl())
             self.assertTrue(written.result.ok)
-            todo_path = Path(tmp) / ".vimax" / "todo.json"
+            todo_path = Path(tmp) / ".insightforge" / "todo.json"
             self.assertTrue(todo_path.exists())
             payload = json.loads(todo_path.read_text())
             self.assertEqual(payload["items"][0]["content"], "实现 TUI")
@@ -72,7 +72,7 @@ class ToolRegistryTests(unittest.IsolatedAsyncioTestCase):
             read = await executor.execute(ToolCall(name="todo_read", arguments={}), TurnControl())
             self.assertTrue(read.result.ok)
             self.assertEqual(json.loads(read.result.content)["items"], payload["items"])
-            logs = (Path(tmp) / ".vimax" / "logs" / "tool_calls.jsonl").read_text()
+            logs = (Path(tmp) / ".insightforge" / "logs" / "tool_calls.jsonl").read_text()
             self.assertIn('"tool": "todo_write"', logs)
 
     async def test_todo_write_rejects_invalid_payload(self):
@@ -100,7 +100,7 @@ class ToolRegistryTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(result.result.ok)
             payload = json.loads(result.result.content)
             self.assertEqual(payload["session"]["session_id"], "20260630-125442-vimax")
-            self.assertEqual(payload["source"], ".vimax/sessions.json")
+            self.assertEqual(payload["source"], ".insightforge/sessions.json")
             self.assertTrue(result.result.metadata["virtual_path"])
 
     async def test_read_file_supports_virtual_session_log_path(self):
@@ -111,13 +111,13 @@ class ToolRegistryTests(unittest.IsolatedAsyncioTestCase):
             registry = build_builtin_registry(tmp, index)
             executor = ToolExecutor(registry, index)
             result = await executor.execute(
-                ToolCall(name="read_file", arguments={"path": ".vimax/logs/20260630-125442-vimax.log"}),
+                ToolCall(name="read_file", arguments={"path": ".insightforge/logs/20260630-125442-vimax.log"}),
                 TurnControl(),
             )
             self.assertTrue(result.result.ok)
             payload = json.loads(result.result.content)
             self.assertEqual(payload["session_id"], "20260630-125442-vimax")
-            self.assertEqual(payload["source"], ".vimax/logs/*.jsonl")
+            self.assertEqual(payload["source"], ".insightforge/logs/*.jsonl")
             self.assertEqual(payload["records"][0]["turn_id"], "turn-1")
             self.assertTrue(result.result.metadata["virtual_path"])
 

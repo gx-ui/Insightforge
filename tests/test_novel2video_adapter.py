@@ -12,7 +12,7 @@ from interfaces import CharacterInEvent, CharacterInNovel, CharacterInScene, Eve
 from interfaces.environment import EnvironmentInScene
 from agent_runtime.session_index import SessionIndex
 from agent_runtime.tools import ToolRuntimeContext
-from agent_runtime.vimax_adapters import ViMaxAdapters, _run_planning_step
+from agent_runtime.insightforge_adapters import InsightForgeAdapters, _run_planning_step
 from agents.global_information_planner import GlobalInformationPlanner, MergeCharactersAcrossScenesInEventResponse
 from pipelines.novel2movie_pipeline import Novel2MoviePipeline
 
@@ -219,9 +219,9 @@ class NovelAdapterTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
             empty = index.create(project_name="Novel draft")
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch("agent_runtime.vimax_adapters._build_novel_pipeline", side_effect=lambda working_dir: FakeNovelPipeline(Path(working_dir))):
-                result = await adapter.vimax_novel_planning({"novel_text": "Hero opens a door."})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch("agent_runtime.insightforge_adapters._build_novel_pipeline", side_effect=lambda working_dir: FakeNovelPipeline(Path(working_dir))):
+                result = await adapter.insightforge_novel_planning({"novel_text": "Hero opens a door."})
             self.assertTrue(result.ok)
             payload = json.loads(result.content)
             self.assertEqual(payload["session_id"], empty["session_id"])
@@ -231,10 +231,10 @@ class NovelAdapterTests(unittest.IsolatedAsyncioTestCase):
     async def test_missing_rag_config_returns_tool_error_and_marks_session_error(self):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch.dict("os.environ", {"VIMAX_LLM_API_KEY": "llm-key", "VIMAX_LLM_BASE_URL": "https://llm.test/v1"}, clear=True), \
-                 patch("agent_runtime.vimax_adapters._build_embedding_model", side_effect=RuntimeError("embedding config missing")):
-                result = await adapter.vimax_novel_planning({"novel_text": "Hero opens a door."})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch.dict("os.environ", {"INSIGHTFORGE_LLM_API_KEY": "llm-key", "INSIGHTFORGE_LLM_BASE_URL": "https://llm.test/v1"}, clear=True), \
+                 patch("agent_runtime.insightforge_adapters._build_embedding_model", side_effect=RuntimeError("embedding config missing")):
+                result = await adapter.insightforge_novel_planning({"novel_text": "Hero opens a door."})
             self.assertFalse(result.ok)
             self.assertIn("embedding", result.content.lower())
             self.assertEqual(index.active()["stage"], "error")
@@ -242,11 +242,11 @@ class NovelAdapterTests(unittest.IsolatedAsyncioTestCase):
     async def test_success_writes_novel2video_artifacts_and_marks_novel_planned(self):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
-            adapter = ViMaxAdapters(Path(tmp), index)
+            adapter = InsightForgeAdapters(Path(tmp), index)
             progress_events = []
-            runtime = ToolRuntimeContext("vimax_novel_planning", "vimax_novel_planning", turn_id="turn-test", progress_callback=progress_events.append)
-            with patch("agent_runtime.vimax_adapters._build_novel_pipeline", side_effect=lambda working_dir: FakeNovelPipeline(Path(working_dir))):
-                result = await adapter.vimax_novel_planning({"novel_text": "Hero opens a door.", "style": "noir"}, runtime)
+            runtime = ToolRuntimeContext("insightforge_novel_planning", "insightforge_novel_planning", turn_id="turn-test", progress_callback=progress_events.append)
+            with patch("agent_runtime.insightforge_adapters._build_novel_pipeline", side_effect=lambda working_dir: FakeNovelPipeline(Path(working_dir))):
+                result = await adapter.insightforge_novel_planning({"novel_text": "Hero opens a door.", "style": "noir"}, runtime)
             self.assertTrue(result.ok)
             payload = json.loads(result.content)
             root = Path(tmp) / payload["working_dir"]
@@ -265,14 +265,14 @@ class NovelAdapterTests(unittest.IsolatedAsyncioTestCase):
             record = index.create(idea="novel", user_requirement="scene render", style="noir")
             root = Path(tmp) / record["working_dir"]
             write_minimal_novel_artifacts(root)
-            adapter = ViMaxAdapters(Path(tmp), index)
+            adapter = InsightForgeAdapters(Path(tmp), index)
             progress_events = []
-            runtime = ToolRuntimeContext("vimax_render_video", "vimax_render_video", turn_id="turn-test", progress_callback=progress_events.append)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters._build_image_generator", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters._build_video_generator", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters._build_novel_render_pipeline", side_effect=lambda working_dir, chat_model, image_generator, video_generator: FakeNovelRenderPipeline(Path(working_dir))):
-                result = await adapter.vimax_render_video({}, runtime)
+            runtime = ToolRuntimeContext("insightforge_render_video", "insightforge_render_video", turn_id="turn-test", progress_callback=progress_events.append)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters._build_image_generator", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters._build_video_generator", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters._build_novel_render_pipeline", side_effect=lambda working_dir, chat_model, image_generator, video_generator: FakeNovelRenderPipeline(Path(working_dir))):
+                result = await adapter.insightforge_render_video({}, runtime)
             self.assertTrue(result.ok)
             payload = json.loads(result.content)
             self.assertEqual(payload["render_mode"], "novel2video")

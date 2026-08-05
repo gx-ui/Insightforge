@@ -1,4 +1,4 @@
-﻿# ViMax agent runtime local configuration template.
+﻿# InsightForge agent runtime local configuration template.
 # Keep real keys out of commits. Prefer environment variables for shared or CI usage.
 
 llm:

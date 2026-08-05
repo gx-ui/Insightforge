@@ -22,7 +22,7 @@ def event_stdout():
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the ViMax agent loop.")
+    parser = argparse.ArgumentParser(description="Run the InsightForge agent loop.")
     parser.add_argument("--session", default="", help="Existing session id to activate before the run starts.")
     parser.add_argument("--new-session", action="store_true", help="Create and activate a new empty session before the run starts.")
     parser.add_argument("--new-session-name", default="", help="Display name for a newly created session.")
@@ -131,7 +131,7 @@ async def amain(argv: list[str] | None = None) -> int:
     runtime = load_runtime()
     interactive = sys.stdin.isatty() and not args.once
     if interactive and not args.jsonl:
-        print("ViMax agent ready. Ctrl+C to exit.")
+        print("InsightForge agent ready. Ctrl+C to exit.")
     for user_input in prompt_inputs(args):
         if user_input.strip() == "/compact":
             turn_id = f"turn-{uuid4().hex[:12]}"

@@ -1,14 +1,14 @@
 <div align="center">
 
 <picture>
-    <img src="assets/vimax.svg" width="130px" style="border: none; box-shadow: none;" alt="ViMax Logo">
+    <img src="assets/insightforge.svg" width="130px" style="border: none; box-shadow: none;" alt="InsightForge Logo">
 </picture>
 </div>
 <div align="center">
-  <h1 align="center">ViMax: Agentic Video Generation</h1>
+  <h1 align="center">InsightForge: Agentic Video Generation</h1>
   <p align="center">
-    <a href="https://trendshift.io/repositories/15299" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/15299" alt="HKUDS%2FViMax | Trendshift" width="250" height="55"/></a>
-    <a href="https://trendshift.io/repositories/15299?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-15299" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/15299/weekly?language=Python" alt="HKUDS%2FViMax | Trendshift" width="250" height="55"/></a>
+    <a href="https://trendshift.io/repositories/15299" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/15299" alt="HKUDS%2FInsightForge | Trendshift" width="250" height="55"/></a>
+    <a href="https://trendshift.io/repositories/15299?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-15299" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/15299/weekly?language=Python" alt="HKUDS%2FInsightForge | Trendshift" width="250" height="55"/></a>
   </p>
   <div align="center">
   </div>
@@ -17,7 +17,7 @@
     <img src="https://img.shields.io/badge/Python-3.12-00d9ff?style=flat-square&logo=python&logoColor=white&labelColor=1a1a2e">
 	<a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/badge/uv-Ready-ff6b6b?style=flat-square&logo=uv&logoColor=white&labelColor=1a1a2e"></a>
 	<img src="https://img.shields.io/badge/License-MIT-4ecdc4?style=flat-square&logo=opensourceinitiative&logoColor=white" alt="MIT License">
-    <a href="https://github.com/HKUDS/ViMax/releases/tag/v1.2.0"><img src="https://img.shields.io/badge/Version-v1.2.0-2563eb?style=flat-square&labelColor=1a1a2e" alt="ViMax v1.2.0"></a>
+    <a href="https://github.com/HKUDS/InsightForge/releases/tag/v1.2.0"><img src="https://img.shields.io/badge/Version-v1.2.0-2563eb?style=flat-square&labelColor=1a1a2e" alt="InsightForge v1.2.0"></a>
     <a href='https://www.youtube.com/@AI-Creator-is-here'><img src='https://img.shields.io/badge/YouTube-ff0000?style=flat-square&logo=youtube&logoColor=white&labelColor=1a1a2e' /></a>
     <a href='https://arxiv.org/abs/2606.07649'><img src='https://img.shields.io/badge/arXiv-2606.07649-b31b1b?style=flat-square&logo=arxiv&logoColor=white&labelColor=1a1a2e' /></a>
   </p>
@@ -39,8 +39,8 @@
 - ❌ **Consistency Chaos** - Characters and scenes change unpredictably across frames. <br>
 - ❌ **Visual-Only Focus** - Missing scripts, audio, narrative structure, and storytelling depth. <br>
 
-### 💡 ViMax Solution:
-🎬 **Director**, **Screenwriter**, **Producer**, and **Video Generator** **All-in-One**! We're exploring a future where AI becomes a complete creative powerhouse. 💡 Simply input your concept. ViMax autonomously handles the rest. It orchestrates scriptwriting, storyboarding, character creation, and final video generation—all end-to-end. 🚀
+### 💡 InsightForge Solution:
+🎬 **Director**, **Screenwriter**, **Producer**, and **Video Generator** **All-in-One**! We're exploring a future where AI becomes a complete creative powerhouse. 💡 Simply input your concept. InsightForge autonomously handles the rest. It orchestrates scriptwriting, storyboarding, character creation, and final video generation—all end-to-end. 🚀
 
 https://github.com/user-attachments/assets/5bad46b2-8276-4e1d-9480-3522640744b2
 
@@ -53,7 +53,7 @@ https://github.com/user-attachments/assets/5bad46b2-8276-4e1d-9480-3522640744b2
 
 ### 📰 **News**
 
-- **2026-07-20** 🚀 **ViMax v1.2.0** introduces the Web UI with named projects, Agent Loop conversations, artifact and storyboard previews, render checkpoints, file uploads, provider settings, and dark mode.
+- **2026-07-20** 🚀 **InsightForge v1.2.0** introduces the Web UI with named projects, Agent Loop conversations, artifact and storyboard previews, render checkpoints, file uploads, provider settings, and dark mode.
 - **2026-07-17** 🎬 OpenRouter GPT Image 2 image generation and Seedance 2.0 Fast video generation support added.
 - **2026-06-28** 🛠️ Agent Loop and TUI stability update: stronger LLM retries, persistent render status, landscape image guards, and Script2Video resume fixes.
 - **2026-06-09** 📄 Technical report released.
@@ -75,14 +75,14 @@ https://github.com/user-attachments/assets/5bad46b2-8276-4e1d-9480-3522640744b2
 ---
 ## ✨ Key Features
 
-ViMax is an agentic video creation framework that connects narrative planning, visual consistency, image generation, video generation, and final assembly in one extensible workflow.
+InsightForge is an agentic video creation framework that connects narrative planning, visual consistency, image generation, video generation, and final assembly in one extensible workflow.
 
 - **Idea2Video** — turn a short concept into structured stories, characters, scripts, storyboards, shots, and a finished video.
 - **Script2Video** — convert an explicit screenplay into controllable multi-scene, multi-shot video while preserving its creative intent.
 - **Novel2Video** — adapt long-form fiction into episodic visual narratives with narrative compression, character tracking, and scene planning.
 - **AutoCameo** — place a person or pet from a reference photo into generated stories while maintaining a consistent appearance.
 - **Agent Loop and TUI** — discuss ideas, revise plans, resume sessions, review text artifacts, and control rendering from one interactive workspace.
-- **Web UI** — manage named projects, work with the ViMax Agent, upload source files, inspect artifacts and storyboard progress, preview renders, and configure providers from the browser.
+- **Web UI** — manage named projects, work with the InsightForge Agent, upload source files, inspect artifacts and storyboard progress, preview renders, and configure providers from the browser.
 - **Consistent production pipeline** — coordinate references, first frames, camera continuity, and final assembly end to end.
 - **Parallelized generation** — generate compatible shots and media assets concurrently to accelerate multi-shot video production.
 
@@ -148,10 +148,10 @@ ViMax is an agentic video creation framework that connects narrative planning, v
 
 ---
 
-### 🖥️ **ViMax Web UI**
+### 🖥️ **InsightForge Web UI**
 
 <div align="center">
-  <img src="assets/vimax-web-ui.png" width="100%" alt="ViMax Web UI workspace">
+  <img src="assets/insightforge-web-ui.png" width="100%" alt="InsightForge Web UI workspace">
 </div>
 
 The Web UI brings agent conversation, project artifacts, storyboard previews, and render progress into one visual workspace.
@@ -179,19 +179,19 @@ The Web UI brings agent conversation, project artifacts, storyboard previews, an
 - 🎥 **Scaling AI Generated Video**: AI-generated videos are usually only a few seconds long, high-quality long videos at the minute or even hour level require complex cross-scene continuity and multi-storyboards design and processing capabilities.
 
 
-**ViMAX**: eliminates these production bottlenecks by automating the entire video creation pipeline from narrative input to final video output.
+**InsightForge**: eliminates these production bottlenecks by automating the entire video creation pipeline from narrative input to final video output.
 
 ---
 
 
-### 🔥 **Why ViMax?**
+### 🔥 **Why InsightForge?**
 
 | 🧠 **Effortless Production** | 🚀 **Complete Creative Freedom** | 🔊 **Audio and Video Binding** | 🎨 **Professional Quality** | 🤩 **Interactive Video** 
 |:---:|:---:|:---:|:---:|:---:|
 | One-Prompt to Finished Video | From Any Narrative to Reality | Synchronized Storytelling | Movie-Grade Output | Make Your Own Cameo Video
-| Skip the technical complexity—just describe your vision and let ViMax handle script generation, storyboarding, shot design, reference management, and consistency validation | No creative limits—whether it's a trailer, short story, novel chapter, or original concept, ViMax intelligently structures narratives and designs cinematography to bring any idea to life | Seamlessly integrate character voice, and sound effects with visual content to create immersive experiences where audio and video work in perfect harmony | Automated quality control ensures character consistency, proper scene composition, and professional visual standards across every frame of your video | Interact in your own short stories by uploading your photo—ViMax intelligently integrates you as a character with consistent appearance and natural interactions throughout the entire video
+| Skip the technical complexity—just describe your vision and let InsightForge handle script generation, storyboarding, shot design, reference management, and consistency validation | No creative limits—whether it's a trailer, short story, novel chapter, or original concept, InsightForge intelligently structures narratives and designs cinematography to bring any idea to life | Seamlessly integrate character voice, and sound effects with visual content to create immersive experiences where audio and video work in perfect harmony | Automated quality control ensures character consistency, proper scene composition, and professional visual standards across every frame of your video | Interact in your own short stories by uploading your photo—InsightForge intelligently integrates you as a character with consistent appearance and natural interactions throughout the entire video
 
-ViMax now also includes an **Agents Loop + TUI** workflow for interactive planning, revision, rendering control, session reuse, and context compaction while preserving the original direct pipeline entrypoints.
+InsightForge now also includes an **Agents Loop + TUI** workflow for interactive planning, revision, rendering control, session reuse, and context compaction while preserving the original direct pipeline entrypoints.
 
 
 ---
@@ -219,8 +219,8 @@ OS: Linux, Windows
 ### 📥 **Clone and Install**
 We use uv to manage the environment. For uv installation, please refer to the https://docs.astral.sh/uv/getting-started/installation/.
 ```bash
-git clone https://github.com/HKUDS/ViMax.git
-cd ViMax
+git clone https://github.com/HKUDS/InsightForge.git
+cd InsightForge
 uv sync
 ```
 
@@ -228,7 +228,7 @@ uv sync
 <details>
 <summary><strong>Agent TUI</strong></summary>
 
-ViMax also provides a minimal TUI for interactive agent-based video creation. Create a private local configuration from the tracked example first:
+InsightForge also provides a minimal TUI for interactive agent-based video creation. Create a private local configuration from the tracked example first:
 
 ```bash
 cp configs/agent.example.yaml configs/agent.local.yaml
@@ -253,28 +253,28 @@ video:
   api_key: <YOUR_API_KEY>
 ```
 
-Then, start the TUI from the ViMax root directory:
+Then, start the TUI from the InsightForge root directory:
 ```bash
-vimax tui
+./insightforge tui
 ```
 
 Start a new session or resume an existing one:
 ```bash
-vimax tui new
-vimax tui resume
-vimax tui resume <session_id>
+./insightforge tui new
+./insightforge tui resume
+./insightforge tui resume <session_id>
 ```
 
-You can also keep `configs/agent.local.yaml` empty and provide the same values through environment variables, such as `VIMAX_LLM_API_KEY`, `VIMAX_IMAGE_API_KEY`, and `VIMAX_VIDEO_API_KEY`.
+You can also keep `configs/agent.local.yaml` empty and provide the same values through environment variables, such as `INSIGHTFORGE_LLM_API_KEY`, `INSIGHTFORGE_IMAGE_API_KEY`, and `INSIGHTFORGE_VIDEO_API_KEY`.
 
 </details>
 
 <details>
 <summary><strong>Web UI</strong></summary>
 
-The Web UI uses the same ViMax agent runtime, sessions, tools, and private `configs/agent.local.yaml` configuration as the TUI. Node.js 18 or newer is required.
+The Web UI uses the same InsightForge agent runtime, sessions, tools, and private `configs/agent.local.yaml` configuration as the TUI. Node.js 18 or newer is required.
 
-From the `ViMax` repository root, install the frontend dependencies once and start the local server:
+From the `InsightForge` repository root, install the frontend dependencies once and start the local server:
 
 ```bash
 cd web
@@ -284,16 +284,16 @@ npm run dev
 
 Open [http://127.0.0.1:4173](http://127.0.0.1:4173) in your browser. The Web UI supports named projects, agent conversations, slash commands, artifact and render inspection, storyboard previews, file uploads, and provider settings.
 
-The server binds to `127.0.0.1` by default. When ViMax runs on a remote machine, forward the port from your local computer:
+The server binds to `127.0.0.1` by default. When InsightForge runs on a remote machine, forward the port from your local computer:
 
 ```bash
 ssh -N -L 4173:127.0.0.1:4173 <user>@<server>
 ```
 
-Use `VIMAX_WEB_PORT` when another local port is required:
+Use `INSIGHTFORGE_WEB_PORT` when another local port is required:
 
 ```bash
-VIMAX_WEB_PORT=4174 npm run dev
+INSIGHTFORGE_WEB_PORT=4174 npm run dev
 ```
 
 </details>

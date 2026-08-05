@@ -116,55 +116,6 @@ wheels = [
 ]
 
 [[package]]
-name = "autolongvideogeneration"
-version = "1.2.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "chardet" },
-    { name = "faiss-cpu" },
-    { name = "google-genai" },
-    { name = "langchain" },
-    { name = "langchain-community" },
-    { name = "langchain-openai" },
-    { name = "moviepy" },
-    { name = "openai" },
-    { name = "opencv-python" },
-    { name = "pillow" },
-    { name = "pyyaml" },
-    { name = "requests" },
-    { name = "scenedetect", extra = ["opencv"] },
-    { name = "tenacity" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiohttp", specifier = ">=3.12.14" },
-    { name = "chardet", specifier = ">=5.2.0" },
-    { name = "faiss-cpu", specifier = ">=1.12.0" },
-    { name = "google-genai", specifier = ">=1.47.0" },
-    { name = "langchain", specifier = ">=0.3.26" },
-    { name = "langchain-community", specifier = ">=0.3.27" },
-    { name = "langchain-openai", specifier = ">=0.3.27" },
-    { name = "moviepy", specifier = ">=2.2.1" },
-    { name = "openai", specifier = ">=1.95.0" },
-    { name = "opencv-python" },
-    { name = "pillow", specifier = ">=11.3.0" },
-    { name = "pyyaml", specifier = ">=6.0.2" },
-    { name = "requests", specifier = ">=2.32.4" },
-    { name = "scenedetect", extras = ["opencv"], specifier = ">=0.6.7.1" },
-    { name = "tenacity", specifier = ">=9.1.2" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8" }]
-
-[[package]]
 name = "cachetools"
 version = "5.5.2"
 source = { registry = "https://pypi.org/simple" }
@@ -571,6 +522,55 @@ sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
 ]
+
+[[package]]
+name = "insightforge"
+version = "1.2.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "chardet" },
+    { name = "faiss-cpu" },
+    { name = "google-genai" },
+    { name = "langchain" },
+    { name = "langchain-community" },
+    { name = "langchain-openai" },
+    { name = "moviepy" },
+    { name = "openai" },
+    { name = "opencv-python" },
+    { name = "pillow" },
+    { name = "pyyaml" },
+    { name = "requests" },
+    { name = "scenedetect", extra = ["opencv"] },
+    { name = "tenacity" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp", specifier = ">=3.12.14" },
+    { name = "chardet", specifier = ">=5.2.0" },
+    { name = "faiss-cpu", specifier = ">=1.12.0" },
+    { name = "google-genai", specifier = ">=1.47.0" },
+    { name = "langchain", specifier = ">=0.3.26" },
+    { name = "langchain-community", specifier = ">=0.3.27" },
+    { name = "langchain-openai", specifier = ">=0.3.27" },
+    { name = "moviepy", specifier = ">=2.2.1" },
+    { name = "openai", specifier = ">=1.95.0" },
+    { name = "opencv-python" },
+    { name = "pillow", specifier = ">=11.3.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
+    { name = "requests", specifier = ">=2.32.4" },
+    { name = "scenedetect", extras = ["opencv"], specifier = ">=0.6.7.1" },
+    { name = "tenacity", specifier = ">=9.1.2" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8" }]
 
 [[package]]
 name = "jiter"

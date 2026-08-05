@@ -11,7 +11,7 @@ wheels/
 
 # working directory
 .working_dir/
-.vimax/
+.insightforge/
 .test/
 
 # Local environment files

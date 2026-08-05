@@ -332,11 +332,11 @@ class Novel2MoviePipeline:
         novel_level_dir = os.path.join(working_dir_characters, "novel_level")
 
         if not os.path.isdir(working_dir_events):
-            raise RuntimeError("novel2video/events is missing; run vimax_novel_planning first")
+            raise RuntimeError("novel2video/events is missing; run insightforge_novel_planning first")
         if not os.path.isdir(working_dir_scenes):
-            raise RuntimeError("novel2video/scenes is missing; run vimax_novel_planning first")
+            raise RuntimeError("novel2video/scenes is missing; run insightforge_novel_planning first")
         if not os.path.isdir(event_level_dir) or not os.path.isdir(novel_level_dir):
-            raise RuntimeError("novel2video/global_information/characters is missing; run vimax_novel_planning first")
+            raise RuntimeError("novel2video/global_information/characters is missing; run insightforge_novel_planning first")
 
         event_files = [
             os.path.join(working_dir_events, fname)

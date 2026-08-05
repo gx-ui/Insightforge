@@ -38,12 +38,12 @@ def _synchronized(method):
 class SessionIndex:
     def __init__(self, workspace_root: str | Path) -> None:
         self.workspace_root = Path(workspace_root).resolve()
-        self.vimax_dir = self.workspace_root / ".vimax"
-        self.sessions_path = self.vimax_dir / "sessions.json"
-        self.memory_path = self.vimax_dir / "memory.md"
-        self.logs_dir = self.vimax_dir / "logs"
+        self.insightforge_dir = self.workspace_root / ".insightforge"
+        self.sessions_path = self.insightforge_dir / "sessions.json"
+        self.memory_path = self.insightforge_dir / "memory.md"
+        self.logs_dir = self.insightforge_dir / "logs"
         self.working_root = self.workspace_root / ".working_dir"
-        self.vimax_dir.mkdir(parents=True, exist_ok=True)
+        self.insightforge_dir.mkdir(parents=True, exist_ok=True)
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.working_root.mkdir(parents=True, exist_ok=True)
         if not self.memory_path.exists():
@@ -56,7 +56,7 @@ class SessionIndex:
         if fcntl is None:
             yield
             return
-        lock_path = self.vimax_dir / "sessions.lock"
+        lock_path = self.insightforge_dir / "sessions.lock"
         with open(lock_path, "a+", encoding="utf-8") as handle:
             fcntl.flock(handle, fcntl.LOCK_EX)
             try:
@@ -111,7 +111,7 @@ class SessionIndex:
         data = self.load()
         sessions = data.setdefault("sessions", {})
         clean_project_name = str(project_name or "").strip()[:64]
-        final_id = self._normalize_session_id(session_id) if session_id else self._new_session_id(clean_project_name or idea or user_requirement or "vimax", sessions)
+        final_id = self._normalize_session_id(session_id) if session_id else self._new_session_id(clean_project_name or idea or user_requirement or "insightforge", sessions)
         if final_id in sessions:
             final_id = self._dedupe_session_id(final_id, sessions)
         now = datetime.now().isoformat(timespec="seconds")
@@ -319,7 +319,7 @@ class SessionIndex:
 
     def _new_session_id(self, source: str, sessions: dict[str, Any]) -> str:
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        slug = (re.sub(r"[^a-zA-Z0-9]+", "-", source.lower()).strip("-")[:32].strip("-") or "vimax")
+        slug = (re.sub(r"[^a-zA-Z0-9]+", "-", source.lower()).strip("-")[:32].strip("-") or "insightforge")
         return self._dedupe_session_id(f"{stamp}-{slug}", sessions)
 
     def _dedupe_session_id(self, base: str, sessions: dict[str, Any]) -> str:

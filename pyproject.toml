@@ -1,7 +1,7 @@
 [project]
-name = "autolongvideogeneration"
+name = "insightforge"
 version = "1.2.0"
-description = "Agentic video generation with idea, script, novel, TUI, and Web UI workflows"
+description = "InsightForge: Agentic Video Generation"
 readme = "readme.md"
 requires-python = ">=3.12"
 dependencies = [

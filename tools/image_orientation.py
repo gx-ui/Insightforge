@@ -28,7 +28,7 @@ def ensure_not_portrait(image: Image.Image, *, tolerance: float | None = None) -
 
 
 def _portrait_tolerance() -> float:
-    raw = os.environ.get("VIMAX_IMAGE_PORTRAIT_RETRY_TOLERANCE", "1.05")
+    raw = os.environ.get("INSIGHTFORGE_IMAGE_PORTRAIT_RETRY_TOLERANCE", "1.05")
     try:
         return max(1.0, float(raw))
     except ValueError:

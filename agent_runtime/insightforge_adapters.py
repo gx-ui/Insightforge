@@ -42,19 +42,19 @@ class _UnavailableGenerator:
         raise RuntimeError("Video generator is not available in narrative planning mode")
 
 
-def build_vimax_adapter_specs(workspace_root: str | Path, session_index: Any) -> list[ToolSpec]:
-    adapter = ViMaxAdapters(Path(workspace_root), session_index)
+def build_insightforge_adapter_specs(workspace_root: str | Path, session_index: Any) -> list[ToolSpec]:
+    adapter = InsightForgeAdapters(Path(workspace_root), session_index)
     return [
         ToolSpec(
-            name="vimax_narrative_planning",
+            name="insightforge_narrative_planning",
             description=(
-                "Create or revise ViMax structured text artifacts for the active session. "
+                "Create or revise InsightForge structured text artifacts for the active session. "
                 "Idea mode writes story, characters, script, and scene-level storyboard/shot_decomposition/camera_tree under idea2video/scene_<idx>/. "
                 "Script mode writes characters, storyboard, shot_decomposition, and camera_tree under script2video/. "
                 "Pass the active session_id from prompt context when the user is working in the selected project. An empty active session is initialized in place; a different source on a non-empty session creates a new session instead of overwriting existing artifacts. If idea/script/revision_target are omitted and the active session has an idea, continue that session and fill missing structured text artifacts. "
                 "It does not generate keyframes, video clips, or final video. Call this before revising storyboard/shots when those artifacts do not exist."
             ),
-            handler=adapter.vimax_narrative_planning,
+            handler=adapter.insightforge_narrative_planning,
             schema={
                 "session_id": ToolArgumentSchema(str, required=False, default=""),
                 "idea": ToolArgumentSchema(str, required=False, default=""),
@@ -66,14 +66,14 @@ def build_vimax_adapter_specs(workspace_root: str | Path, session_index: Any) ->
             },
         ),
         ToolSpec(
-            name="vimax_novel_planning",
+            name="insightforge_novel_planning",
             description=(
-                "Create ViMax structured text artifacts from a novel or novel excerpt. "
+                "Create InsightForge structured text artifacts from a novel or novel excerpt. "
                 "This writes novel2video/novel, events, relevant_chunks, scenes, and global_information text artifacts. "
                 "Use this when the user provides long prose, a novel excerpt, or asks for novel-to-video planning. Pass the active session_id when the user is working in a selected empty project. "
                 "It does not generate character portraits, scene videos, or final video."
             ),
-            handler=adapter.vimax_novel_planning,
+            handler=adapter.insightforge_novel_planning,
             schema={
                 "session_id": ToolArgumentSchema(str, required=False, default=""),
                 "novel_text": ToolArgumentSchema(str, required=True),
@@ -82,12 +82,12 @@ def build_vimax_adapter_specs(workspace_root: str | Path, session_index: Any) ->
             },
         ),
         ToolSpec(
-            name="vimax_render_video",
+            name="insightforge_render_video",
             description=(
-                "Render keyframes, video clips, and final video for the active ViMax session. "
+                "Render keyframes, video clips, and final video for the active InsightForge session. "
                 "This checks that structured text artifacts exist before rendering and reports missing dependencies instead of pretending render started."
             ),
-            handler=adapter.vimax_render_video,
+            handler=adapter.insightforge_render_video,
             schema={
                 "session_id": ToolArgumentSchema(str, required=False, default=""),
                 "mode": ToolArgumentSchema(str, required=False, default="foreground"),
@@ -97,12 +97,12 @@ def build_vimax_adapter_specs(workspace_root: str | Path, session_index: Any) ->
     ]
 
 
-class ViMaxAdapters:
+class InsightForgeAdapters:
     def __init__(self, workspace_root: Path, session_index: Any) -> None:
         self.workspace_root = workspace_root.resolve()
         self.session_index = session_index
 
-    async def vimax_narrative_planning(self, args: dict[str, Any], runtime: ToolRuntimeContext | None = None) -> ToolResult:
+    async def insightforge_narrative_planning(self, args: dict[str, Any], runtime: ToolRuntimeContext | None = None) -> ToolResult:
         idea = str(args.get("idea", "") or "").strip()
         script = str(args.get("script", "") or "").strip()
         user_requirement = str(args.get("user_requirement", "") or "").strip()
@@ -126,7 +126,7 @@ class ViMaxAdapters:
                 user_requirement = user_requirement or str(session.get("user_requirement") or "").strip()
                 style = requested_style or str(session.get("style") or "").strip() or "Cinematic, coherent, 16:9"
             else:
-                return ToolResult("vimax_narrative_planning", False, "Provide `idea`, `script`, a revision target, or an active session with an existing idea for narrative planning.", {"error_type": "missing_input", "session_id": session_id})
+                return ToolResult("insightforge_narrative_planning", False, "Provide `idea`, `script`, a revision target, or an active session with an existing idea for narrative planning.", {"error_type": "missing_input", "session_id": session_id})
 
         style = style or str(session.get("style") or "").strip() or "Cinematic, coherent, 16:9"
         self._update_session_metadata(session_id, idea="", user_requirement="", style=style)
@@ -211,7 +211,7 @@ class ViMaxAdapters:
             }
             if runtime:
                 runtime.emit_progress("Narrative planning failed; partial artifacts were kept", stage="planning_failed", metadata=payload)
-            return ToolResult("vimax_narrative_planning", False, f"Narrative planning failed: {exc}", payload)
+            return ToolResult("insightforge_narrative_planning", False, f"Narrative planning failed: {exc}", payload)
 
         checklist = self.session_index.artifact_checklist(session_id)
         generated = [path for path, present in checklist.items() if present and not generated_before.get(path)]
@@ -228,20 +228,20 @@ class ViMaxAdapters:
             "missing": [path for path, present in checklist.items() if not present],
             "ready_for_render": ready_for_render,
         }
-        return ToolResult("vimax_narrative_planning", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
+        return ToolResult("insightforge_narrative_planning", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
 
     async def _revise_narrative_artifact(self, session_id: str, working_dir: Path, revision_target: str, revision_instruction: str, runtime: ToolRuntimeContext | None = None) -> ToolResult:
         if not revision_instruction:
             self.session_index.update_stage(session_id, "error", "Revision failed: missing revision_instruction")
-            return ToolResult("vimax_narrative_planning", False, "revision_instruction is required when revision_target is provided.", {"error_type": "missing_revision_instruction", "session_id": session_id, "revision_target": revision_target})
+            return ToolResult("insightforge_narrative_planning", False, "revision_instruction is required when revision_target is provided.", {"error_type": "missing_revision_instruction", "session_id": session_id, "revision_target": revision_target})
         try:
             target_path = _resolve_artifact_path(working_dir, revision_target)
         except ValueError as exc:
             self.session_index.update_stage(session_id, "error", f"Revision failed: {exc}")
-            return ToolResult("vimax_narrative_planning", False, str(exc), {"error_type": "invalid_revision_target", "session_id": session_id, "revision_target": revision_target})
+            return ToolResult("insightforge_narrative_planning", False, str(exc), {"error_type": "invalid_revision_target", "session_id": session_id, "revision_target": revision_target})
         if not target_path.exists():
             self.session_index.update_stage(session_id, "error", f"Revision failed: target does not exist: {revision_target}")
-            return ToolResult("vimax_narrative_planning", False, f"Revision target does not exist: {revision_target}", {"error_type": "dependency_missing", "session_id": session_id, "revision_target": revision_target})
+            return ToolResult("insightforge_narrative_planning", False, f"Revision target does not exist: {revision_target}", {"error_type": "dependency_missing", "session_id": session_id, "revision_target": revision_target})
         try:
             self.session_index.update_stage(session_id, "narrative_planning", "Revising structured text artifact")
             if runtime:
@@ -254,7 +254,7 @@ class ViMaxAdapters:
                     revised_payload = json.loads(revised)
                 except json.JSONDecodeError as exc:
                     self.session_index.update_stage(session_id, "error", f"Revision failed: invalid JSON output: {exc}")
-                    return ToolResult("vimax_narrative_planning", False, f"Revision output was not valid JSON: {exc}", {"error_type": "invalid_revision_json", "session_id": session_id, "revision_target": revision_target})
+                    return ToolResult("insightforge_narrative_planning", False, f"Revision output was not valid JSON: {exc}", {"error_type": "invalid_revision_json", "session_id": session_id, "revision_target": revision_target})
                 revised = json.dumps(revised_payload, ensure_ascii=False, indent=2)
             target_path.write_text(revised, encoding="utf-8")
         except Exception as exc:
@@ -279,14 +279,14 @@ class ViMaxAdapters:
             "ready_for_render": ready_for_render,
             "revision_target": target_path.relative_to(working_dir).as_posix(),
         }
-        return ToolResult("vimax_narrative_planning", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
+        return ToolResult("insightforge_narrative_planning", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
 
-    async def vimax_novel_planning(self, args: dict[str, Any], runtime: ToolRuntimeContext | None = None) -> ToolResult:
+    async def insightforge_novel_planning(self, args: dict[str, Any], runtime: ToolRuntimeContext | None = None) -> ToolResult:
         novel_text = str(args.get("novel_text", "") or "").strip()
         user_requirement = str(args.get("user_requirement", "") or "").strip()
         style = str(args.get("style", "") or "").strip() or "Cinematic, coherent, 16:9"
         if not novel_text:
-            return ToolResult("vimax_novel_planning", False, "novel_text is required for novel planning.", {"error_type": "missing_input"})
+            return ToolResult("insightforge_novel_planning", False, "novel_text is required for novel planning.", {"error_type": "missing_input"})
 
         session_id_arg = str(args.get("session_id", "") or "").strip()
         session = self._resolve_session(session_id_arg, idea=novel_text, script="", user_requirement=user_requirement, style=style)
@@ -317,7 +317,7 @@ class ViMaxAdapters:
             )
         except Exception as exc:
             self.session_index.update_stage(session_id, "error", f"Novel planning failed: {exc}")
-            return ToolResult("vimax_novel_planning", False, str(exc), {"error_type": "exception", "session_id": session_id})
+            return ToolResult("insightforge_novel_planning", False, str(exc), {"error_type": "exception", "session_id": session_id})
 
         checklist = self.session_index.artifact_checklist(session_id)
         generated = [path for path, present in checklist.items() if path.startswith("novel2video/") and present and not generated_before.get(path)]
@@ -335,13 +335,13 @@ class ViMaxAdapters:
             "missing": missing,
             "ready_for_scene_render": False,
         }
-        return ToolResult("vimax_novel_planning", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
+        return ToolResult("insightforge_novel_planning", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
 
-    async def vimax_render_video(self, args: dict[str, Any], runtime: ToolRuntimeContext | None = None) -> ToolResult:
+    async def insightforge_render_video(self, args: dict[str, Any], runtime: ToolRuntimeContext | None = None) -> ToolResult:
         session_id = str(args.get("session_id", "") or "").strip()
         session = self.session_index.get(session_id) if session_id else self.session_index.active()
         if session is None:
-            return ToolResult("vimax_render_video", False, "No active session to render.", {"error_type": "missing_session"})
+            return ToolResult("insightforge_render_video", False, "No active session to render.", {"error_type": "missing_session"})
         session_id = session["session_id"]
         checklist = self.session_index.artifact_checklist(session_id)
         missing = _missing_render_dependencies(checklist)
@@ -349,7 +349,7 @@ class ViMaxAdapters:
         if missing:
             payload = {"error_type": "dependency_missing", "missing": missing, "session_id": session_id}
             _write_render_status(working_dir, status="dependency_missing", payload=payload)
-            return ToolResult("vimax_render_video", False, f"Dependency missing: {', '.join(missing)}", payload)
+            return ToolResult("insightforge_render_video", False, f"Dependency missing: {', '.join(missing)}", payload)
 
         self.session_index.update_stage(session_id, "rendering", "Rendering video artifacts")
         _write_render_status(working_dir, status="rendering", payload={"session_id": session_id, "render_started": True, "render_completed": False})
@@ -366,7 +366,7 @@ class ViMaxAdapters:
                 self.session_index.update_stage(session_id, "rendered", "Final video rendered")
                 payload = {"session_id": session_id, "render_mode": "idea2video", "render_started": True, "render_completed": True, "final_video_path": str(Path(final_video).relative_to(self.workspace_root)), "missing": []}
                 _write_render_status(working_dir, status="rendered", payload=payload)
-                return ToolResult("vimax_render_video", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
+                return ToolResult("insightforge_render_video", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
             if _script_mode_ready(checklist):
                 script_dir = working_dir / "script2video"
                 script_text = _load_script_text(working_dir)
@@ -377,7 +377,7 @@ class ViMaxAdapters:
                 self.session_index.update_stage(session_id, "rendered", "Final video rendered")
                 payload = {"session_id": session_id, "render_mode": "script2video", "render_started": True, "render_completed": True, "final_video_path": str(Path(final_video).relative_to(self.workspace_root)), "missing": []}
                 _write_render_status(working_dir, status="rendered", payload=payload)
-                return ToolResult("vimax_render_video", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
+                return ToolResult("insightforge_render_video", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
             if _novel_mode_ready(checklist):
                 novel_dir = working_dir / "novel2video"
                 pipeline = _build_novel_render_pipeline(novel_dir, chat_model, image_generator, video_generator)
@@ -398,7 +398,7 @@ class ViMaxAdapters:
                     "missing": [],
                 }
                 _write_render_status(working_dir, status="rendered", payload=payload)
-                return ToolResult("vimax_render_video", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
+                return ToolResult("insightforge_render_video", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
         except Exception as exc:
             unwrapped = _unwrap_retry_error(exc)
             error_text = _sanitize_error_text(str(unwrapped))
@@ -417,10 +417,10 @@ class ViMaxAdapters:
             _write_render_status(working_dir, status="error", payload=payload)
             if runtime:
                 runtime.emit_progress("Render failed; partial artifacts were kept", stage="render_failed", metadata=payload)
-            return ToolResult("vimax_render_video", False, f"Render failed: {error_text}", payload)
+            return ToolResult("insightforge_render_video", False, f"Render failed: {error_text}", payload)
         payload = {"error_type": "dependency_missing", "session_id": session_id}
         _write_render_status(working_dir, status="dependency_missing", payload=payload)
-        return ToolResult("vimax_render_video", False, "No render mode matched current session.", payload)
+        return ToolResult("insightforge_render_video", False, "No render mode matched current session.", payload)
 
     def _resolve_session(self, session_id: str, *, idea: str, script: str, user_requirement: str, style: str) -> dict[str, Any]:
         requested_source = idea or script
@@ -489,7 +489,7 @@ def _suppress_pipeline_output():
 
 
 def _narrative_step_timeout_seconds() -> float:
-    raw = os.environ.get("VIMAX_NARRATIVE_STEP_TIMEOUT_SECONDS", "900")
+    raw = os.environ.get("INSIGHTFORGE_NARRATIVE_STEP_TIMEOUT_SECONDS", "900")
     try:
         return max(0.0, float(raw))
     except ValueError:
@@ -529,7 +529,7 @@ def _is_new_source_for_session(session: dict[str, Any], requested_source: str) -
 
 
 def _llm_request_timeout_seconds() -> float:
-    raw = os.environ.get("VIMAX_LLM_REQUEST_TIMEOUT_SECONDS", "300")
+    raw = os.environ.get("INSIGHTFORGE_LLM_REQUEST_TIMEOUT_SECONDS", "300")
     try:
         return max(1.0, float(raw))
     except ValueError:
@@ -537,7 +537,7 @@ def _llm_request_timeout_seconds() -> float:
 
 
 def _narrative_max_tokens() -> int:
-    raw = os.environ.get("VIMAX_NARRATIVE_MAX_TOKENS", "4096")
+    raw = os.environ.get("INSIGHTFORGE_NARRATIVE_MAX_TOKENS", "4096")
     try:
         return max(256, int(raw))
     except ValueError:
@@ -561,7 +561,7 @@ def _pipeline_progress(runtime: ToolRuntimeContext | None, session_id: str, *, s
 def _build_chat_model() -> Any:
     api_key = llm_api_key()
     if not api_key:
-        raise RuntimeError("VIMAX_LLM_API_KEY or configs/agent.local.yaml llm.api_key is required for narrative planning")
+        raise RuntimeError("INSIGHTFORGE_LLM_API_KEY or configs/agent.local.yaml llm.api_key is required for narrative planning")
     return init_chat_model(
         model=llm_model(),
         model_provider=llm_model_provider(),
@@ -576,7 +576,7 @@ def _build_chat_model() -> Any:
 def _build_image_generator() -> ImageGeneratorNanobananaYunwuAPI | ImageGeneratorOpenRouterAPI | ImageGeneratorDoubaoSeedreamArkAPI:
     api_key = image_api_key()
     if not api_key:
-        raise RuntimeError("VIMAX_IMAGE_API_KEY, VIMAX_LLM_API_KEY, or configs/agent.local.yaml image/llm api_key is required for image generation")
+        raise RuntimeError("INSIGHTFORGE_IMAGE_API_KEY, INSIGHTFORGE_LLM_API_KEY, or configs/agent.local.yaml image/llm api_key is required for image generation")
     model = image_model()
     base_url = image_base_url()
     provider = api_provider_from_base_url(base_url)
@@ -590,7 +590,7 @@ def _build_image_generator() -> ImageGeneratorNanobananaYunwuAPI | ImageGenerato
 def _build_video_generator() -> VideoGeneratorVeoYunwuAPI | VideoGeneratorOpenRouterAPI | VideoGeneratorDoubaoSeedanceArkAPI:
     api_key = video_api_key()
     if not api_key:
-        raise RuntimeError("VIMAX_VIDEO_API_KEY, VIMAX_LLM_API_KEY, or configs/agent.local.yaml video/llm api_key is required for video generation")
+        raise RuntimeError("INSIGHTFORGE_VIDEO_API_KEY, INSIGHTFORGE_LLM_API_KEY, or configs/agent.local.yaml video/llm api_key is required for video generation")
     model = video_model()
     base_url = video_base_url()
     provider = video_provider().strip().lower()
@@ -613,7 +613,7 @@ def _build_embedding_model() -> Any:
     base_url = embedding_base_url()
     provider = embedding_model_provider().strip().lower()
     if not api_key or not base_url:
-        raise RuntimeError("VIMAX_EMBEDDING_API_KEY or configs/agent.local.yaml embedding api_key/base_url is required for novel planning")
+        raise RuntimeError("INSIGHTFORGE_EMBEDDING_API_KEY or configs/agent.local.yaml embedding api_key/base_url is required for novel planning")
     if provider != "openai":
         raise RuntimeError(f"Unsupported embedding model_provider: {provider}")
     return OpenAIEmbeddings(model=embedding_model(), api_key=api_key, base_url=base_url)
@@ -623,14 +623,14 @@ def _build_reranker() -> RerankerBgeSiliconapi:
     api_key = reranker_api_key()
     base_url = reranker_base_url()
     if not api_key or not base_url:
-        raise RuntimeError("VIMAX_RERANKER_API_KEY or configs/agent.local.yaml reranker api_key/base_url is required for novel planning")
+        raise RuntimeError("INSIGHTFORGE_RERANKER_API_KEY or configs/agent.local.yaml reranker api_key/base_url is required for novel planning")
     return RerankerBgeSiliconapi(api_key=api_key, base_url=base_url, model=reranker_model())
 
 
 def _build_novel_pipeline(working_dir: Path) -> Novel2MoviePipeline:
     api_key = llm_api_key()
     if not api_key:
-        raise RuntimeError("VIMAX_LLM_API_KEY or configs/agent.local.yaml llm.api_key is required for novel planning")
+        raise RuntimeError("INSIGHTFORGE_LLM_API_KEY or configs/agent.local.yaml llm.api_key is required for novel planning")
     base_url = llm_base_url()
     model = llm_model()
     dummy = _UnavailableGenerator()
@@ -651,7 +651,7 @@ def _build_novel_pipeline(working_dir: Path) -> Novel2MoviePipeline:
 def _build_novel_render_pipeline(working_dir: Path, chat_model: Any, image_generator: Any, video_generator: Any) -> Novel2MoviePipeline:
     api_key = llm_api_key()
     if not api_key:
-        raise RuntimeError("VIMAX_LLM_API_KEY or configs/agent.local.yaml llm.api_key is required for novel rendering")
+        raise RuntimeError("INSIGHTFORGE_LLM_API_KEY or configs/agent.local.yaml llm.api_key is required for novel rendering")
     base_url = llm_base_url()
     model = llm_model()
     script_pipeline = Script2VideoPipeline(chat_model=chat_model, image_generator=image_generator, video_generator=video_generator, working_dir=str(working_dir / "videos"))
@@ -760,7 +760,7 @@ def _resolve_artifact_path(working_dir: Path, revision_target: str) -> Path:
 
 async def _revise_artifact_with_llm(chat_model: Any, target: str, current_text: str, instruction: str) -> str:
     prompt = (
-        "Revise this ViMax structured artifact exactly as requested. "
+        "Revise this InsightForge structured artifact exactly as requested. "
         "Return only the complete replacement file content, with no Markdown fences or explanation. "
         "If the file is JSON, preserve valid JSON and the existing schema shape.\n\n"
         f"Target: {target}\n"

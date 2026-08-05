@@ -176,10 +176,10 @@ def _openai_tool_call(call: ToolCall) -> dict[str, Any]:
 
 
 def build_runtime(workspace_root: str | Path = ".", llm: Any | None = None, adapter_specs: list[Any] | None = None) -> AgentLoop:
-    from .vimax_adapters import build_vimax_adapter_specs
+    from .insightforge_adapters import build_insightforge_adapter_specs
     root = Path(workspace_root).resolve()
     session_index = SessionIndex(root)
-    specs = adapter_specs if adapter_specs is not None else build_vimax_adapter_specs(root, session_index)
+    specs = adapter_specs if adapter_specs is not None else build_insightforge_adapter_specs(root, session_index)
     registry = build_builtin_registry(root, session_index, specs)
     executor = ToolExecutor(registry, session_index)
     prompt_builder = PromptBuilder(root / "prompts", session_index, registry)

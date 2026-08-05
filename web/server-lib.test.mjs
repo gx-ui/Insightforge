@@ -12,11 +12,11 @@ afterEach(async () => {
 });
 
 async function fixture() {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'vimax-web-'));
+  const root = await mkdtemp(path.join(os.tmpdir(), 'insightforge-web-'));
   roots.push(root);
-  await mkdir(path.join(root, '.vimax', 'logs'), {recursive: true});
+  await mkdir(path.join(root, '.insightforge', 'logs'), {recursive: true});
   await mkdir(path.join(root, '.working_dir', 'session-1', 'script2video', 'shots', '0'), {recursive: true});
-  await writeFile(path.join(root, '.vimax', 'sessions.json'), JSON.stringify({
+  await writeFile(path.join(root, '.insightforge', 'sessions.json'), JSON.stringify({
     active_session_id: 'session-1',
     sessions: {
       'session-1': {session_id: 'session-1', project_name: 'Ocean campaign', working_dir: '.working_dir/session-1', stage: 'rendering', updated_at: '2026-07-17T10:00:00'},
@@ -35,7 +35,7 @@ describe('web bridge state', () => {
 
   it('restores persisted turn history', async () => {
     const root = await fixture();
-    await writeFile(path.join(root, '.vimax', 'logs', 'loop_history.jsonl'), `${JSON.stringify({
+    await writeFile(path.join(root, '.insightforge', 'logs', 'loop_history.jsonl'), `${JSON.stringify({
       session_id: 'session-1', turn_id: 'turn-1', raw_user_input: 'Make a film', final_assistant_text: 'Planning is ready', status: 'completed', tool_rounds: [],
     })}\n`);
     const history = await readSessionHistory(root, 'session-1');
@@ -44,7 +44,7 @@ describe('web bridge state', () => {
 
   it('hides workspace upload metadata from restored user messages', async () => {
     const root = await fixture();
-    await writeFile(path.join(root, '.vimax', 'logs', 'loop_history.jsonl'), `${JSON.stringify({
+    await writeFile(path.join(root, '.insightforge', 'logs', 'loop_history.jsonl'), `${JSON.stringify({
       session_id: 'session-1',
       turn_id: 'turn-upload',
       raw_user_input: 'Use this script <workspace_uploads>["uploads/script.txt"]</workspace_uploads>',
@@ -55,12 +55,12 @@ describe('web bridge state', () => {
 
   it('does not expose successful tool result payloads in restored history', async () => {
     const root = await fixture();
-    await writeFile(path.join(root, '.vimax', 'logs', 'loop_history.jsonl'), `${JSON.stringify({
+    await writeFile(path.join(root, '.insightforge', 'logs', 'loop_history.jsonl'), `${JSON.stringify({
       session_id: 'session-1',
       turn_id: 'turn-tool',
       raw_user_input: 'Plan a video',
       tool_rounds: [{tool_results: [{
-        name: 'vimax_narrative_planning',
+        name: 'insightforge_narrative_planning',
         ok: true,
         content: JSON.stringify({session_id: 'session-1', working_dir: '.working_dir/session-1', generated: ['script.json']}),
       }]}],
@@ -91,7 +91,7 @@ describe('web bridge state', () => {
 
   it('deletes project state, artifacts, and matching log records', async () => {
     const root = await fixture();
-    const logPath = path.join(root, '.vimax', 'logs', 'loop_history.jsonl');
+    const logPath = path.join(root, '.insightforge', 'logs', 'loop_history.jsonl');
     await writeFile(logPath, [
       JSON.stringify({session_id: 'session-1', raw_user_input: 'Delete me'}),
       JSON.stringify({session_id: 'session-2', raw_user_input: 'Keep me'}),

@@ -143,7 +143,7 @@ class VideoGeneratorDoubaoSeedanceArkAPI:
             "Content-Type": "application/json",
         }
 
-        request_timeout = _env_float("VIMAX_VIDEO_REQUEST_TIMEOUT_SECONDS", 60.0)
+        request_timeout = _env_float("INSIGHTFORGE_VIDEO_REQUEST_TIMEOUT_SECONDS", 60.0)
         timeout = aiohttp.ClientTimeout(total=request_timeout)
         last_error: Exception | None = None
 
@@ -209,10 +209,10 @@ class VideoGeneratorDoubaoSeedanceArkAPI:
         url = f"{self.base_url}/contents/generations/tasks/{task_id}"
         headers = {"Authorization": f"Bearer {self.api_key}"}
 
-        poll_interval = _env_float("VIMAX_VIDEO_POLL_INTERVAL_SECONDS", 5.0)
-        query_timeout = _env_float("VIMAX_VIDEO_QUERY_TIMEOUT_SECONDS", 600.0)
-        max_query_errors = _env_int("VIMAX_VIDEO_MAX_QUERY_ERRORS", 5)
-        request_timeout = _env_float("VIMAX_VIDEO_REQUEST_TIMEOUT_SECONDS", 60.0)
+        poll_interval = _env_float("INSIGHTFORGE_VIDEO_POLL_INTERVAL_SECONDS", 5.0)
+        query_timeout = _env_float("INSIGHTFORGE_VIDEO_QUERY_TIMEOUT_SECONDS", 600.0)
+        max_query_errors = _env_int("INSIGHTFORGE_VIDEO_MAX_QUERY_ERRORS", 5)
+        request_timeout = _env_float("INSIGHTFORGE_VIDEO_REQUEST_TIMEOUT_SECONDS", 60.0)
         timeout = aiohttp.ClientTimeout(total=request_timeout)
 
         deadline = (

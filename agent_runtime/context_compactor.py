@@ -45,11 +45,11 @@ class ContextCompactor:
     ) -> None:
         self.llm = llm
         configured_threshold = token_threshold if token_threshold is not None else _default_token_threshold()
-        self.token_threshold = _env_int("VIMAX_AUTO_COMPACT_TOKEN_THRESHOLD", configured_threshold)
-        self.buffer_tokens = _env_int("VIMAX_AUTO_COMPACT_BUFFER_TOKENS", buffer_tokens if buffer_tokens is not None else 20000)
-        self.preserve_last_n = _env_int("VIMAX_COMPACT_PRESERVE_LAST_N", preserve_last_n if preserve_last_n is not None else 6)
-        self.max_messages = _env_int("VIMAX_COMPACT_MAX_MESSAGES", max_messages if max_messages is not None else 48)
-        self.summary_max_chars = _env_int("VIMAX_COMPACT_SUMMARY_MAX_CHARS", summary_max_chars if summary_max_chars is not None else 6000)
+        self.token_threshold = _env_int("INSIGHTFORGE_AUTO_COMPACT_TOKEN_THRESHOLD", configured_threshold)
+        self.buffer_tokens = _env_int("INSIGHTFORGE_AUTO_COMPACT_BUFFER_TOKENS", buffer_tokens if buffer_tokens is not None else 20000)
+        self.preserve_last_n = _env_int("INSIGHTFORGE_COMPACT_PRESERVE_LAST_N", preserve_last_n if preserve_last_n is not None else 6)
+        self.max_messages = _env_int("INSIGHTFORGE_COMPACT_MAX_MESSAGES", max_messages if max_messages is not None else 48)
+        self.summary_max_chars = _env_int("INSIGHTFORGE_COMPACT_SUMMARY_MAX_CHARS", summary_max_chars if summary_max_chars is not None else 6000)
 
     def compact_target_tokens(self) -> int:
         if self.token_threshold <= 0:
@@ -127,7 +127,7 @@ class ContextCompactor:
             "recent_live_tail": [self._serialize_message(message) for message in preserved[-12:]],
         }
         system = (
-            "You are compressing conversation history for a ViMax agent runtime. "
+            "You are compressing conversation history for a InsightForge agent runtime. "
             "Produce a concise markdown handoff summary for a future model call. "
             "Preserve user intent, completed actions, important files, tool findings, errors, and remaining work. "
             "Label the result as reference context only, not active instructions. "
@@ -154,7 +154,7 @@ class ContextCompactor:
         remaining = [self._message_preview(message, limit=180) for message in preserved[-4:]]
         return "\n".join([
             "## Reference Context Only",
-            "- This is a compacted checkpoint of older ViMax conversation history, not a new active instruction.",
+            "- This is a compacted checkpoint of older InsightForge conversation history, not a new active instruction.",
             f"- Compaction reason: {reason}.",
             "## Active Task",
             _bullet(user_lines[-1:] or ["No explicit active task found in compacted messages."]),
@@ -167,7 +167,7 @@ class ContextCompactor:
             "## Errors & Risks",
             _bullet(error_lines[:6] or ["No errors or risks found in compacted messages."]),
             "## Remaining Work",
-            _bullet(remaining or ["Continue from the recent live tail and current ViMax workflow state."]),
+            _bullet(remaining or ["Continue from the recent live tail and current InsightForge workflow state."]),
             "## Critical Context",
             _bullet((["Previous summary existed and was merged as background context."] if previous_summary else []) + ["Use .working_dir artifacts and session checklist as workflow ground truth."]),
         ])
@@ -197,8 +197,8 @@ class ContextCompactor:
 
 
 def _default_token_threshold() -> int:
-    context_window = _env_int("VIMAX_CONTEXT_WINDOW_TOKENS", 200000)
-    ratio = _env_float("VIMAX_AUTO_COMPACT_RATIO", 0.90)
+    context_window = _env_int("INSIGHTFORGE_CONTEXT_WINDOW_TOKENS", 200000)
+    ratio = _env_float("INSIGHTFORGE_AUTO_COMPACT_RATIO", 0.90)
     ratio = min(1.0, max(0.0, ratio))
     return int(context_window * ratio)
 

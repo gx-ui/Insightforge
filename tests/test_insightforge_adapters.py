@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from interfaces import Camera, CharacterInScene, ShotBriefDescription, ShotDescription
 from agent_runtime.session_index import SessionIndex
-from agent_runtime.vimax_adapters import ViMaxAdapters
+from agent_runtime.insightforge_adapters import InsightForgeAdapters
 from agent_runtime.tools import ToolRuntimeContext
 from pipelines.idea2video_pipeline import Idea2VideoPipeline
 from pipelines.script2video_pipeline import Script2VideoPipeline
@@ -148,17 +148,17 @@ class Script2VideoPlanningProgressTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(stdout.getvalue(), "")
 
 
-class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
+class InsightForgeAdapterTests(unittest.IsolatedAsyncioTestCase):
     def test_build_chat_model_uses_bounded_init_chat_model_kwargs(self):
         fake = FakeInitChatModel()
         with patch.dict("os.environ", {
-            "VIMAX_LLM_API_KEY": "test-key",
-            "VIMAX_LLM_MODEL": "test-model",
-            "VIMAX_LLM_BASE_URL": "https://example.invalid/v1",
-            "VIMAX_LLM_REQUEST_TIMEOUT_SECONDS": "12",
-            "VIMAX_NARRATIVE_MAX_TOKENS": "1234",
-        }), patch("agent_runtime.vimax_adapters.init_chat_model", fake):
-            from agent_runtime.vimax_adapters import _build_chat_model
+            "INSIGHTFORGE_LLM_API_KEY": "test-key",
+            "INSIGHTFORGE_LLM_MODEL": "test-model",
+            "INSIGHTFORGE_LLM_BASE_URL": "https://example.invalid/v1",
+            "INSIGHTFORGE_LLM_REQUEST_TIMEOUT_SECONDS": "12",
+            "INSIGHTFORGE_NARRATIVE_MAX_TOKENS": "1234",
+        }), patch("agent_runtime.insightforge_adapters.init_chat_model", fake):
+            from agent_runtime.insightforge_adapters import _build_chat_model
 
             _build_chat_model()
 
@@ -172,11 +172,11 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
     async def test_narrative_planning_uses_text_only_pipeline(self):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters.Idea2VideoPipeline", FakeIdeaPipeline), \
-                 patch("agent_runtime.vimax_adapters.Script2VideoPipeline", FakeScriptPipeline):
-                result = await adapter.vimax_narrative_planning({"idea": "moon cat", "user_requirement": "short", "style": "anime"})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters.Idea2VideoPipeline", FakeIdeaPipeline), \
+                 patch("agent_runtime.insightforge_adapters.Script2VideoPipeline", FakeScriptPipeline):
+                result = await adapter.insightforge_narrative_planning({"idea": "moon cat", "user_requirement": "short", "style": "anime"})
             self.assertTrue(result.ok)
             payload = json.loads(result.content)
             self.assertTrue(payload["ready_for_render"])
@@ -191,30 +191,30 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
     async def test_script_mode_persists_source_script_for_render(self):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
-            adapter = ViMaxAdapters(Path(tmp), index)
+            adapter = InsightForgeAdapters(Path(tmp), index)
             script = "A red ball rolls across a white table."
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters.Script2VideoPipeline", FakeScriptPipeline):
-                result = await adapter.vimax_narrative_planning({"script": script, "user_requirement": "one shot"})
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters.Script2VideoPipeline", FakeScriptPipeline):
+                result = await adapter.insightforge_narrative_planning({"script": script, "user_requirement": "one shot"})
             self.assertTrue(result.ok)
             payload = json.loads(result.content)
             root = Path(tmp) / payload["working_dir"]
             self.assertEqual((root / "script2video" / "script.txt").read_text(encoding="utf-8"), script)
             self.assertEqual(index.artifact_checklist(payload["session_id"])["script2video/script.txt"], True)
-            from agent_runtime.vimax_adapters import _load_script_text
+            from agent_runtime.insightforge_adapters import _load_script_text
             self.assertEqual(_load_script_text(root), script)
 
 
     async def test_narrative_planning_forwards_pipeline_progress(self):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
-            adapter = ViMaxAdapters(Path(tmp), index)
+            adapter = InsightForgeAdapters(Path(tmp), index)
             events = []
-            runtime = ToolRuntimeContext("vimax_narrative_planning", "vimax_narrative_planning", turn_id="turn-test", progress_callback=events.append)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters.Idea2VideoPipeline", FakeIdeaPipeline), \
-                 patch("agent_runtime.vimax_adapters.Script2VideoPipeline", FakeScriptPipeline):
-                result = await adapter.vimax_narrative_planning({"idea": "moon cat"}, runtime)
+            runtime = ToolRuntimeContext("insightforge_narrative_planning", "insightforge_narrative_planning", turn_id="turn-test", progress_callback=events.append)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters.Idea2VideoPipeline", FakeIdeaPipeline), \
+                 patch("agent_runtime.insightforge_adapters.Script2VideoPipeline", FakeScriptPipeline):
+                result = await adapter.insightforge_narrative_planning({"idea": "moon cat"}, runtime)
             self.assertTrue(result.ok)
             stages = [event["progress"]["stage"] for event in events if event.get("type") == "tool_progress"]
             self.assertIn("initializing_llm", stages)
@@ -227,11 +227,11 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
     async def test_plan_scene_failure_marks_session_error(self):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters.Idea2VideoPipeline", FakeIdeaPipeline), \
-                 patch("agent_runtime.vimax_adapters.Script2VideoPipeline", FailingScriptPipeline):
-                result = await adapter.vimax_narrative_planning({"idea": "moon cat"})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters.Idea2VideoPipeline", FakeIdeaPipeline), \
+                 patch("agent_runtime.insightforge_adapters.Script2VideoPipeline", FailingScriptPipeline):
+                result = await adapter.insightforge_narrative_planning({"idea": "moon cat"})
             self.assertFalse(result.ok)
             self.assertEqual(result.metadata["error_type"], "recoverable_planning_step_failed")
             self.assertTrue(result.metadata["retryable"])
@@ -243,11 +243,11 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
     async def test_narrative_planning_timeout_marks_session_error(self):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch.dict("os.environ", {"VIMAX_NARRATIVE_STEP_TIMEOUT_SECONDS": "0.01"}), \
-                 patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters.Idea2VideoPipeline", HangingIdeaPipeline):
-                result = await adapter.vimax_narrative_planning({"idea": "moon cat"})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch.dict("os.environ", {"INSIGHTFORGE_NARRATIVE_STEP_TIMEOUT_SECONDS": "0.01"}), \
+                 patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters.Idea2VideoPipeline", HangingIdeaPipeline):
+                result = await adapter.insightforge_narrative_planning({"idea": "moon cat"})
             self.assertFalse(result.ok)
             self.assertEqual(result.metadata["error_type"], "recoverable_planning_step_failed")
             session = index.active()
@@ -261,9 +261,9 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
             record = index.create(idea="moon cat", user_requirement="short", style="anime")
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()),                  patch("agent_runtime.vimax_adapters.Idea2VideoPipeline", FakeIdeaPipeline),                  patch("agent_runtime.vimax_adapters.Script2VideoPipeline", FakeScriptPipeline):
-                result = await adapter.vimax_narrative_planning({})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()),                  patch("agent_runtime.insightforge_adapters.Idea2VideoPipeline", FakeIdeaPipeline),                  patch("agent_runtime.insightforge_adapters.Script2VideoPipeline", FakeScriptPipeline):
+                result = await adapter.insightforge_narrative_planning({})
             self.assertTrue(result.ok)
             payload = json.loads(result.content)
             self.assertEqual(payload["session_id"], record["session_id"])
@@ -274,32 +274,32 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
             record = index.create(idea="moon cat", user_requirement="short", style="anime")
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()),                  patch("agent_runtime.vimax_adapters.Idea2VideoPipeline", FakeIdeaPipeline),                  patch("agent_runtime.vimax_adapters.Script2VideoPipeline", FakeScriptPipeline):
-                result = await adapter.vimax_narrative_planning({"session_id": record["session_id"]})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()),                  patch("agent_runtime.insightforge_adapters.Idea2VideoPipeline", FakeIdeaPipeline),                  patch("agent_runtime.insightforge_adapters.Script2VideoPipeline", FakeScriptPipeline):
+                result = await adapter.insightforge_narrative_planning({"session_id": record["session_id"]})
             self.assertTrue(result.ok)
             self.assertEqual(index.get(record["session_id"])["style"], "anime")
 
     async def test_new_idea_creates_new_session_instead_of_reusing_active(self):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters.Idea2VideoPipeline", FakeIdeaPipeline), \
-                 patch("agent_runtime.vimax_adapters.Script2VideoPipeline", FakeScriptPipeline):
-                first = await adapter.vimax_narrative_planning({"idea": "moon cat"})
-                second = await adapter.vimax_narrative_planning({"idea": "ocean robot"})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters.Idea2VideoPipeline", FakeIdeaPipeline), \
+                 patch("agent_runtime.insightforge_adapters.Script2VideoPipeline", FakeScriptPipeline):
+                first = await adapter.insightforge_narrative_planning({"idea": "moon cat"})
+                second = await adapter.insightforge_narrative_planning({"idea": "ocean robot"})
             self.assertNotEqual(json.loads(first.content)["session_id"], json.loads(second.content)["session_id"])
 
     async def test_new_idea_initializes_named_empty_active_session(self):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
             empty = index.create(project_name="00")
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters.Idea2VideoPipeline", FakeIdeaPipeline), \
-                 patch("agent_runtime.vimax_adapters.Script2VideoPipeline", FakeScriptPipeline):
-                result = await adapter.vimax_narrative_planning({"idea": "moon cat"})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters.Idea2VideoPipeline", FakeIdeaPipeline), \
+                 patch("agent_runtime.insightforge_adapters.Script2VideoPipeline", FakeScriptPipeline):
+                result = await adapter.insightforge_narrative_planning({"idea": "moon cat"})
             self.assertTrue(result.ok)
             payload = json.loads(result.content)
             self.assertEqual(payload["session_id"], empty["session_id"])
@@ -312,11 +312,11 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
             old = index.create(idea="old cat")
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters.Idea2VideoPipeline", FakeIdeaPipeline), \
-                 patch("agent_runtime.vimax_adapters.Script2VideoPipeline", FakeScriptPipeline):
-                result = await adapter.vimax_narrative_planning({"session_id": old["session_id"], "idea": "new robot"})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters.Idea2VideoPipeline", FakeIdeaPipeline), \
+                 patch("agent_runtime.insightforge_adapters.Script2VideoPipeline", FakeScriptPipeline):
+                result = await adapter.insightforge_narrative_planning({"session_id": old["session_id"], "idea": "new robot"})
             self.assertTrue(result.ok)
             payload = json.loads(result.content)
             self.assertNotEqual(payload["session_id"], old["session_id"])
@@ -329,12 +329,12 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
             target = Path(tmp) / record["working_dir"] / "idea2video" / "scene_0" / "storyboard.json"
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text('[{"idx": 0, "description": "calm"}]', encoding="utf-8")
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=FakeRevisionModel()):
-                result = await adapter.vimax_narrative_planning({"revision_target": "idea2video/scene_0/storyboard.json", "revision_instruction": "make it oppressive"})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=FakeRevisionModel()):
+                result = await adapter.insightforge_narrative_planning({"revision_target": "idea2video/scene_0/storyboard.json", "revision_instruction": "make it oppressive"})
             self.assertTrue(result.ok)
             self.assertIn("more oppressive", target.read_text(encoding="utf-8"))
-            self.assertTrue((Path(tmp) / ".vimax" / "logs" / "revisions.jsonl").exists())
+            self.assertTrue((Path(tmp) / ".insightforge" / "logs" / "revisions.jsonl").exists())
             self.assertTrue(index.get(record["session_id"])["stale"]["final_video"])
 
 
@@ -345,8 +345,8 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
             target = Path(tmp) / record["working_dir"] / "idea2video" / "scene_0" / "storyboard.json"
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text('[]', encoding="utf-8")
-            adapter = ViMaxAdapters(Path(tmp), index)
-            result = await adapter.vimax_narrative_planning({"revision_target": "idea2video/scene_0/storyboard.json"})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            result = await adapter.insightforge_narrative_planning({"revision_target": "idea2video/scene_0/storyboard.json"})
             self.assertFalse(result.ok)
             self.assertEqual(result.metadata["error_type"], "missing_revision_instruction")
             self.assertEqual(index.get(record["session_id"])["stage"], "error")
@@ -356,8 +356,8 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
             record = index.create(idea="x")
-            adapter = ViMaxAdapters(Path(tmp), index)
-            result = await adapter.vimax_narrative_planning({"revision_target": "idea2video/scene_0/missing.json", "revision_instruction": "change it"})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            result = await adapter.insightforge_narrative_planning({"revision_target": "idea2video/scene_0/missing.json", "revision_instruction": "change it"})
             self.assertFalse(result.ok)
             self.assertEqual(result.metadata["error_type"], "dependency_missing")
             self.assertEqual(index.get(record["session_id"])["stage"], "error")
@@ -374,9 +374,9 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
             (root / "scene_0" / "storyboard.json").write_text("[]", encoding="utf-8")
             (root / "scene_0" / "camera_tree.json").write_text("[]", encoding="utf-8")
             (root / "scene_0" / "shots" / "0" / "shot_description.json").write_text("{}", encoding="utf-8")
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", side_effect=RuntimeError("missing key")):
-                result = await adapter.vimax_render_video({})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", side_effect=RuntimeError("missing key")):
+                result = await adapter.insightforge_render_video({})
             self.assertFalse(result.ok)
             self.assertEqual(result.metadata["error_type"], "render_failed")
             self.assertIn("missing key", result.content)
@@ -394,12 +394,12 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
             (root / "scene_0" / "storyboard.json").write_text("[]", encoding="utf-8")
             (root / "scene_0" / "camera_tree.json").write_text("[]", encoding="utf-8")
             (root / "scene_0" / "shots" / "0" / "shot_description.json").write_text("{}", encoding="utf-8")
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters._build_image_generator", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters._build_video_generator", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters.Idea2VideoPipeline", FailRenderIdeaPipeline):
-                result = await adapter.vimax_render_video({})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters._build_image_generator", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters._build_video_generator", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters.Idea2VideoPipeline", FailRenderIdeaPipeline):
+                result = await adapter.insightforge_render_video({})
             self.assertFalse(result.ok)
             self.assertEqual(result.metadata["error_type"], "render_failed")
             self.assertIn("render failed", result.content)
@@ -424,12 +424,12 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
             (root / "scene_0" / "storyboard.json").write_text("[]", encoding="utf-8")
             (root / "scene_0" / "camera_tree.json").write_text("[]", encoding="utf-8")
             (root / "scene_0" / "shots" / "0" / "shot_description.json").write_text("{}", encoding="utf-8")
-            adapter = ViMaxAdapters(Path(tmp), index)
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters._build_image_generator", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters._build_video_generator", return_value=object()), \
-                 patch("agent_runtime.vimax_adapters.Idea2VideoPipeline", FailRender403IdeaPipeline):
-                result = await adapter.vimax_render_video({})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters._build_image_generator", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters._build_video_generator", return_value=object()), \
+                 patch("agent_runtime.insightforge_adapters.Idea2VideoPipeline", FailRender403IdeaPipeline):
+                result = await adapter.insightforge_render_video({})
             self.assertFalse(result.ok)
             self.assertFalse(result.metadata["retryable"])
             self.assertIn("<redacted>", result.metadata["error"])
@@ -451,10 +451,10 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
             (root / "scene_0" / "storyboard.json").write_text("[]", encoding="utf-8")
             (root / "scene_0" / "camera_tree.json").write_text("[]", encoding="utf-8")
             (root / "scene_0" / "shots" / "0" / "shot_description.json").write_text("{}", encoding="utf-8")
-            adapter = ViMaxAdapters(Path(tmp), index)
+            adapter = InsightForgeAdapters(Path(tmp), index)
             stdout = io.StringIO()
-            with patch("agent_runtime.vimax_adapters._build_chat_model", return_value=object()),                  patch("agent_runtime.vimax_adapters._build_image_generator", return_value=object()),                  patch("agent_runtime.vimax_adapters._build_video_generator", return_value=object()),                  patch("agent_runtime.vimax_adapters.Idea2VideoPipeline", NoisyRenderIdeaPipeline),                  contextlib.redirect_stdout(stdout):
-                result = await adapter.vimax_render_video({})
+            with patch("agent_runtime.insightforge_adapters._build_chat_model", return_value=object()),                  patch("agent_runtime.insightforge_adapters._build_image_generator", return_value=object()),                  patch("agent_runtime.insightforge_adapters._build_video_generator", return_value=object()),                  patch("agent_runtime.insightforge_adapters.Idea2VideoPipeline", NoisyRenderIdeaPipeline),                  contextlib.redirect_stdout(stdout):
+                result = await adapter.insightforge_render_video({})
             self.assertTrue(result.ok)
             self.assertNotIn("NOISE_FROM_RENDER_PIPELINE", stdout.getvalue())
 
@@ -462,7 +462,7 @@ class ViMaxAdapterTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
             index.create(idea="x")
-            adapter = ViMaxAdapters(Path(tmp), index)
-            result = await adapter.vimax_render_video({})
+            adapter = InsightForgeAdapters(Path(tmp), index)
+            result = await adapter.insightforge_render_video({})
             self.assertFalse(result.ok)
             self.assertEqual(result.metadata["error_type"], "dependency_missing")

@@ -66,11 +66,11 @@ class VideoGeneratorVeoYunwuAPI:
         **kwargs,
     ) -> VideoOutput:
         progress = kwargs.get("progress")
-        create_retries = _env_int("VIMAX_VIDEO_CREATE_RETRIES", 3)
-        query_timeout_seconds = _env_float("VIMAX_VIDEO_QUERY_TIMEOUT_SECONDS", 600.0)
-        request_timeout_seconds = _env_float("VIMAX_VIDEO_REQUEST_TIMEOUT_SECONDS", 60.0)
-        poll_interval_seconds = _env_float("VIMAX_VIDEO_POLL_INTERVAL_SECONDS", 5.0)
-        max_query_errors = _env_int("VIMAX_VIDEO_MAX_QUERY_ERRORS", 5)
+        create_retries = _env_int("INSIGHTFORGE_VIDEO_CREATE_RETRIES", 3)
+        query_timeout_seconds = _env_float("INSIGHTFORGE_VIDEO_QUERY_TIMEOUT_SECONDS", 600.0)
+        request_timeout_seconds = _env_float("INSIGHTFORGE_VIDEO_REQUEST_TIMEOUT_SECONDS", 60.0)
+        poll_interval_seconds = _env_float("INSIGHTFORGE_VIDEO_POLL_INTERVAL_SECONDS", 5.0)
+        max_query_errors = _env_int("INSIGHTFORGE_VIDEO_MAX_QUERY_ERRORS", 5)
         if len(reference_image_paths) == 0:
             model = self.t2v_model
         elif len(reference_image_paths) == 1:

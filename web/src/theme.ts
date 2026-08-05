@@ -1,6 +1,6 @@
 export type Theme = 'light' | 'dark';
 
-export const THEME_STORAGE_KEY = 'vimax-web-theme';
+export const THEME_STORAGE_KEY = 'insightforge-web-theme';
 
 export function resolveTheme(stored: string | null | undefined, prefersDark: boolean): Theme {
   if (stored === 'light' || stored === 'dark') return stored;

@@ -73,7 +73,7 @@ class AgentConfigTests(unittest.TestCase):
             config_dir = Path(tmp) / "configs"
             config_dir.mkdir()
             (config_dir / "agent.local.yaml").write_text(yaml.safe_dump({"llm": {"model": "config-llm", "api_key": "config-key"}}), encoding="utf-8")
-            with patch.dict(os.environ, {"VIMAX_LLM_MODEL": "env-llm", "VIMAX_LLM_MODEL_PROVIDER": "openai", "VIMAX_LLM_API_KEY": "env-key", "VIMAX_VIDEO_BASE_URL": "https://openrouter.ai/api/v1", "VIMAX_EMBEDDING_MODEL": "env-embedding", "VIMAX_EMBEDDING_BASE_URL": "https://env-embedding.test/v1", "VIMAX_EMBEDDING_API_KEY": "env-embedding-key", "VIMAX_RERANKER_MODEL": "env-reranker", "VIMAX_RERANKER_BASE_URL": "https://env-reranker.test", "VIMAX_RERANKER_API_KEY": "env-reranker-key"}, clear=True):
+            with patch.dict(os.environ, {"INSIGHTFORGE_LLM_MODEL": "env-llm", "INSIGHTFORGE_LLM_MODEL_PROVIDER": "openai", "INSIGHTFORGE_LLM_API_KEY": "env-key", "INSIGHTFORGE_VIDEO_BASE_URL": "https://openrouter.ai/api/v1", "INSIGHTFORGE_EMBEDDING_MODEL": "env-embedding", "INSIGHTFORGE_EMBEDDING_BASE_URL": "https://env-embedding.test/v1", "INSIGHTFORGE_EMBEDDING_API_KEY": "env-embedding-key", "INSIGHTFORGE_RERANKER_MODEL": "env-reranker", "INSIGHTFORGE_RERANKER_BASE_URL": "https://env-reranker.test", "INSIGHTFORGE_RERANKER_API_KEY": "env-reranker-key"}, clear=True):
                 self.assertEqual(llm_model(tmp), "env-llm")
                 self.assertEqual(llm_model_provider(tmp), "openai")
                 self.assertEqual(llm_api_key(tmp), "env-key")

@@ -1,11 +1,11 @@
 <div align="center">
-  <img src="./assets/vimax.png"> 
+  <img src="./assets/insightforge.png"> 
   <br>
   <br>
-  <h1 align="center">ViMax: Agentic Video Generation</h1>
+  <h1 align="center">InsightForge: Agentic Video Generation</h1>
   <p align="center">
-    <a href="https://trendshift.io/repositories/15299" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/15299" alt="HKUDS%2FViMax | Trendshift" width="250" height="55"/></a>
-    <a href="https://trendshift.io/repositories/15299?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-15299" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/15299/weekly?language=Python" alt="HKUDS%2FViMax | Trendshift" width="250" height="55"/></a>
+    <a href="https://trendshift.io/repositories/15299" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/15299" alt="HKUDS%2FInsightForge | Trendshift" width="250" height="55"/></a>
+    <a href="https://trendshift.io/repositories/15299?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-15299" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/15299/weekly?language=Python" alt="HKUDS%2FInsightForge | Trendshift" width="250" height="55"/></a>
   </p>
 
   <div align="center">
@@ -15,7 +15,7 @@
     <img src="https://img.shields.io/badge/Python-3.12-00d9ff?style=flat-square&logo=python&logoColor=white&labelColor=1a1a2e">
 	<a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/badge/uv-Ready-ff6b6b?style=flat-square&logo=uv&logoColor=white&labelColor=1a1a2e"></a>
 	<img src="https://img.shields.io/badge/License-MIT-4ecdc4?style=flat-square&logo=opensourceinitiative&logoColor=white" alt="MIT License">
-    <a href="https://github.com/HKUDS/ViMax/releases/tag/v1.2.0"><img src="https://img.shields.io/badge/Version-v1.2.0-2563eb?style=flat-square&labelColor=1a1a2e" alt="ViMax v1.2.0"></a>
+    <a href="https://github.com/HKUDS/InsightForge/releases/tag/v1.2.0"><img src="https://img.shields.io/badge/Version-v1.2.0-2563eb?style=flat-square&labelColor=1a1a2e" alt="InsightForge v1.2.0"></a>
     <a href='https://www.youtube.com/@AI-Creator-is-here'><img src='https://img.shields.io/badge/YouTube-ff0000?style=flat-square&logo=youtube&logoColor=white&labelColor=1a1a2e' /></a>
     <a href='https://arxiv.org/abs/2606.07649'><img src='https://img.shields.io/badge/arXiv-2606.07649-b31b1b?style=flat-square&logo=arxiv&logoColor=white&labelColor=1a1a2e' /></a>
   </p>
@@ -47,7 +47,7 @@ https://github.com/user-attachments/assets/5bad46b2-8276-4e1d-9480-3522640744b2
 
 ### 📰 **动态**
 
-- **2026-07-20** 🚀 **ViMax v1.2.0** 发布 Web UI，支持命名项目、Agent Loop 对话、产物与分镜预览、渲染检查点、文件上传、供应商设置和深色模式。
+- **2026-07-20** 🚀 **InsightForge v1.2.0** 发布 Web UI，支持命名项目、Agent Loop 对话、产物与分镜预览、渲染检查点、文件上传、供应商设置和深色模式。
 - **2026-07-17** 🎬 新增 OpenRouter GPT Image 2 图像生成与 Seedance 2.0 Fast 视频生成支持。
 
 ---
@@ -62,14 +62,14 @@ https://github.com/user-attachments/assets/5bad46b2-8276-4e1d-9480-3522640744b2
 ---
 ## ✨ 核心特性
 
-ViMax 是一个智能体驱动的视频创作框架，在统一且可扩展的工作流中串联叙事规划、视觉一致性、图像生成、视频生成与成片组装。
+InsightForge 是一个智能体驱动的视频创作框架，在统一且可扩展的工作流中串联叙事规划、视觉一致性、图像生成、视频生成与成片组装。
 
 - **Idea2Video** — 将简短创意扩展为结构化故事、角色、剧本、分镜、镜头设计与最终视频。
 - **Script2Video** — 将明确剧本转化为可控的多场景、多镜头视频，同时保留原有创作意图。
 - **Novel2Video** — 通过叙事压缩、角色追踪与场景规划，将长篇小说改编为分集视觉内容。
 - **AutoCameo** — 根据参考照片将人物或宠物融入生成故事，并保持外观一致性。
 - **Agent Loop 与 TUI** — 在统一交互工作区中讨论创意、修改规划、恢复 session、检查文本产物并控制渲染。
-- **Web UI** — 在浏览器中管理命名项目、与 ViMax Agent 协作、上传源文件、查看产物和分镜进度、预览渲染并配置供应商。
+- **Web UI** — 在浏览器中管理命名项目、与 InsightForge Agent 协作、上传源文件、查看产物和分镜进度、预览渲染并配置供应商。
 - **一致性制作流程** — 端到端协调参考图、首帧、机位连续性与最终组装。
 - **并行加速生成** — 并发生成可并行处理的镜头与媒体资产，缩短多镜头视频制作时间。
 
@@ -135,10 +135,10 @@ ViMax 是一个智能体驱动的视频创作框架，在统一且可扩展的�
 
 ---
 
-### 🖥️ **ViMax Web UI**
+### 🖥️ **InsightForge Web UI**
 
 <div align="center">
-  <img src="assets/vimax-web-ui.png" width="100%" alt="ViMax Web UI 工作区">
+  <img src="assets/insightforge-web-ui.png" width="100%" alt="InsightForge Web UI 工作区">
 </div>
 
 Web UI 将 Agent 对话、项目产物、分镜预览与渲染进度集中在同一个可视化工作区中。
@@ -165,17 +165,17 @@ Web UI 将 Agent 对话、项目产物、分镜预览与渲染进度集中在同
 
 - 🎥 **AI视频扩展性**：AI生成视频通常仅几秒，而分钟级甚至小时级的高质量长视频需要复杂的跨场景连续性与多分镜协同处理能力。
 
-**ViMAX**：通过自动化从叙事输入到最终视频输出的完整流程，彻底消除上述制作瓶颈。
+**InsightForge**：通过自动化从叙事输入到最终视频输出的完整流程，彻底消除上述制作瓶颈。
 
 ---
 
 
-### 🔥 **为什么选择 ViMax？**
+### 🔥 **为什么选择 InsightForge？**
 
 | 🧠 **一键生成** | 🚀 **完全创作自由** | 🔊 **音画同步** | 🎨 **专业品质** | 🤩 **互动视频** 
 |:---:|:---:|:---:|:---:|:---:|
 | 一句话生成完整视频 | 任何叙事皆可成真 | 音画完美融合 | 电影级输出 | 生成你的专属客串视频
-| 无需技术细节——只需描述你的创意，ViMax 自动完成剧本生成、分镜设计、镜头规划、参考管理与一致性验证 | 创意无边界——无论是预告片、短篇故事、小说章节还是原创概念，ViMax 都能智能构建叙事并设计镜头语言，将任何想法变为现实 | 无缝融合角色语音与音效，打造沉浸式视听体验 | 自动质量控制确保角色一致性、场景构图合理、每帧画面均达专业水准 | 上传你的照片即可在自己的故事中互动出演——ViMax 智能将你作为角色融入视频，保持外观一致并实现自然交互
+| 无需技术细节——只需描述你的创意，InsightForge 自动完成剧本生成、分镜设计、镜头规划、参考管理与一致性验证 | 创意无边界——无论是预告片、短篇故事、小说章节还是原创概念，InsightForge 都能智能构建叙事并设计镜头语言，将任何想法变为现实 | 无缝融合角色语音与音效，打造沉浸式视听体验 | 自动质量控制确保角色一致性、场景构图合理、每帧画面均达专业水准 | 上传你的照片即可在自己的故事中互动出演——InsightForge 智能将你作为角色融入视频，保持外观一致并实现自然交互
 
 
 
@@ -203,8 +203,8 @@ OS: Linux, Windows
 ### 📥 **Clone and Install**
 We use uv to manage the environment. For uv installation, please refer to the https://docs.astral.sh/uv/getting-started/installation/.
 ```bash
-git clone https://github.com/HKUDS/ViMax.git
-cd ViMax
+git clone https://github.com/HKUDS/InsightForge.git
+cd InsightForge
 uv sync
 ```
 
@@ -212,22 +212,22 @@ uv sync
 <details>
 <summary><strong>Agent TUI / Agents Loop</strong></summary>
 
-ViMax 还提供用于交互式 Agent 视频创作的最小 TUI。先从受 Git 跟踪的示例创建私有本地配置：
+InsightForge 还提供用于交互式 Agent 视频创作的最小 TUI。先从受 Git 跟踪的示例创建私有本地配置：
 
 ```bash
 cp configs/agent.example.yaml configs/agent.local.yaml
 ```
 
-随后在 `configs/agent.local.yaml` 中配置 LLM、图像和视频供应商，并从 ViMax 根目录启动 TUI。
+随后在 `configs/agent.local.yaml` 中配置 LLM、图像和视频供应商，并从 InsightForge 根目录启动 TUI。
 ```bash
-vimax tui
+./insightforge tui
 ```
 
 Start a new session or resume an existing one:
 ```bash
-vimax tui new
-vimax tui resume
-vimax tui resume <session_id>
+./insightforge tui new
+./insightforge tui resume
+./insightforge tui resume <session_id>
 ```
 
 </details>
@@ -235,9 +235,9 @@ vimax tui resume <session_id>
 <details>
 <summary><strong>Web UI</strong></summary>
 
-Web UI 与 TUI 共用同一套 ViMax agent runtime、session、tools 和私有的 `configs/agent.local.yaml` 配置。运行 Web UI 需要 Node.js 18 或更高版本。
+Web UI 与 TUI 共用同一套 InsightForge agent runtime、session、tools 和私有的 `configs/agent.local.yaml` 配置。运行 Web UI 需要 Node.js 18 或更高版本。
 
-在 `ViMax` 仓库根目录中，首次使用时安装前端依赖，然后启动本地服务：
+在 `InsightForge` 仓库根目录中，首次使用时安装前端依赖，然后启动本地服务：
 
 ```bash
 cd web
@@ -247,16 +247,16 @@ npm run dev
 
 在浏览器中打开 [http://127.0.0.1:4173](http://127.0.0.1:4173)。Web UI 支持命名项目、Agent 对话、斜杠命令、产物与渲染查看、分镜预览、文件上传和供应商设置。
 
-服务默认只监听 `127.0.0.1`。如果 ViMax 运行在远程服务器上，请在本地电脑建立 SSH 端口转发：
+服务默认只监听 `127.0.0.1`。如果 InsightForge 运行在远程服务器上，请在本地电脑建立 SSH 端口转发：
 
 ```bash
 ssh -N -L 4173:127.0.0.1:4173 <user>@<server>
 ```
 
-需要改用其他端口时，设置 `VIMAX_WEB_PORT`：
+需要改用其他端口时，设置 `INSIGHTFORGE_WEB_PORT`：
 
 ```bash
-VIMAX_WEB_PORT=4174 npm run dev
+INSIGHTFORGE_WEB_PORT=4174 npm run dev
 ```
 
 </details>

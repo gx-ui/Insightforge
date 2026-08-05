@@ -1,5 +1,5 @@
 """
-Provider preset system for ViMax chat model configuration.
+Provider preset system for InsightForge chat model configuration.
 
 Supports auto-detection and resolution of LLM provider settings,
 allowing users to specify a provider name (e.g., ``minimax``) instead

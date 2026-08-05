@@ -4,7 +4,7 @@
 import unittest
 from unittest.mock import patch
 
-from agent_runtime.vimax_adapters import _build_video_generator
+from agent_runtime.insightforge_adapters import _build_video_generator
 from tools.video_generator_doubao_seedance_ark_api import VideoGeneratorDoubaoSeedanceArkAPI
 
 
@@ -12,14 +12,14 @@ class ArkVideoGeneratorFactoryTests(unittest.TestCase):
     """Tests that the agent runtime factory selects the Ark generator for volcengine URLs."""
 
     def test_factory_selects_ark_from_volcengine_base_url(self):
-        with patch("agent_runtime.vimax_adapters.video_api_key", return_value="ark-key"), \
-             patch("agent_runtime.vimax_adapters.video_model",
+        with patch("agent_runtime.insightforge_adapters.video_api_key", return_value="ark-key"), \
+             patch("agent_runtime.insightforge_adapters.video_model",
                    return_value="doubao-seedance-1-0-lite-t2v-250428"), \
-             patch("agent_runtime.vimax_adapters.video_t2v_model",
+             patch("agent_runtime.insightforge_adapters.video_t2v_model",
                    return_value="doubao-seedance-1-0-lite-t2v-250428"), \
-             patch("agent_runtime.vimax_adapters.video_i2v_model",
+             patch("agent_runtime.insightforge_adapters.video_i2v_model",
                    return_value="doubao-seedance-1-0-lite-i2v-250428"), \
-             patch("agent_runtime.vimax_adapters.video_base_url",
+             patch("agent_runtime.insightforge_adapters.video_base_url",
                    return_value="https://ark.cn-beijing.volces.com/api/v3"):
             generator = _build_video_generator()
         self.assertIsInstance(generator, VideoGeneratorDoubaoSeedanceArkAPI)
@@ -29,14 +29,14 @@ class ArkVideoGeneratorFactoryTests(unittest.TestCase):
 
     def test_factory_falls_back_to_model_when_t2v_i2v_not_set(self):
         """When t2v_model/i2v_model are not configured, they should fall back to video.model."""
-        with patch("agent_runtime.vimax_adapters.video_api_key", return_value="ark-key"), \
-             patch("agent_runtime.vimax_adapters.video_model",
+        with patch("agent_runtime.insightforge_adapters.video_api_key", return_value="ark-key"), \
+             patch("agent_runtime.insightforge_adapters.video_model",
                    return_value="ep-2024xxx"), \
-             patch("agent_runtime.vimax_adapters.video_t2v_model",
+             patch("agent_runtime.insightforge_adapters.video_t2v_model",
                    return_value="ep-2024xxx"), \
-             patch("agent_runtime.vimax_adapters.video_i2v_model",
+             patch("agent_runtime.insightforge_adapters.video_i2v_model",
                    return_value="ep-2024xxx"), \
-             patch("agent_runtime.vimax_adapters.video_base_url",
+             patch("agent_runtime.insightforge_adapters.video_base_url",
                    return_value="https://ark.cn-beijing.volces.com/api/v3"):
             generator = _build_video_generator()
         self.assertIsInstance(generator, VideoGeneratorDoubaoSeedanceArkAPI)

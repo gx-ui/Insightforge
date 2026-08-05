@@ -21,7 +21,7 @@ class ImageOrientationTests(unittest.TestCase):
             ensure_not_portrait(Image.new("RGB", (1000, 1100)))
 
     def test_portrait_tolerance_env_override(self):
-        with patch.dict(os.environ, {"VIMAX_IMAGE_PORTRAIT_RETRY_TOLERANCE": "1.20"}):
+        with patch.dict(os.environ, {"INSIGHTFORGE_IMAGE_PORTRAIT_RETRY_TOLERANCE": "1.20"}):
             ensure_not_portrait(Image.new("RGB", (1000, 1100)))
 
 

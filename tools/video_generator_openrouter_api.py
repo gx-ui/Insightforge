@@ -43,7 +43,7 @@ class VideoGeneratorOpenRouterAPI:
         model: str = "google/veo-3.1-lite",
         base_url: str = "https://openrouter.ai/api/v1",
         http_referer: str = "",
-        app_title: str = "ViMax",
+        app_title: str = "InsightForge",
     ):
         self.api_key = api_key
         self.model = model
@@ -59,12 +59,12 @@ class VideoGeneratorOpenRouterAPI:
         **kwargs,
     ) -> VideoOutput:
         progress = kwargs.get("progress")
-        request_timeout_seconds = _env_float("VIMAX_VIDEO_REQUEST_TIMEOUT_SECONDS", 60.0)
-        query_timeout_seconds = _env_float("VIMAX_VIDEO_QUERY_TIMEOUT_SECONDS", 600.0)
-        poll_interval_seconds = _env_float("VIMAX_VIDEO_POLL_INTERVAL_SECONDS", 10.0)
-        duration = _env_int("VIMAX_OPENROUTER_VIDEO_DURATION", 8)
-        resolution = os.environ.get("VIMAX_OPENROUTER_VIDEO_RESOLUTION", "720p")
-        generate_audio = _env_bool("VIMAX_OPENROUTER_GENERATE_AUDIO", True)
+        request_timeout_seconds = _env_float("INSIGHTFORGE_VIDEO_REQUEST_TIMEOUT_SECONDS", 60.0)
+        query_timeout_seconds = _env_float("INSIGHTFORGE_VIDEO_QUERY_TIMEOUT_SECONDS", 600.0)
+        poll_interval_seconds = _env_float("INSIGHTFORGE_VIDEO_POLL_INTERVAL_SECONDS", 10.0)
+        duration = _env_int("INSIGHTFORGE_OPENROUTER_VIDEO_DURATION", 8)
+        resolution = os.environ.get("INSIGHTFORGE_OPENROUTER_VIDEO_RESOLUTION", "720p")
+        generate_audio = _env_bool("INSIGHTFORGE_OPENROUTER_GENERATE_AUDIO", True)
 
         payload = {
             "model": self.model,

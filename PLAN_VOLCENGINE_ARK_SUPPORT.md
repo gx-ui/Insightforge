@@ -1,6 +1,6 @@
 # 火山引擎 Ark API 支持方案
 
-> 为 ViMax 项目新增火山引擎（Volcano Engine）官方 Ark API 的图片与视频生成支持。
+> 为 InsightForge 项目新增火山引擎（Volcano Engine）官方 Ark API 的图片与视频生成支持。
 
 ---
 
@@ -8,7 +8,7 @@
 
 ### 1.1 现状
 
-ViMax 的 `agent.local.yaml` 配置和 `agent_runtime/vimax_adapters.py` 工厂分发逻辑目前仅支持两种 API 通道：
+InsightForge 的 `agent.local.yaml` 配置和 `agent_runtime/insightforge_adapters.py` 工厂分发逻辑目前仅支持两种 API 通道：
 
 | Provider | 图片生成器 | 视频生成器 |
 |----------|------------|------------|
@@ -65,11 +65,11 @@ def api_provider_from_base_url(base_url: str) -> str:
 修改文件:
   tools/__init__.py                  <- 注册新类
   agent_runtime/config.py            <- 新增 volcengine provider 检测
-  agent_runtime/vimax_adapters.py    <- 工厂分发新增 volcengine 分支
+  agent_runtime/insightforge_adapters.py    <- 工厂分发新增 volcengine 分支
   configs/agent.example.yaml          <- 更新配置模板
   configs/agent.local.yaml            <- 更新为火山引擎示例
   tests/test_agent_config.py          <- provider 检测测试
-  tests/test_vimax_adapters.py        <- 工厂分发测试
+  tests/test_insightforge_adapters.py        <- 工厂分发测试
 
 ```
 
@@ -84,7 +84,7 @@ def api_provider_from_base_url(base_url: str) -> str:
 基于现有 `image_generator_doubao_seedream_yunwu_api.py` 改造，核心变更：
 - `base_url` 改为构造函数参数（默认官方 Ark API 地址），不再硬编码
 - 添加 `tenacity` 重试逻辑
-- 添加 `VIMAX_IMAGE_REQUEST_TIMEOUT_SECONDS` 环境变量支持
+- 添加 `INSIGHTFORGE_IMAGE_REQUEST_TIMEOUT_SECONDS` 环境变量支持
 - 添加 `progress` 回调支持
 
 关键代码结构：
@@ -152,7 +152,7 @@ Response:
 - 将 `ff2v_model` / `flf2v_model` 合并为 `i2v_model`（图生视频模型，首帧/首尾帧共用）
 - **自动推导 t2v/i2v 模型 ID**：用户只需填一个 `model`，构造函数检测到 `t2v` 或 `i2v` 关键词时自动换算出另一个（见下方推导逻辑）
 - 添加 `progress` 回调支持
-- 添加环境变量: `VIMAX_VIDEO_REQUEST_TIMEOUT_SECONDS`、`VIMAX_VIDEO_QUERY_TIMEOUT_SECONDS`、`VIMAX_VIDEO_POLL_INTERVAL_SECONDS`
+- 添加环境变量: `INSIGHTFORGE_VIDEO_REQUEST_TIMEOUT_SECONDS`、`INSIGHTFORGE_VIDEO_QUERY_TIMEOUT_SECONDS`、`INSIGHTFORGE_VIDEO_POLL_INTERVAL_SECONDS`
 - 参考 `video_generator_veo_yunwu_api.py` 的成熟轮询逻辑（deadline 超时、连续错误计数）
 
 模型自动推导逻辑:
@@ -280,7 +280,7 @@ def api_provider_from_base_url(base_url: str) -> str:
 
 ---
 
-### 3.5 更新工厂分发 - `agent_runtime/vimax_adapters.py`
+### 3.5 更新工厂分发 - `agent_runtime/insightforge_adapters.py`
 
 #### 3.5.1 新增导入
 
@@ -369,16 +369,16 @@ video:
 import unittest
 from unittest.mock import patch
 
-from agent_runtime.vimax_adapters import _build_image_generator
+from agent_runtime.insightforge_adapters import _build_image_generator
 from tools.image_generator_doubao_seedream_ark_api import ImageGeneratorDoubaoSeedreamArkAPI
 
 
 class ArkImageGeneratorFactoryTests(unittest.TestCase):
     def test_factory_selects_ark_from_volcengine_base_url(self):
-        with patch("agent_runtime.vimax_adapters.image_api_key", return_value="ark-key"), \
-             patch("agent_runtime.vimax_adapters.image_model",
+        with patch("agent_runtime.insightforge_adapters.image_api_key", return_value="ark-key"), \
+             patch("agent_runtime.insightforge_adapters.image_model",
                    return_value="doubao-seedream-3-0-t2i-250415"), \
-             patch("agent_runtime.vimax_adapters.image_base_url",
+             patch("agent_runtime.insightforge_adapters.image_base_url",
                    return_value="https://ark.cn-beijing.volces.com/api/v3"):
             generator = _build_image_generator()
         self.assertIsInstance(generator, ImageGeneratorDoubaoSeedreamArkAPI)
@@ -392,16 +392,16 @@ class ArkImageGeneratorFactoryTests(unittest.TestCase):
 import unittest
 from unittest.mock import patch
 
-from agent_runtime.vimax_adapters import _build_video_generator
+from agent_runtime.insightforge_adapters import _build_video_generator
 from tools.video_generator_doubao_seedance_ark_api import VideoGeneratorDoubaoSeedanceArkAPI
 
 
 class ArkVideoGeneratorFactoryTests(unittest.TestCase):
     def test_factory_selects_ark_from_volcengine_base_url(self):
-        with patch("agent_runtime.vimax_adapters.video_api_key", return_value="ark-key"), \
-             patch("agent_runtime.vimax_adapters.video_model",
+        with patch("agent_runtime.insightforge_adapters.video_api_key", return_value="ark-key"), \
+             patch("agent_runtime.insightforge_adapters.video_model",
                    return_value="doubao-seedance-1-0-lite-t2v-250428"), \
-             patch("agent_runtime.vimax_adapters.video_base_url",
+             patch("agent_runtime.insightforge_adapters.video_base_url",
                    return_value="https://ark.cn-beijing.volces.com/api/v3"):
             generator = _build_video_generator()
         self.assertIsInstance(generator, VideoGeneratorDoubaoSeedanceArkAPI)
@@ -481,11 +481,11 @@ def test_video_provider_is_inferred_from_base_url(self):
 
 | 变量名 | 默认值 | 说明 |
 |--------|--------|------|
-| `VIMAX_IMAGE_REQUEST_TIMEOUT_SECONDS` | `300` | 图片生成 HTTP 请求超时（秒） |
-| `VIMAX_VIDEO_REQUEST_TIMEOUT_SECONDS` | `60` | 视频任务创建/查询 HTTP 请求超时（秒） |
-| `VIMAX_VIDEO_QUERY_TIMEOUT_SECONDS` | `600` | 视频任务轮询总超时（秒） |
-| `VIMAX_VIDEO_POLL_INTERVAL_SECONDS` | `5` | 视频任务轮询间隔（秒） |
-| `VIMAX_VIDEO_MAX_QUERY_ERRORS` | `5` | 视频轮询连续错误上限 |
+| `INSIGHTFORGE_IMAGE_REQUEST_TIMEOUT_SECONDS` | `300` | 图片生成 HTTP 请求超时（秒） |
+| `INSIGHTFORGE_VIDEO_REQUEST_TIMEOUT_SECONDS` | `60` | 视频任务创建/查询 HTTP 请求超时（秒） |
+| `INSIGHTFORGE_VIDEO_QUERY_TIMEOUT_SECONDS` | `600` | 视频任务轮询总超时（秒） |
+| `INSIGHTFORGE_VIDEO_POLL_INTERVAL_SECONDS` | `5` | 视频任务轮询间隔（秒） |
+| `INSIGHTFORGE_VIDEO_MAX_QUERY_ERRORS` | `5` | 视频轮询连续错误上限 |
 
 ---
 
@@ -519,7 +519,7 @@ agent_runtime/config.py
 | 2 | **NEW** | `tools/video_generator_doubao_seedance_ark_api.py` | 官方 Ark API 视频生成器（含 t2v/i2v 自动推导） |
 | 3 | **MOD** | `tools/__init__.py` | 注册新类的导入和导出 |
 | 4 | **MOD** | `agent_runtime/config.py` | 新增 volcengine provider 检测 |
-| 5 | **MOD** | `agent_runtime/vimax_adapters.py` | 工厂分发新增 volcengine 分支 |
+| 5 | **MOD** | `agent_runtime/insightforge_adapters.py` | 工厂分发新增 volcengine 分支 |
 | 6 | **MOD** | `configs/agent.example.yaml` | 更新配置模板注释说明 |
 | 7 | **MOD** | `configs/agent.local.yaml` | 更新为火山引擎示例配置 |
 | 8 | **NEW** | `tests/test_ark_image_generator.py` | 图片生成器单元测试 + 工厂测试 |

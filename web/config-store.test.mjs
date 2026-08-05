@@ -11,7 +11,7 @@ afterEach(async () => {
 });
 
 async function fixture() {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'vimax-config-'));
+  const root = await mkdtemp(path.join(os.tmpdir(), 'insightforge-config-'));
   roots.push(root);
   await mkdir(path.join(root, 'configs'), {recursive: true});
   await writeFile(path.join(root, 'configs', 'agent.local.yaml'), [

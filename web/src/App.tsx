@@ -423,7 +423,7 @@ export default function App() {
                 }
               }}
               placeholder="Describe what you want to make"
-              aria-label="Message ViMax"
+              aria-label="Message InsightForge"
               disabled={chat.busy}
               rows={1}
             />
@@ -529,7 +529,7 @@ function Sidebar({open, mobileOpen, sessions, selectedSessionId, activeView, onT
       {mobileOpen && <button className="sidebar-scrim" onClick={onMobileClose} aria-label="Close navigation" />}
       <aside className={`sidebar ${open ? 'is-open' : 'is-collapsed'} ${mobileOpen ? 'is-mobile-open' : ''}`}>
         <div className="sidebar-brand">
-          <strong>ViMax</strong>
+          <strong>InsightForge</strong>
           <button className="icon-button sidebar-collapse desktop-only" onClick={onToggle} aria-label="Collapse navigation">
             <PanelLeftClose size={17} />
           </button>
@@ -565,7 +565,7 @@ function Sidebar({open, mobileOpen, sessions, selectedSessionId, activeView, onT
         </div>
         <div className="sidebar-footer">
           <span className="avatar">V</span>
-          <div><strong>Local workspace</strong><small>Local · ViMax</small></div>
+          <div><strong>Local workspace</strong><small>Local · InsightForge</small></div>
         </div>
       </aside>
     </>
@@ -575,7 +575,7 @@ function Sidebar({open, mobileOpen, sessions, selectedSessionId, activeView, onT
 function EmptyState({theme}: {theme: Theme}) {
   return (
     <section className="empty-state">
-      <img className="empty-state-logo" src={theme === 'dark' ? '/vimax-light.svg' : '/vimax-dark.svg'} alt="ViMax" />
+      <img className="empty-state-logo" src={theme === 'dark' ? '/insightforge-light.svg' : '/insightforge-dark.svg'} alt="InsightForge" />
       <h1>What should we create?</h1>
     </section>
   );
@@ -659,7 +659,7 @@ function ThinkingRow({messages}: {messages: Message[]}) {
   return (
     <div className="thinking-row">
       <span className="thinking-mark"><i /><i /><i /></span>
-      <span>{running ? `${humanize(running.tool || 'ViMax')} · ${running.text}` : 'ViMax is thinking'}</span>
+      <span>{running ? `${humanize(running.tool || 'InsightForge')} · ${running.text}` : 'InsightForge is thinking'}</span>
     </div>
   );
 }

@@ -73,5 +73,5 @@ class SessionIndexTests(unittest.TestCase):
             index.write_memory("# User Preferences\n- 16:9\n")
             self.assertIn("16:9", index.memory_text())
             index.append_turn_record(record["session_id"], {"turn_id": "t1", "status": "completed", "tool_rounds": [], "final_assistant_text": "done"})
-            self.assertTrue((Path(tmp) / ".vimax" / "logs" / "loop_history.jsonl").exists())
+            self.assertTrue((Path(tmp) / ".insightforge" / "logs" / "loop_history.jsonl").exists())
             self.assertEqual(len(index.get(record["session_id"])["recent_turn_records"]), 1)

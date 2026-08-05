@@ -8,7 +8,7 @@ const TEXT_EXTENSIONS = new Set(['.txt', '.md', '.json']);
 export async function readSessionState(repoRoot) {
   const fallback = {activeSessionId: '', sessions: []};
   try {
-    const payload = JSON.parse(await readFile(path.join(repoRoot, '.vimax', 'sessions.json'), 'utf8'));
+    const payload = JSON.parse(await readFile(path.join(repoRoot, '.insightforge', 'sessions.json'), 'utf8'));
     const records = Object.values(payload.sessions ?? {})
       .filter((record) => record && typeof record === 'object')
       .map(sanitizeSession);
@@ -24,7 +24,7 @@ export async function readSessionState(repoRoot) {
 
 export async function deleteSession(repoRoot, sessionId) {
   assertSessionId(sessionId);
-  const statePath = path.join(repoRoot, '.vimax', 'sessions.json');
+  const statePath = path.join(repoRoot, '.insightforge', 'sessions.json');
   const payload = JSON.parse(await readFile(statePath, 'utf8'));
   const sessions = payload.sessions && typeof payload.sessions === 'object' ? payload.sessions : {};
   if (!sessions[sessionId]) throw new Error('Project not found');
@@ -48,7 +48,7 @@ export async function deleteSession(repoRoot, sessionId) {
 
 export async function readSessionHistory(repoRoot, sessionId) {
   assertSessionId(sessionId);
-  const logPath = path.join(repoRoot, '.vimax', 'logs', 'loop_history.jsonl');
+  const logPath = path.join(repoRoot, '.insightforge', 'logs', 'loop_history.jsonl');
   try {
     const lines = (await readFile(logPath, 'utf8')).split(/\r?\n/).filter(Boolean);
     const messages = [];
@@ -255,7 +255,7 @@ function validateUploadName(fileName) {
 }
 
 async function removeSessionLogRecords(repoRoot, sessionId) {
-  const logsRoot = path.join(repoRoot, '.vimax', 'logs');
+  const logsRoot = path.join(repoRoot, '.insightforge', 'logs');
   let entries;
   try {
     entries = await readdir(logsRoot, {withFileTypes: true});

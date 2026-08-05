@@ -108,7 +108,7 @@ class TestSessionIndexDurability(unittest.TestCase):
             index.sessions_path.write_text("{ definitely not json", encoding="utf-8")
             data = index.load()
             self.assertEqual(data["sessions"], {})
-            backups = list(index.vimax_dir.glob("sessions.json.corrupt-*"))
+            backups = list(index.insightforge_dir.glob("sessions.json.corrupt-*"))
             self.assertEqual(len(backups), 1, "corrupt state must be preserved for recovery, not discarded")
             self.assertIn("definitely not json", backups[0].read_text(encoding="utf-8"))
 
@@ -116,7 +116,7 @@ class TestSessionIndexDurability(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
             index.create(session_id="roundtrip")
-            self.assertEqual(list(index.vimax_dir.glob("*.tmp")), [])
+            self.assertEqual(list(index.insightforge_dir.glob("*.tmp")), [])
             self.assertIn("roundtrip", index.load()["sessions"])
 
     def test_concurrent_creates_do_not_lose_sessions(self):

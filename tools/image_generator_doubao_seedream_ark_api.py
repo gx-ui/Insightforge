@@ -25,7 +25,7 @@ _DEFAULT_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3"
 
 
 def _request_timeout_seconds() -> float:
-    raw = os.environ.get("VIMAX_IMAGE_REQUEST_TIMEOUT_SECONDS", "300")
+    raw = os.environ.get("INSIGHTFORGE_IMAGE_REQUEST_TIMEOUT_SECONDS", "300")
     try:
         return max(1.0, float(raw))
     except ValueError:

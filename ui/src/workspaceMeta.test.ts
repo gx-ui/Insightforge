@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {compactionBar, compactionLabel, compactTargetFromEnv, resolveWorkspacePath} from './workspaceMeta.js';
 
 assert.equal(compactTargetFromEnv({}), 160000);
-assert.equal(compactTargetFromEnv({VIMAX_AUTO_COMPACT_TOKEN_THRESHOLD: '100', VIMAX_AUTO_COMPACT_BUFFER_TOKENS: '30'}), 70);
-assert.equal(compactTargetFromEnv({VIMAX_CONTEXT_WINDOW_TOKENS: '400000', VIMAX_AUTO_COMPACT_RATIO: '0.9', VIMAX_AUTO_COMPACT_BUFFER_TOKENS: '30000'}), 330000);
+assert.equal(compactTargetFromEnv({INSIGHTFORGE_AUTO_COMPACT_TOKEN_THRESHOLD: '100', INSIGHTFORGE_AUTO_COMPACT_BUFFER_TOKENS: '30'}), 70);
+assert.equal(compactTargetFromEnv({INSIGHTFORGE_CONTEXT_WINDOW_TOKENS: '400000', INSIGHTFORGE_AUTO_COMPACT_RATIO: '0.9', INSIGHTFORGE_AUTO_COMPACT_BUFFER_TOKENS: '30000'}), 330000);
 assert.equal(compactionBar(0, 100, 4), '░░░░');
 assert.equal(compactionBar(50, 100, 4), '██░░');
 assert.equal(compactionBar(200, 100, 4), '████');

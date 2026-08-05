@@ -7,10 +7,10 @@ export type WorkspaceMeta = {
 };
 
 export function compactTargetFromEnv(env: Record<string, string | undefined>): number {
-  const contextWindow = parsePositiveInt(env.VIMAX_CONTEXT_WINDOW_TOKENS, 200000);
-  const ratio = parsePositiveFloat(env.VIMAX_AUTO_COMPACT_RATIO, 0.9);
-  const threshold = parsePositiveInt(env.VIMAX_AUTO_COMPACT_TOKEN_THRESHOLD, Math.round(contextWindow * Math.min(1, Math.max(0, ratio))));
-  const buffer = parsePositiveInt(env.VIMAX_AUTO_COMPACT_BUFFER_TOKENS, 20000);
+  const contextWindow = parsePositiveInt(env.INSIGHTFORGE_CONTEXT_WINDOW_TOKENS, 200000);
+  const ratio = parsePositiveFloat(env.INSIGHTFORGE_AUTO_COMPACT_RATIO, 0.9);
+  const threshold = parsePositiveInt(env.INSIGHTFORGE_AUTO_COMPACT_TOKEN_THRESHOLD, Math.round(contextWindow * Math.min(1, Math.max(0, ratio))));
+  const buffer = parsePositiveInt(env.INSIGHTFORGE_AUTO_COMPACT_BUFFER_TOKENS, 20000);
   return Math.max(0, threshold - buffer);
 }
 

@@ -198,9 +198,9 @@ def build_builtin_registry(workspace_root: str | Path, session_index: Any, adapt
     def _legacy_virtual_read(raw_path: Any, *, as_json: bool) -> ToolResult | None:
         """Compatibility for paths older prompts/models may hallucinate.
 
-        The authoritative session state is .vimax/sessions.json and logs are
-        .vimax/logs/*.jsonl, but some model turns ask for per-session files like
-        .working_dir/<session>/session.json or .vimax/logs/<session>.log.
+        The authoritative session state is .insightforge/sessions.json and logs are
+        .insightforge/logs/*.jsonl, but some model turns ask for per-session files like
+        .working_dir/<session>/session.json or .insightforge/logs/<session>.log.
         """
         path = safe_path(raw_path)
         try:
@@ -216,12 +216,12 @@ def build_builtin_registry(workspace_root: str | Path, session_index: Any, adapt
             payload = {
                 "session": record,
                 "artifact_checklist": session_index.artifact_checklist(session_id),
-                "source": ".vimax/sessions.json",
+                "source": ".insightforge/sessions.json",
                 "virtual_path": rel.as_posix(),
             }
             content = json.dumps(payload, ensure_ascii=False, indent=2)
-            return ToolResult("read_json" if as_json else "read_file", True, content, {"virtual_path": True, "source": ".vimax/sessions.json"})
-        if len(parts) == 3 and parts[0] == ".vimax" and parts[1] == "logs" and parts[2].endswith(".log"):
+            return ToolResult("read_json" if as_json else "read_file", True, content, {"virtual_path": True, "source": ".insightforge/sessions.json"})
+        if len(parts) == 3 and parts[0] == ".insightforge" and parts[1] == "logs" and parts[2].endswith(".log"):
             session_id = parts[2][:-4]
             rows: list[dict[str, Any]] = []
             for log_name in ("loop_history", "tool_calls", "revisions"):
@@ -239,12 +239,12 @@ def build_builtin_registry(workspace_root: str | Path, session_index: Any, adapt
                     rows.append(item)
             payload = {
                 "session_id": session_id,
-                "source": ".vimax/logs/*.jsonl",
+                "source": ".insightforge/logs/*.jsonl",
                 "virtual_path": rel.as_posix(),
                 "records": rows,
             }
             content = json.dumps(payload, ensure_ascii=False, indent=2)
-            return ToolResult("read_json" if as_json else "read_file", True, content, {"virtual_path": True, "source": ".vimax/logs/*.jsonl", "record_count": len(rows)})
+            return ToolResult("read_json" if as_json else "read_file", True, content, {"virtual_path": True, "source": ".insightforge/logs/*.jsonl", "record_count": len(rows)})
         return None
 
     def read_file(args: dict[str, Any]) -> ToolResult:
@@ -311,10 +311,10 @@ def build_builtin_registry(workspace_root: str | Path, session_index: Any, adapt
 
     def memory_write(args: dict[str, Any]) -> ToolResult:
         session_index.write_memory(str(args["content"]))
-        return ToolResult("memory_write", True, "Updated .vimax/memory.md")
+        return ToolResult("memory_write", True, "Updated .insightforge/memory.md")
 
     def todo_path() -> Path:
-        return root / ".vimax" / "todo.json"
+        return root / ".insightforge" / "todo.json"
 
     def todo_read(args: dict[str, Any]) -> ToolResult:
         path = todo_path()
@@ -347,7 +347,7 @@ def build_builtin_registry(workspace_root: str | Path, session_index: Any, adapt
         path = todo_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({"items": normalized}, ensure_ascii=False, indent=2), encoding="utf-8")
-        return ToolResult("todo_write", True, f"Updated .vimax/todo.json with {len(normalized)} item(s)", {"items": normalized, "item_count": len(normalized)})
+        return ToolResult("todo_write", True, f"Updated .insightforge/todo.json with {len(normalized)} item(s)", {"items": normalized, "item_count": len(normalized)})
 
     async def sleep_tool(args: dict[str, Any], runtime: ToolRuntimeContext | None = None) -> ToolResult:
         seconds = float(args.get("seconds", 0))
@@ -359,8 +359,8 @@ def build_builtin_registry(workspace_root: str | Path, session_index: Any, adapt
         return ToolResult("sleep", True, f"Slept for {seconds:g}s")
 
     async def run_shell(args: dict[str, Any], runtime: ToolRuntimeContext | None = None) -> ToolResult:
-        if os.environ.get("VIMAX_ENABLE_RUN_SHELL") != "1":
-            return ToolResult("run_shell", False, "run_shell is disabled by default. Set VIMAX_ENABLE_RUN_SHELL=1 to enable bounded shell commands.", {"error_type": "disabled"})
+        if os.environ.get("INSIGHTFORGE_ENABLE_RUN_SHELL") != "1":
+            return ToolResult("run_shell", False, "run_shell is disabled by default. Set INSIGHTFORGE_ENABLE_RUN_SHELL=1 to enable bounded shell commands.", {"error_type": "disabled"})
         command = str(args["command"]).strip()
         timeout_seconds = min(max(int(args.get("timeout_seconds", 30)), 1), 120)
         output_limit = min(max(int(args.get("output_limit", 20000)), 1000), 50000)
@@ -388,19 +388,19 @@ def build_builtin_registry(workspace_root: str | Path, session_index: Any, adapt
         return ToolResult("run_shell", proc.returncode == 0, content, {"returncode": proc.returncode, "truncated": truncated})
 
     specs = [
-        ToolSpec("read_file", "Read a UTF-8 text file inside the workspace. Also resolves virtual legacy session paths like .vimax/logs/<session>.log.", read_file, schema={"path": ToolArgumentSchema(str, True)}, concurrency_safe=True),
+        ToolSpec("read_file", "Read a UTF-8 text file inside the workspace. Also resolves virtual legacy session paths like .insightforge/logs/<session>.log.", read_file, schema={"path": ToolArgumentSchema(str, True)}, concurrency_safe=True),
         ToolSpec("read_json", "Read and parse a JSON file inside the workspace. Also resolves virtual legacy session paths like .working_dir/<session>/session.json.", read_json, schema={"path": ToolArgumentSchema(str, True)}, concurrency_safe=True),
         ToolSpec("write_json", "Write formatted JSON inside the workspace.", write_json, schema={"path": ToolArgumentSchema(str, True), "data": ToolArgumentSchema((dict, list), True)}),
         ToolSpec("list_files", "List direct children of a workspace path.", list_files, schema={"path": ToolArgumentSchema(str, False, ".")}, concurrency_safe=True),
         ToolSpec("glob_files", "Find workspace files with a glob pattern.", glob_files, schema={"pattern": ToolArgumentSchema(str, True)}, concurrency_safe=True),
         ToolSpec("search_text", "Search text in workspace files.", search_text, schema={"query": ToolArgumentSchema(str, True), "path": ToolArgumentSchema(str, False, "."), "max_results": ToolArgumentSchema(int, False, 100)}, concurrency_safe=True),
         ToolSpec("view_image", "Load a PNG, JPEG, WebP, or GIF from the active session and present its pixels to the multimodal model. Accepts a session-relative path or a path prefixed by the active .working_dir session.", view_image, permission_mode="read-only", schema={"path": ToolArgumentSchema(str, True)}, concurrency_safe=True),
-        ToolSpec("memory_read", "Read .vimax/memory.md user preferences.", memory_read, schema={}, concurrency_safe=True),
-        ToolSpec("memory_write", "Replace .vimax/memory.md with user preference notes only.", memory_write, schema={"content": ToolArgumentSchema(str, True)}),
-        ToolSpec("todo_read", "Read short-term todo items from .vimax/todo.json. This is not a task or team system.", todo_read, schema={}, concurrency_safe=True),
-        ToolSpec("todo_write", "Replace short-term todo items in .vimax/todo.json. Items require content and may use pending, in_progress, or completed status.", todo_write, schema={"items": ToolArgumentSchema(list, True)}),
+        ToolSpec("memory_read", "Read .insightforge/memory.md user preferences.", memory_read, schema={}, concurrency_safe=True),
+        ToolSpec("memory_write", "Replace .insightforge/memory.md with user preference notes only.", memory_write, schema={"content": ToolArgumentSchema(str, True)}),
+        ToolSpec("todo_read", "Read short-term todo items from .insightforge/todo.json. This is not a task or team system.", todo_read, schema={}, concurrency_safe=True),
+        ToolSpec("todo_write", "Replace short-term todo items in .insightforge/todo.json. Items require content and may use pending, in_progress, or completed status.", todo_write, schema={"items": ToolArgumentSchema(list, True)}),
         ToolSpec("sleep", "Wait for a bounded number of seconds.", sleep_tool, schema={"seconds": ToolArgumentSchema(int, False, 0)}, concurrency_safe=True),
-        ToolSpec("run_shell", "Run a bounded shell command in the workspace. Disabled unless VIMAX_ENABLE_RUN_SHELL=1; rejects dangerous commands, enforces timeout, and truncates output.", run_shell, schema={"command": ToolArgumentSchema(str, True), "timeout_seconds": ToolArgumentSchema(int, False, 30), "output_limit": ToolArgumentSchema(int, False, 20000)}),
+        ToolSpec("run_shell", "Run a bounded shell command in the workspace. Disabled unless INSIGHTFORGE_ENABLE_RUN_SHELL=1; rejects dangerous commands, enforces timeout, and truncates output.", run_shell, schema={"command": ToolArgumentSchema(str, True), "timeout_seconds": ToolArgumentSchema(int, False, 30), "output_limit": ToolArgumentSchema(int, False, 20000)}),
     ]
     for spec in adapter_specs or []:
         specs.append(spec)

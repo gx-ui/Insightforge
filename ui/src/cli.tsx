@@ -49,9 +49,9 @@ function parseCliArgs(argv: string[]): CliOptions {
 
 function printHelpAndExit(): never {
   console.log(`Usage:
-  ./vimax tui
-  ./vimax tui new
-  ./vimax tui resume [session_id]
+  ./insightforge tui
+  ./insightforge tui new
+  ./insightforge tui resume [session_id]
 
 Direct TUI args:
   --new-session        create and activate a new empty session
@@ -111,14 +111,14 @@ function baseAgentArgs(): string[] {
 }
 
 function agentCommand(): {command: string; args: string[]} {
-  if (process.env.VIMAX_AGENT_COMMAND) {
-    return {command: process.env.VIMAX_AGENT_COMMAND, args: splitArgs(process.env.VIMAX_AGENT_ARGS ?? '')};
+  if (process.env.INSIGHTFORGE_AGENT_COMMAND) {
+    return {command: process.env.INSIGHTFORGE_AGENT_COMMAND, args: splitArgs(process.env.INSIGHTFORGE_AGENT_ARGS ?? '')};
   }
-  if (process.env.VIMAX_PYTHON_CMD) {
-    return {command: process.env.VIMAX_PYTHON_CMD, args: baseAgentArgs()};
+  if (process.env.INSIGHTFORGE_PYTHON_CMD) {
+    return {command: process.env.INSIGHTFORGE_PYTHON_CMD, args: baseAgentArgs()};
   }
-  if (process.env.VIMAX_UV_CMD) {
-    return {command: process.env.VIMAX_UV_CMD, args: ['run', 'python', ...baseAgentArgs()]};
+  if (process.env.INSIGHTFORGE_UV_CMD) {
+    return {command: process.env.INSIGHTFORGE_UV_CMD, args: ['run', 'python', ...baseAgentArgs()]};
   }
   const venvPython = path.join(repoRoot, '.venv', 'bin', 'python3');
   if (existsSync(venvPython)) {
@@ -142,7 +142,7 @@ function App() {
   const inputRef = useRef('');
   const cursorRef = useRef(0);
   const [busy, setBusy] = useState(false);
-  const [activityText, setActivityText] = useState('ViMax thinking');
+  const [activityText, setActivityText] = useState('InsightForge thinking');
   const [workspaceMeta, setWorkspaceMeta] = useState<WorkspaceMeta>({
     workspacePath: '.working_dir',
     sessionId: '',
@@ -348,11 +348,11 @@ function App() {
     }
     if (event.type === 'tool_result') {
       clearResponseIdleTimer();
-      setActivityText('ViMax thinking');
+      setActivityText('InsightForge thinking');
       return;
     }
     if (event.type === 'token') {
-      setActivityText('ViMax responding');
+      setActivityText('InsightForge responding');
       scheduleResponseIdleClear();
       return;
     }
@@ -363,12 +363,12 @@ function App() {
     }
     if (event.type === 'done' || event.type === 'error' || event.type === 'session') {
       clearResponseIdleTimer();
-      setActivityText('ViMax thinking');
+      setActivityText('InsightForge thinking');
       return;
     }
     if (event.type === 'turn') {
       clearResponseIdleTimer();
-      setActivityText('ViMax thinking');
+      setActivityText('InsightForge thinking');
     }
   }
 
@@ -408,7 +408,7 @@ function App() {
     }
     setLines((current) => [...stripThinking(current), {kind: 'user', text: prompt}]);
     clearResponseIdleTimer();
-    setActivityText('ViMax thinking');
+    setActivityText('InsightForge thinking');
     stateRef.current = createMappingState();
     updateInput('', 0);
     setBusy(true);
@@ -472,7 +472,7 @@ function WorkspacePanel({lines, width, thinkingFrame, meta, busy, activityText}:
   return (
     <Box flexDirection="column" width={panelWidth}>
       <GradientBorderLine left="╭" fill="─" right="╮" width={panelWidth} />
-      <WorkspaceContentLine text="ViMax Workspace" color="blueBright" width={panelWidth} />
+      <WorkspaceContentLine text="InsightForge Workspace" color="blueBright" width={panelWidth} />
       {workspaceHeaderLines(meta, contentWidth).map((line, index) => (
         <WorkspaceContentLine key={`header-${index}`} text={line.text} color={line.color} width={panelWidth} />
       ))}
@@ -509,10 +509,10 @@ function workspaceHeaderLines(meta: WorkspaceMeta, width: number): Array<{text: 
 
 function statusActivityLabel(phase: string | undefined, message: string | undefined): string {
   if (phase === 'compact') return 'compacting context';
-  if (phase === 'sampling_assistant') return 'ViMax thinking';
+  if (phase === 'sampling_assistant') return 'InsightForge thinking';
   if (phase === 'executing_tools') return 'running tools';
   const normalized = String(message ?? '').trim();
-  return normalized || 'ViMax thinking';
+  return normalized || 'InsightForge thinking';
 }
 
 function displayStage(stage: string): string {
@@ -591,7 +591,7 @@ function lineColor(line: WorkspaceLine): string {
 }
 
 function clearTerminalForTuiStart() {
-  if (process.env.VIMAX_TUI_NO_CLEAR === '1') return;
+  if (process.env.INSIGHTFORGE_TUI_NO_CLEAR === '1') return;
   if (!process.stdout.isTTY) return;
   process.stdout.write('\u001b[2J\u001b[3J\u001b[H');
 }
