@@ -149,14 +149,17 @@
 - **验证（已通过✅）**：`test_agent_llm` 重写为 15 测试（wrapper 行为+转换器单测）全绿；`test_robustness::TestLLMClient` 重写为 2 测试（max_retries 配置+错误传播）全绿；`test_agent_loop`+golden 契约不变（用 FakeLLM 不受影响）；全量 209 passed 无回归；配置兼容性审计 openai 路径 1:1 一致。
 - **回滚**：还原 `llm.py`。
 
-### Phase 2 - 工具框架统一（中风险）
-- **目标**：`ToolSpec` -> LangChain `StructuredTool`/`@tool`，自动 JSON schema。
-- **改动**
-  - 每个 builtin tool（`read_file`/`write_json`/`view_image`/`run_shell`/...）与 adapter tool 转为 `@tool`；`ToolRuntimeContext` 作为 contextvar 注入，保留 `emit_progress`/`emit_terminal`/`is_cancelled`。
-  - `list_function_tools()` 改为读 `StructuredTool.args_schema`。
-  - `ToolExecutor` 保留（telemetry/校验/取消），调用底层换成 tool 直接 invoke。
-- **验证**：`test_agent_tools`、`test_insightforge_adapters`、工具名/描述/参数 schema diff=空（LLM 看到的工具不变）。
-- **回滚**：还原 `tools.py`/`tool_executor.py`。
+### Phase 2 - 工具框架：interop 守卫（StructedTool 迁移延迟·已决策）
+- **目标**：确认手写 ToolRegistry 与 langchain 互通；为 Phase 3 铺路。
+- **改动（已完成✅）**
+  - 新增 `tests/test_tool_langchain_interop.py`：守卫全部 13 个工具 schema 被 `bind_tools` 接受，并锁定 `additionalProperties:false` 契约不变。
+- **StructedTool 全量迁移延迟（已决策）**：
+  - 原计划把 `ToolSpec` -> langchain `StructuredTool` 并用其自动 schema 生成。
+  - **阻断发现**：langchain `convert_to_openai_tool` 无法复现 `additionalProperties:false`（即使 pydantic `extra='forbid'`），而当前 13 个工具全部带此字段 -> 迁移会破坏"schema diff=空"契约。
+  - **且**：现有 `list_function_tools()` 的 OpenAI dict 已能直接喂 `bind_tools`（已验证）；Phase 3 的自定义 tool 节点直接复用现有 `ToolExecutor`（不依赖 ToolNode/StructuredTool）。
+  - **结论**：迁移风险（破坏 schema 契约）> 价值（系统已与框架互通）。延迟全量迁移；现有 ToolRegistry 作为工具系统保留并与 langchain 互通。
+- **验证（已通过✅）**：`test_tool_langchain_interop` 2 测试全绿；`test_agent_tools`、`test_insightforge_adapters` 不变。
+- **回滚**：删除 interop 测试文件。
 
 ### Phase 3 - Agent loop -> LangGraph StateGraph（高风险·核心）
 - **目标**：`AgentLoop.stream_events` 内部换成 LangGraph 图；对外 JSONL 协议等价（按 Phase 0 商定的差异范围）。
