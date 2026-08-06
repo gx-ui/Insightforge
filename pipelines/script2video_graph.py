@@ -1,25 +1,27 @@
-﻿"""Phase 6 prototype: script2video text-planning as a LangGraph StateGraph.
+﻿"""Phase 6: script2video text-planning as a LangGraph StateGraph.
 
-Thin wrapper that sequences the existing pipeline methods as graph nodes.
-File caching (os.path.exists) stays (product contract); asyncio.gather for
-parallel shots stays inside the decompose node. The public plan_text_artifacts
-signature is preserved; this module provides a graph-backed implementation
-that can replace it incrementally.
-
-Validated: linear DAG (extract->storyboard->decompose->camera_tree) sequences
-correctly; parallel shot decomposition uses asyncio.gather inside a single
-node (no Send fan-out needed, per Phase 0 finding).
+Replaces the inline orchestration in Script2VideoPipeline.plan_text_artifacts
+with a stateful graph. Each node delegates to the pipeline's existing methods
+(which handle file caching); the graph adds progress emission, the
+provided-characters branch, and the camera_tree retry. The public
+plan_text_artifacts signature is unchanged; a feature flag falls back to the
+legacy inline path.
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
+import os
 from typing import Any, TypedDict
 
 from langgraph.graph import StateGraph, START, END
 
+from interfaces import CharacterInScene
+
 
 class PlanningState(TypedDict, total=False):
+    pipeline: Any
     script: str
     user_requirement: str
     style: str
@@ -29,27 +31,35 @@ class PlanningState(TypedDict, total=False):
     camera_tree: Any
     progress: Any
     quiet: bool
-    _provided_characters: bool
+
+
+def _emit(progress, stage, message, metadata=None):
+    if progress is not None:
+        progress(stage, message, metadata or {})
 
 
 def build_planning_graph(pipeline: Any):
-    """Build a StateGraph that wraps the pipeline's text-planning steps.
-
-    ``pipeline`` must expose: extract_characters, design_storyboard,
-    decompose_visual_descriptions, construct_camera_tree (duck-typed, same
-    as the existing Script2VideoPipeline).
-    """
-
     async def extract_characters_node(state: PlanningState) -> dict:
+        progress = state.get("progress")
+        quiet = state.get("quiet", False)
         characters = state.get("characters")
         if characters is None:
-            characters = await pipeline.extract_characters(
-                script=state["script"], quiet=state.get("quiet", False)
-            )
-            return {"characters": characters, "_provided_characters": False}
-        return {"_provided_characters": True}
+            _emit(progress, "extract_characters", "Extracting characters from script")
+            characters = await pipeline.extract_characters(script=state["script"], quiet=quiet)
+        else:
+            from pipelines.script2video_pipeline import _normalize_model_list
+            characters = _normalize_model_list(characters, CharacterInScene, "characters")
+            _emit(progress, "extract_characters", "Using provided characters", {"provided": True, "count": len(characters)})
+            characters_path = os.path.join(pipeline.working_dir, "characters.json")
+            if not os.path.exists(characters_path):
+                with open(characters_path, "w", encoding="utf-8") as f:
+                    json.dump([c.model_dump() for c in characters], f, ensure_ascii=False, indent=4)
+            for character in characters:
+                pipeline.character_portrait_events[character.idx] = asyncio.Event()
+        return {"characters": characters}
 
     async def design_storyboard_node(state: PlanningState) -> dict:
+        _emit(state.get("progress"), "design_storyboard", "Designing storyboard")
         storyboard = await pipeline.design_storyboard(
             script=state["script"],
             characters=state["characters"],
@@ -59,8 +69,7 @@ def build_planning_graph(pipeline: Any):
         return {"storyboard": storyboard}
 
     async def decompose_shots_node(state: PlanningState) -> dict:
-        # Parallel shot decomposition via asyncio.gather INSIDE the node
-        # (preserves exact concurrency semantics; no Send fan-out needed).
+        _emit(state.get("progress"), "decompose_shots", "Decomposing shot visual descriptions", {"shot_count": len(state["storyboard"])})
         shot_descriptions = await pipeline.decompose_visual_descriptions(
             shot_brief_descriptions=state["storyboard"],
             characters=state["characters"],
@@ -69,10 +78,22 @@ def build_planning_graph(pipeline: Any):
         return {"shot_descriptions": shot_descriptions}
 
     async def construct_camera_tree_node(state: PlanningState) -> dict:
-        camera_tree = await pipeline.construct_camera_tree(
-            shot_descriptions=state["shot_descriptions"],
-            quiet=state.get("quiet", False),
-        )
+        progress = state.get("progress")
+        quiet = state.get("quiet", False)
+        camera_tree = None
+        for attempt in range(2):
+            try:
+                stage = "construct_camera_tree" if attempt == 0 else "construct_camera_tree_retry"
+                message = "Constructing camera tree" if attempt == 0 else "Retrying camera tree construction after schema/type failure"
+                _emit(progress, stage, message, {"shot_count": len(state["shot_descriptions"]), "attempt": attempt + 1})
+                camera_tree = await pipeline.construct_camera_tree(shot_descriptions=state["shot_descriptions"], quiet=quiet)
+                break
+            except Exception:
+                camera_tree_path = os.path.join(pipeline.working_dir, "camera_tree.json")
+                if os.path.exists(camera_tree_path):
+                    os.remove(camera_tree_path)
+                if attempt == 1:
+                    raise
         return {"camera_tree": camera_tree}
 
     g = StateGraph(PlanningState)
@@ -89,7 +110,7 @@ def build_planning_graph(pipeline: Any):
 
 
 async def run_planning_graph(pipeline: Any, **kwargs) -> dict:
-    """Convenience: build + run the planning graph, return final state."""
+    """Build + run the planning graph, returning the artifact dict."""
     app = build_planning_graph(pipeline)
     result = await app.ainvoke(kwargs)
     return {
