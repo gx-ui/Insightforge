@@ -10,7 +10,7 @@ from langgraph.graph import StateGraph, START, END
 
 from .context_compactor import ContextCompactor
 from .llm import AssistantMessage  # noqa: F401  (re-exported for test compat)
-from .models import TurnControl
+from .models import TurnControl, ToolCall
 from .loop import (
     MAX_TOOL_PASSES,
     _compaction_record,
@@ -73,6 +73,7 @@ class AgentLoop:
         self._control: TurnControl | None = None
         self._graph = None
         self._saver = None
+        self._conn = None
         self._checkpoint_path = str(
             Path(session_index.workspace_root) / ".insightforge" / "checkpoints.sqlite"
         )
@@ -86,8 +87,8 @@ class AgentLoop:
         from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
         Path(self._checkpoint_path).parent.mkdir(parents=True, exist_ok=True)
-        conn = await aiosqlite.connect(self._checkpoint_path)
-        self._saver = AsyncSqliteSaver(conn)
+        self._conn = await aiosqlite.connect(self._checkpoint_path)
+        self._saver = AsyncSqliteSaver(self._conn)
         self._graph = self._build_graph()
 
     def _build_graph(self):
@@ -103,7 +104,29 @@ class AgentLoop:
         g.add_edge("finalize", END)
         return g.compile(checkpointer=self._saver)
 
+    async def aclose(self) -> None:
+        """Close the sqlite checkpoint connection. Safe to call multiple times."""
+        if self._conn is not None:
+            await self._conn.close()
+            self._conn = None
+            self._saver = None
+            self._graph = None
+
     # -- public API (unchanged signatures) --
+
+    async def _do_compact(self, session: dict, *, reason: str):
+        """Shared compaction: compact self.history, update session metadata."""
+        result = await self.context_compactor.compact(
+            self.history,
+            previous_summary=str(session.get("compacted_summary", "") or ""),
+            reason=reason,
+        )
+        self.history = [
+            self.context_compactor.synthetic_summary_message(result.summary),
+            *result.preserved_messages,
+        ]
+        self.session_index.update_compaction(session["session_id"], _compaction_record(result))
+        return result
 
     async def compact_history(self, *, reason: str = "manual") -> str:
         await self._ensure_graph()
@@ -114,17 +137,8 @@ class AgentLoop:
         self.history = list(state.values.get("history", [])) if state and state.values else []
         if not self.history:
             return "No conversation history to compact."
-        result = await self.context_compactor.compact(
-            self.history,
-            previous_summary=str(session.get("compacted_summary", "") or ""),
-            reason=reason,
-        )
-        self.history = [
-            self.context_compactor.synthetic_summary_message(result.summary),
-            *result.preserved_messages,
-        ]
+        result = await self._do_compact(session, reason=reason)
         await self._graph.aupdate_state(config, {"history": self.history})
-        self.session_index.update_compaction(session["session_id"], _compaction_record(result))
         return f"Compacted context {result.estimated_tokens_before} -> {result.estimated_tokens_after} ({result.mode})."
 
     async def stream_events(self, user_input: str) -> AsyncIterator[dict[str, Any]]:
@@ -157,16 +171,7 @@ class AgentLoop:
         ):
             writer({"type": "status", "turn_id": turn_id, "phase": "compact", "message": "Compacting context before sampling"})
             session = self.session_index.active() or self.session_index.create()
-            result = await self.context_compactor.compact(
-                self.history,
-                previous_summary=str(session.get("compacted_summary", "") or ""),
-                reason="token-pressure",
-            )
-            self.history = [
-                self.context_compactor.synthetic_summary_message(result.summary),
-                *result.preserved_messages,
-            ]
-            self.session_index.update_compaction(session["session_id"], _compaction_record(result))
+            await self._do_compact(session, reason="token-pressure")
             parts = self.prompt_builder.build_parts(user_input)
             system = "\n\n".join(f"## {part.title}\n{part.body}" for part in parts if part.id != "request.user")
         writer({"type": "prompt_trace", "turn_id": turn_id, "prompt_trace": self.prompt_builder.trace(parts)})
@@ -237,7 +242,6 @@ class AgentLoop:
         assistant_text = state.get("assistant_text", "")
         tc_dicts = state.get("assistant_tool_calls", [])
         # Reconstruct ToolCall objects for the executor
-        from .models import ToolCall
         calls = [ToolCall(name=tc["name"], arguments=tc.get("arguments", {}), id=tc.get("id", "")) for tc in tc_dicts]
         tool_round = state.get("tool_round", 0) + 1
         writer({"type": "status", "turn_id": turn_id, "phase": "executing_tools", "message": f"Running tools (round {tool_round})"})

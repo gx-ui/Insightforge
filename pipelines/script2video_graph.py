@@ -21,7 +21,6 @@ from interfaces import CharacterInScene
 
 
 class PlanningState(TypedDict, total=False):
-    pipeline: Any
     script: str
     user_requirement: str
     style: str

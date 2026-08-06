@@ -41,6 +41,13 @@ class TestLLMClient(unittest.IsolatedAsyncioTestCase):
         llm = OpenAICompatibleLLM(model="m", base_url="http://localhost:1", api_key="k")
         self.assertEqual(llm._chat_model.max_retries, 3)
 
+    def test_chat_model_configured_with_timeout(self):
+        llm = OpenAICompatibleLLM(model="m", base_url="http://localhost:1", api_key="k")
+        # Retry (max_retries=3) and timeout (300s) delegated to langchain ChatModel.
+        # Retry behavior on 429/5xx is langchain upstream responsibility, not re-tested.
+        self.assertEqual(llm._chat_model.max_retries, 3)
+        self.assertEqual(llm._chat_model.request_timeout, 300.0)
+
     async def test_model_error_propagates_not_swallowed(self):
         llm = OpenAICompatibleLLM(model="m", base_url="http://localhost:1", api_key="k")
         llm._chat_model = MagicMock()
