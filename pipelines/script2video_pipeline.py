@@ -124,56 +124,16 @@ class Script2VideoPipeline:
         self.shot_desc_events = {}
         self.frame_events = {}
 
-        if characters is None:
-            _emit_text_plan_progress(progress, "extract_characters", "Extracting characters from script")
-            characters = await self.extract_characters(script=script, quiet=quiet)
-        else:
-            characters = _normalize_model_list(characters, CharacterInScene, "characters")
-            _emit_text_plan_progress(progress, "extract_characters", "Using provided characters", {"provided": True, "count": len(characters)})
-            characters_path = os.path.join(self.working_dir, "characters.json")
-            if not os.path.exists(characters_path):
-                with open(characters_path, "w", encoding="utf-8") as f:
-                    json.dump([character.model_dump() for character in characters], f, ensure_ascii=False, indent=4)
-            for character in characters:
-                self.character_portrait_events[character.idx] = asyncio.Event()
-
-        _emit_text_plan_progress(progress, "design_storyboard", "Designing storyboard")
-        storyboard = await self.design_storyboard(
+        from pipelines.script2video_graph import run_planning_graph
+        return await run_planning_graph(
+            self,
             script=script,
-            characters=characters,
             user_requirement=user_requirement,
-            quiet=quiet,
-        )
-        _emit_text_plan_progress(progress, "decompose_shots", "Decomposing shot visual descriptions", {"shot_count": len(storyboard)})
-        shot_descriptions = await self.decompose_visual_descriptions(
-            shot_brief_descriptions=storyboard,
+            style=style,
             characters=characters,
+            progress=progress,
             quiet=quiet,
         )
-        camera_tree = None
-        for attempt in range(2):
-            try:
-                stage = "construct_camera_tree" if attempt == 0 else "construct_camera_tree_retry"
-                message = "Constructing camera tree" if attempt == 0 else "Retrying camera tree construction after schema/type failure"
-                _emit_text_plan_progress(progress, stage, message, {"shot_count": len(shot_descriptions), "attempt": attempt + 1})
-                camera_tree = await self.construct_camera_tree(
-                    shot_descriptions=shot_descriptions,
-                    quiet=quiet,
-                )
-                break
-            except Exception:
-                camera_tree_path = os.path.join(self.working_dir, "camera_tree.json")
-                if os.path.exists(camera_tree_path):
-                    os.remove(camera_tree_path)
-                if attempt == 1:
-                    raise
-        assert camera_tree is not None
-        return {
-            "characters": characters,
-            "storyboard": storyboard,
-            "shot_descriptions": shot_descriptions,
-            "camera_tree": camera_tree,
-        }
 
 
     @classmethod

@@ -62,19 +62,27 @@ class VideoGeneratorDoubaoSeedanceArkAPI:
         base_url: str = _DEFAULT_BASE_URL,
         max_create_attempts: int = 3,
         max_poll_attempts: int = 300,
+        ff2v_model: str | None = None,
+        flf2v_model: str | None = None,
+        poll_interval: float | None = None,
     ) -> None:
         self.api_key = api_key
         self.t2v_model = t2v_model
         self.i2v_model = i2v_model
+        self.ff2v_model = ff2v_model or i2v_model
+        self.flf2v_model = flf2v_model or i2v_model
         self.base_url = base_url.rstrip("/")
         self.max_create_attempts = max_create_attempts
         self.max_poll_attempts = max_poll_attempts
+        self._poll_interval = poll_interval
 
     def _select_model(self, reference_image_count: int) -> str:
         if reference_image_count == 0:
             return self.t2v_model
-        elif reference_image_count <= 2:
-            return self.i2v_model
+        elif reference_image_count == 1:
+            return self.ff2v_model
+        elif reference_image_count == 2:
+            return self.flf2v_model
         else:
             raise ValueError("reference_image_paths must contain 0, 1, or 2 images.")
 
@@ -209,7 +217,7 @@ class VideoGeneratorDoubaoSeedanceArkAPI:
         url = f"{self.base_url}/contents/generations/tasks/{task_id}"
         headers = {"Authorization": f"Bearer {self.api_key}"}
 
-        poll_interval = _env_float("INSIGHTFORGE_VIDEO_POLL_INTERVAL_SECONDS", 5.0)
+        poll_interval = self._poll_interval if self._poll_interval is not None else _env_float("INSIGHTFORGE_VIDEO_POLL_INTERVAL_SECONDS", 5.0)
         query_timeout = _env_float("INSIGHTFORGE_VIDEO_QUERY_TIMEOUT_SECONDS", 600.0)
         max_query_errors = _env_int("INSIGHTFORGE_VIDEO_MAX_QUERY_ERRORS", 5)
         request_timeout = _env_float("INSIGHTFORGE_VIDEO_REQUEST_TIMEOUT_SECONDS", 60.0)

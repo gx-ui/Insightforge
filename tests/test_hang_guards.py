@@ -139,8 +139,8 @@ class TestSeedanceClientBounds(unittest.IsolatedAsyncioTestCase):
             ({"id": "task-1"}, 200),
         ])
         generator = VideoGeneratorDoubaoSeedanceYunwuAPI(api_key="bad-key")
-        with patch("tools.video_generator_doubao_seedance_yunwu_api.aiohttp.ClientSession", return_value=session), \
-             patch("tools.video_generator_doubao_seedance_yunwu_api.asyncio.sleep", new=AsyncMock()):
+        with patch("tools.video_generator_doubao_seedance_ark_api.aiohttp.ClientSession", return_value=session), \
+             patch("tools.video_generator_doubao_seedance_ark_api.asyncio.sleep", new=AsyncMock()):
             with self.assertRaises(RuntimeError):
                 await generator.create_video_generation_task("a prompt", [])
         self.assertEqual(session.calls, 1, "4xx must not be retried")
@@ -148,8 +148,8 @@ class TestSeedanceClientBounds(unittest.IsolatedAsyncioTestCase):
     async def test_query_task_polling_is_bounded(self):
         session = _FakeSession([({"status": "queued"}, 200)])
         generator = VideoGeneratorDoubaoSeedanceYunwuAPI(api_key="key", max_poll_attempts=3)
-        with patch("tools.video_generator_doubao_seedance_yunwu_api.aiohttp.ClientSession", return_value=session), \
-             patch("tools.video_generator_doubao_seedance_yunwu_api.asyncio.sleep", new=AsyncMock()):
+        with patch("tools.video_generator_doubao_seedance_ark_api.aiohttp.ClientSession", return_value=session), \
+             patch("tools.video_generator_doubao_seedance_ark_api.asyncio.sleep", new=AsyncMock()):
             with self.assertRaises(TimeoutError):
                 await generator.query_video_generation_task("task-1")
         self.assertLessEqual(session.calls, 3)

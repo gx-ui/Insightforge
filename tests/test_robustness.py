@@ -1,4 +1,4 @@
-"""Regression tests for error-boundary and durability fixes.
+﻿"""Regression tests for error-boundary and durability fixes.
 
 Covers: LLM client retry/empty-choices handling, agent-loop turn error
 boundary, session index corruption/atomicity/concurrency, and bounded
@@ -28,52 +28,31 @@ from tools.image_generator_nanobanana_yunwu_api import ImageGeneratorNanobananaY
 from tools.reranker_bge_silicon_api import RerankerBgeSiliconapi
 
 
-class FakeStatusError(Exception):
-    def __init__(self, status_code):
-        self.status_code = status_code
-        super().__init__(f"http status {status_code}")
-
-
-def _fake_completion(text="ok"):
-    message = MagicMock()
-    message.content = text
-    message.tool_calls = None
-    message.model_dump.return_value = {}
-    return MagicMock(choices=[MagicMock(message=message)])
-
-
 class TestLLMClient(unittest.IsolatedAsyncioTestCase):
-    def _llm(self, create):
+    """Robustness contract for the langchain-backed LLM wrapper.
+
+    Retry/bounded-attempt behavior is now delegated to the langchain ChatModel
+    (max_retries=LLM_MAX_ATTEMPTS). These tests guard the aspects that remain
+    ours: the retry policy is configured, and model failures propagate (error
+    boundary intact) rather than being silently swallowed.
+    """
+
+    def test_chat_model_configured_with_max_retries(self):
         llm = OpenAICompatibleLLM(model="m", base_url="http://localhost:1", api_key="k")
-        llm.client = MagicMock(chat=MagicMock(completions=MagicMock(create=create)))
-        return llm
+        self.assertEqual(llm._chat_model.max_retries, 3)
 
-    async def test_retries_rate_limit_then_succeeds(self):
-        create = AsyncMock(side_effect=[FakeStatusError(429), _fake_completion("recovered")])
-        llm = self._llm(create)
-        result = await llm.complete([{"role": "user", "content": "x"}], tools=[])
-        self.assertEqual(result.text, "recovered")
-        self.assertEqual(create.await_count, 2)
+    def test_chat_model_configured_with_timeout(self):
+        llm = OpenAICompatibleLLM(model="m", base_url="http://localhost:1", api_key="k")
+        # Retry (max_retries=3) and timeout (300s) delegated to langchain ChatModel.
+        # Retry behavior on 429/5xx is langchain upstream responsibility, not re-tested.
+        self.assertEqual(llm._chat_model.max_retries, 3)
+        self.assertEqual(llm._chat_model.request_timeout, 300.0)
 
-    async def test_does_not_retry_auth_errors(self):
-        create = AsyncMock(side_effect=FakeStatusError(401))
-        llm = self._llm(create)
-        with self.assertRaises(FakeStatusError):
-            await llm.complete([{"role": "user", "content": "x"}], tools=[])
-        self.assertEqual(create.await_count, 1)
-
-    async def test_gives_up_after_bounded_attempts(self):
-        create = AsyncMock(side_effect=FakeStatusError(500))
-        llm = self._llm(create)
-        with self.assertRaises(FakeStatusError):
-            await llm.complete([{"role": "user", "content": "x"}], tools=[])
-        self.assertLessEqual(create.await_count, 4)
-        self.assertGreater(create.await_count, 1)
-
-    async def test_empty_choices_raises_clear_error(self):
-        create = AsyncMock(return_value=MagicMock(choices=[]))
-        llm = self._llm(create)
-        with self.assertRaisesRegex(RuntimeError, "choice"):
+    async def test_model_error_propagates_not_swallowed(self):
+        llm = OpenAICompatibleLLM(model="m", base_url="http://localhost:1", api_key="k")
+        llm._chat_model = MagicMock()
+        llm._chat_model.ainvoke = AsyncMock(side_effect=RuntimeError("provider down"))
+        with self.assertRaises(RuntimeError):
             await llm.complete([{"role": "user", "content": "x"}], tools=[])
 
 
@@ -215,7 +194,7 @@ class TestClientHttpErrors(unittest.IsolatedAsyncioTestCase):
             ({"data": [{"url": "http://img"}]}, 200),
         ])
         generator = ImageGeneratorDoubaoSeedreamYunwuAPI(api_key="bad")
-        with patch("tools.image_generator_doubao_seedream_yunwu_api.aiohttp.ClientSession", return_value=session):
+        with patch("tools.image_generator_doubao_seedream_ark_api.aiohttp.ClientSession", return_value=session):
             with self.assertRaisesRegex(RuntimeError, "401"):
                 await generator.generate_single_image(prompt="p")
         self.assertEqual(session.calls, 1)

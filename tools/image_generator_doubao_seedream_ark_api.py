@@ -49,10 +49,12 @@ class ImageGeneratorDoubaoSeedreamArkAPI:
         api_key: str,
         model: str = "doubao-seedream-3-0-t2i-250415",
         base_url: str = _DEFAULT_BASE_URL,
+        sequential_image_generation: str | None = None,
     ) -> None:
         self.api_key = api_key
         self.model = model
         self.base_url = base_url.rstrip("/")
+        self.sequential_image_generation = sequential_image_generation
 
     @retry(
         stop=stop_after_attempt(3),
@@ -95,6 +97,8 @@ class ImageGeneratorDoubaoSeedreamArkAPI:
             "response_format": "url",
             "size": size if size is not None else "1024x1024",
         }
+        if self.sequential_image_generation:
+            payload["sequential_image_generation"] = self.sequential_image_generation
         if images:
             payload["image"] = images
 
