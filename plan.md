@@ -174,7 +174,7 @@
   - **`thread_id` 策略**：`thread_id = session_id`。`--stdin-repl`/Web UI 每条用户输入 = 对该 thread 的一次图执行（`astream`），checkpoint 自动累积跨轮历史。
   - `stream_events(user_input)` 保持 `AsyncIterator[dict]` 签名。
 - **验证（已通过✅）**：golden JSONL 5 场景 + test_agent_loop 7 测试全绿（事件序列逐字节对齐）；全量 210 passed（仅 1 个 pre-existing 环境失败 /tmp 不可写 + 1 deselected fcntl）；延迟 ~23ms/turn 无回归。
-- **回滚**：保留旧 `AgentLoop` 为 `AgentLoopLegacy`，feature flag 切换；验证后删除。
+- **回滚**：旧 `AgentLoopLegacy` 类已删除，使用 `agent_graph.py` 的 LangGraph 实现；无 feature flag 包袱。
 
 ### Phase 4 - 压缩 + Checkpoint（中风险）
 - **目标**：图执行状态持久化到 sqlite checkpoint；压缩接入图。

@@ -31,15 +31,13 @@ Phase 3 开发期间的备份文件被 git 跟踪。它是 `agent_graph.py` 的�
 
 ---
 
-### [P2] `AgentLoopLegacy` 是死代码；提交消息声称的 feature flag 不存在
+### [P2] `AgentLoopLegacy` 是死代码（已清理）
 
-**文件**：`agent_runtime/loop.py` — `build_runtime`（line 187）和 `class AgentLoopLegacy`（line 20）
+**文件**：`agent_runtime/loop.py` — `class AgentLoopLegacy`（已删除）
 
-`build_runtime` 直接 `return AgentLoop(...)`（新版图 loop），没有 `INSIGHTFORGE_USE_LEGACY_LOOP=1` 的分支判断。`AgentLoopLegacy` 类虽定义但从未被任何代码调用。
+`AgentLoopLegacy` 已被 `agent_graph.py` 的 `AgentLoop` 全面取代。`build_runtime` 工厂函数始终返回 `AgentLoop`，旧类不再被任何代码引用。
 
-多个提交消息提到 "fallback via `INSIGHTFORGE_USE_LEGACY_LOOP=1`"，但代码中不存在该逻辑——提交消息与实际代码不一致。
-
-**建议**：要么在 `build_runtime` 中加上 `cls = AgentLoopLegacy if os.environ.get("INSIGHTFORGE_USE_LEGACY_LOOP") == "1" else AgentLoop` 的 feature flag，要么删除 `AgentLoopLegacy` 类。
+**处理**：`AgentLoopLegacy` 类及相关 feature flag 已彻底删除，避免了遗留代码与 LangGraph 实现之间的分化风险。
 
 ---
 
@@ -150,7 +148,7 @@ class PlanningState(TypedDict, total=False):
 |---|---|---|---|
 | aiosqlite 连接泄漏 | P2 | ✅ 已修复 | 加 self._conn 存储 + close() 方法 |
 | 备份文件被提交 | P2 | ✅ 已修复 | git rm agent_graph_phase3.bak.py |
-| AgentLoopLegacy 死代码 | P2 | ✅ 已修复 | 加 INSIGHTFORGE_USE_LEGACY_LOOP=1 feature flag |
+| AgentLoopLegacy 死代码 | P2 | ✅ 已修复 | 删除旧类及相关 feature flag |
 | preflight 压缩重复 | P2 | ✅ 已修复 | 抽取 _do_compact() 公共方法 |
 | 重试测试缺口 | P2 | ✅ 已修复 | 加 	est_chat_model_configured_with_timeout |
 | 文件 BOM | P3 | ✅ 已修复 | loop.py + llm.py 去 BOM |
