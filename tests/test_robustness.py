@@ -187,7 +187,7 @@ class TestClientHttpErrors(unittest.IsolatedAsyncioTestCase):
             ({"data": [{"url": "http://img"}]}, 200),
         ])
         generator = ImageGeneratorDoubaoSeedreamYunwuAPI(api_key="bad")
-        with patch("tools.image_generator_doubao_seedream_yunwu_api.aiohttp.ClientSession", return_value=session):
+        with patch("tools.image_generator_doubao_seedream_ark_api.aiohttp.ClientSession", return_value=session):
             with self.assertRaisesRegex(RuntimeError, "401"):
                 await generator.generate_single_image(prompt="p")
         self.assertEqual(session.calls, 1)
