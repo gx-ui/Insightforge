@@ -1,4 +1,4 @@
-"""Every video generator must satisfy the VideoGenerator protocol, which
+"""每个视频生成器都必须满足 VideoGenerator 协议，该
 declares **kwargs: pipelines pass progress= callbacks, and generators that
 reject unknown kwargs crash mid-render (TypeError) on the transition path."""
 

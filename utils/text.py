@@ -2,12 +2,11 @@ import re
 
 
 def safe_path_component(name) -> str:
-    """Sanitize an LLM-derived identifier for use as a filesystem path component.
+    """将 LLM 生成的标识符净化为可用的文件系统路径组件。
 
-    Identifiers come from model output over user-supplied story text, so they may
-    contain separators or traversal sequences; keep word characters (including
-    CJK), dashes, dots and spaces, replace everything else, and strip leading
-    dots so the result can never escape or hide within the working directory.
+    标识符来源于模型基于用户故事文本的输出，可能包含分隔符或目录穿越序列；
+    保留单词字符（含中文）、连字符、点和空格，其余字符统一替换，并去除前导点，
+    确保结果不会逃出或隐藏在工作目录之外。
     """
     cleaned = re.sub(r"[^\w\-. ]", "_", str(name))
     cleaned = cleaned.strip().lstrip(".")

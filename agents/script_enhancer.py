@@ -88,7 +88,7 @@ class ScriptEnhancer:
 
     @retry(
         stop=stop_after_attempt(3),
-        after=lambda retry_state: logging.warning(f"Retrying enhance_script due to error: {retry_state.outcome.exception()}"),
+        after=lambda retry_state: logging.warning(f"因错误正在重试 enhance_script: {retry_state.outcome.exception()}"),
     )
     async def enhance_script(
         self,
@@ -107,17 +107,17 @@ class ScriptEnhancer:
         chain = prompt_template | self.chat_model | parser
 
         try:
-            logging.info("Enhancing planned script...")
+            logging.info("正在增强已规划的剧本...")
             response: EnhancedScriptResponse = await chain.ainvoke(
                 {
                     "format_instructions": parser.get_format_instructions(),
                     "planned_script": planned_script,
                 }
             )
-            logging.info("Script enhancement completed.")
+            logging.info("剧本增强已完成。")
             return response.enhanced_script
         except Exception as e:
-            logging.error(f"Error enhancing script: \n{e}")
+            logging.error(f"增强剧本出错: \n{e}")
             raise e
 
 

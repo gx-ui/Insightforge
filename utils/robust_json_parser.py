@@ -1,11 +1,10 @@
-# Some chat models (observed with gemini-flash-lite via the OpenAI-compatible
-# endpoint) frequently emit a trailing comma before a closing `}`/`]` in
-# structured JSON responses (e.g. `"variation_reason": "...",\n}`). That is
-# invalid JSON, so PydanticOutputParser raises OutputParserException even
-# though the payload is otherwise well-formed and semantically complete --
-# and resampling burns LLM calls while often failing the same way again.
-# Wrap PydanticOutputParser so a parse failure retries locally with trailing
-# commas stripped before giving up.
+# 某些对话模型（在通过 OpenAI 兼容端点调用 gemini-flash-lite 时观察到）
+# 经常在结构化 JSON 响应的闭合 `}`/`]` 之前输出一个尾随逗号
+# （例如 `"variation_reason": "...",\n}`）。这是无效的 JSON，因此
+# PydanticOutputParser 会抛出 OutputParserException，尽管负载在其他方面
+# 格式良好且语义完整——而重新采样会消耗 LLM 调用次数，且往往以同样的方式再次失败。
+# 包装 PydanticOutputParser，使得解析失败时先在本地尝试去除尾随逗号后重试，
+# 再决定放弃。
 import re
 from typing import List, Optional
 
@@ -21,7 +20,7 @@ def strip_trailing_commas(text: str) -> str:
 
 
 class TrailingCommaTolerantPydanticOutputParser(PydanticOutputParser):
-    """PydanticOutputParser that retries once with trailing commas stripped."""
+    """PydanticOutputParser 的扩展：解析失败时去除尾随逗号后重试一次。"""
 
     def parse_result(self, result: List[Generation], *, partial: bool = False):
         try:

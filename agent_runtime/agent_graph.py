@@ -1,15 +1,11 @@
 ﻿from __future__ import annotations
-
 import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncIterator, TypedDict
-
 from langgraph.config import get_stream_writer
 from langgraph.graph import StateGraph, START, END
-
 from .context_compactor import ContextCompactor
-from .llm import AssistantMessage  # noqa: F401  (re-exported for test compat)
 from .models import TurnControl, ToolCall
 from .loop import (
     MAX_TOOL_PASSES,
@@ -27,9 +23,9 @@ _OBSERVATION_PREFIX = (
 
 
 class AgentState(TypedDict, total=False):
-    # Persisted across turns (checkpoint):
+    # 跨轮次持久化（检查点）：
     history: list[dict[str, Any]]
-    # Per-turn (reset in init):
+    # 每轮次（在 init 中重置）：
     user_input: str
     turn_id: str
     tool_schemas: list[dict[str, Any]]
@@ -47,11 +43,10 @@ class AgentState(TypedDict, total=False):
 
 
 class AgentLoop:
-    """LangGraph-backed agent loop with sqlite checkpoint (Phase 4, Plan A).
-
-    Conversation history lives in graph state and is persisted across turns and
-    process restarts via an AsyncSqliteSaver keyed by thread_id=session_id.
-    TurnControl (non-serializable) is an instance attribute, not graph state.
+    """基于 LangGraph 的 Agent 循环，带 sqlite 检查点。
+    对话历史存储在图状态中，通过以 thread_id=session_id 为键的
+    AsyncSqliteSaver 跨轮次和进程重启持久化。
+    TurnControl（不可序列化）是实例属性，而非图状态。
     """
 
     def __init__(
@@ -78,7 +73,7 @@ class AgentLoop:
             Path(session_index.workspace_root) / ".insightforge" / "checkpoints.sqlite"
         )
 
-    # -- lazy graph compilation (needs async context for AsyncSqliteSaver) --
+    # -- 延迟图编译（AsyncSqliteSaver 需要异步上下文）--
 
     async def _ensure_graph(self):
         if self._graph is not None:
@@ -105,17 +100,17 @@ class AgentLoop:
         return g.compile(checkpointer=self._saver)
 
     async def aclose(self) -> None:
-        """Close the sqlite checkpoint connection. Safe to call multiple times."""
+        """关闭 sqlite 检查点连接。可安全多次调用。"""
         if self._conn is not None:
             await self._conn.close()
             self._conn = None
             self._saver = None
             self._graph = None
 
-    # -- public API (unchanged signatures) --
+    # -- 公共 API（签名不变）--
 
     async def _do_compact(self, session: dict, *, reason: str):
-        """Shared compaction: compact self.history, update session metadata."""
+        """共享压缩：压缩 self.history，更新会话元数据。"""
         result = await self.context_compactor.compact(
             self.history,
             previous_summary=str(session.get("compacted_summary", "") or ""),
@@ -149,7 +144,7 @@ class AgentLoop:
         async for chunk in self._graph.astream({"user_input": user_input}, config=config, stream_mode="custom"):
             yield chunk
 
-    # -- nodes --
+    # -- 节点 --
 
     async def _init_node(self, state: AgentState) -> dict:
         writer = get_stream_writer()
@@ -169,7 +164,7 @@ class AgentLoop:
             system_tokens=_prompt_tokens(parts),
             tools_tokens=_tool_schema_tokens(tool_schemas),
         ):
-            writer({"type": "status", "turn_id": turn_id, "phase": "compact", "message": "Compacting context before sampling"})
+            writer({"type": "status", "turn_id": turn_id, "phase": "compact", "message": "采样前压缩上下文"})
             session = self.session_index.active() or self.session_index.create()
             await self._do_compact(session, reason="token-pressure")
             parts = self.prompt_builder.build_parts(user_input)
@@ -198,11 +193,11 @@ class AgentLoop:
         writer = get_stream_writer()
         turn_id = state["turn_id"]
         tool_round = state.get("tool_round", 0)
-        writer({"type": "status", "turn_id": turn_id, "phase": "sampling_assistant", "message": "Sampling assistant"})
+        writer({"type": "status", "turn_id": turn_id, "phase": "sampling_assistant", "message": "正在采样助手"})
         try:
             assistant = await self.llm.complete(state["runtime_messages"], tools=state["tool_schemas"])
         except Exception as exc:
-            final_text = f"Agent LLM request failed: {exc}"
+            final_text = f"Agent LLM 请求失败: {exc}"
             transitions = state.get("transitions", []) + [_transition("sampling_assistant", "finalizing_answer", "llm_sampling_failed")]
             writer({"type": "error", "turn_id": turn_id, "message": final_text, "metadata": {"error_type": "llm_sampling_failed"}})
             return {"final_text": final_text, "status": "failed", "transitions": transitions, "assistant_tool_calls": []}
@@ -222,7 +217,7 @@ class AgentLoop:
             return {"assistant_text": assistant.text, "assistant_tool_calls": tc_dicts, "assistant_turns": assistant_turns, "transitions": transitions, "final_text": final_text}
         transitions = state.get("transitions", []) + [_transition("sampling_assistant", "executing_tools", "assistant_requested_tools")]
         if tool_round >= MAX_TOOL_PASSES:
-            final_text = "Tool loop halted after max tool passes."
+            final_text = "工具循环在达到最大工具调用轮次后停止。"
             writer({"type": "error", "turn_id": turn_id, "message": final_text, "metadata": {"max_tool_passes": MAX_TOOL_PASSES}})
             return {"assistant_text": assistant.text, "assistant_tool_calls": tc_dicts, "assistant_turns": assistant_turns, "transitions": transitions, "final_text": final_text, "status": "halted"}
         return {"assistant_text": assistant.text, "assistant_tool_calls": tc_dicts, "assistant_turns": assistant_turns, "transitions": transitions}
@@ -241,10 +236,10 @@ class AgentLoop:
         control = self._control or TurnControl()
         assistant_text = state.get("assistant_text", "")
         tc_dicts = state.get("assistant_tool_calls", [])
-        # Reconstruct ToolCall objects for the executor
+        # 为执行器重建 ToolCall 对象
         calls = [ToolCall(name=tc["name"], arguments=tc.get("arguments", {}), id=tc.get("id", "")) for tc in tc_dicts]
         tool_round = state.get("tool_round", 0) + 1
-        writer({"type": "status", "turn_id": turn_id, "phase": "executing_tools", "message": f"Running tools (round {tool_round})"})
+        writer({"type": "status", "turn_id": turn_id, "phase": "executing_tools", "message": f"正在运行工具（第 {tool_round} 轮）"})
         runtime_messages = list(state["runtime_messages"])
         runtime_messages.append(
             {"role": "assistant", "content": assistant_text or "", "tool_calls": [_openai_tool_call(c) for c in calls]}

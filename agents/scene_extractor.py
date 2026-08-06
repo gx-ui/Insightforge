@@ -75,7 +75,7 @@ class SceneExtractor:
 
     @retry(
         stop=stop_after_attempt(5),
-        after=lambda retry_state: logging.warning(f"Retrying SceneExtractor.get_next_scene due to error: {retry_state.outcome.exception()}"),
+        after=lambda retry_state: logging.warning(f"因错误正在重试 SceneExtractor.get_next_scene: {retry_state.outcome.exception()}"),
     )
     async def get_next_scene(
         self,

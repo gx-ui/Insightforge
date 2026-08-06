@@ -21,18 +21,18 @@ class VideoOutput:
         self.data = data
 
     def save_url(self, path: str) -> None:
-        """Download and save a video from a URL to the specified path.
+        """从 URL 下载视频并保存到指定路径。
 
         Args:
-            path (str): Path where the video will be saved.
+            path (str): 视频保存路径。
         """
         download_video(self.data, path)
 
     def save_bytes(self, path: str) -> None:
-        """Save a bytes object to the specified path.
+        """将 bytes 对象保存到指定路径。
 
         Args:
-            path (str): Path where the video will be saved.
+            path (str): 视频保存路径。
         """
         with open(path, 'wb') as f:
             f.write(self.data)
@@ -40,4 +40,3 @@ class VideoOutput:
     def save(self, path: str) -> None:
         save_func = getattr(self, f"save_{self.fmt}")
         save_func(path)
-

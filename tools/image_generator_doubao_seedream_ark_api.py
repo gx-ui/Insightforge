@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """火山引擎官方 Ark API 图片生成器 (doubao-seedream)。
 
 API 文档: https://www.volcengine.com/docs/6791/1347777
@@ -38,7 +38,7 @@ def _emit_progress(progress: Any, stage: str, message: str, metadata: dict | Non
 
 
 class ImageGeneratorDoubaoSeedreamArkAPI:
-    """Generate images through the Volcano Engine Ark API (doubao-seedream).
+    """通过火山引擎 Ark API (doubao-seedream) 生成图片。
 
     Uses the same payload/response format as the Yunwu proxy variant, but
     targets the official Ark API endpoint with a configurable *base_url*.
@@ -70,7 +70,7 @@ class ImageGeneratorDoubaoSeedreamArkAPI:
         size: Optional[str] = None,
         **kwargs: Any,
     ) -> ImageOutput:
-        """Generate a single image from a text prompt and optional reference images.
+        """根据文本提示和可选的参考图片生成单张图片。
 
         Args:
             prompt: Text prompt for image generation.
@@ -81,11 +81,11 @@ class ImageGeneratorDoubaoSeedreamArkAPI:
         _emit_progress(
             progress,
             "image_generation",
-            f"Generating image with {self.model}",
+            f"正在使用 {self.model} 生成图片",
             {"model": self.model, "reference_count": len(reference_image_paths)},
         )
 
-        logging.info(f"Calling {self.model} to generate image...")
+        logging.info(f"正在调用 {self.model} 生成图片...")
 
         images = [
             image_path_to_b64(path, mime=True) for path in reference_image_paths
@@ -115,14 +115,14 @@ class ImageGeneratorDoubaoSeedreamArkAPI:
                 response_json = await response.json()
                 if response.status >= 400:
                     raise RuntimeError(
-                        f"Ark image generation failed with HTTP {response.status}: {response_json}"
+                        f"Ark 图片生成失败，HTTP {response.status}: {response_json}"
                     )
 
         data = response_json["data"][0]["url"]
         _emit_progress(
             progress,
             "image_completed",
-            "Ark image generation completed",
+            "Ark 图片生成完成",
             {"model": self.model},
         )
         return ImageOutput(fmt="url", ext="png", data=data)

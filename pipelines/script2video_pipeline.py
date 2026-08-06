@@ -24,7 +24,7 @@ def _normalize_model_list(items: Any, model_cls: Type[TModel], field_name: str) 
     if items is None:
         return []
     if not isinstance(items, list):
-        raise TypeError(f"{field_name} must be a list, got {type(items).__name__}")
+        raise TypeError(f"{field_name} 必须是列表，实际为 {type(items).__name__}")
     normalized: List[TModel] = []
     for idx, item in enumerate(items):
         if isinstance(item, model_cls):
@@ -32,7 +32,7 @@ def _normalize_model_list(items: Any, model_cls: Type[TModel], field_name: str) 
         elif isinstance(item, dict):
             normalized.append(model_cls.model_validate(item))
         else:
-            raise TypeError(f"{field_name}[{idx}] must be {model_cls.__name__} or dict, got {type(item).__name__}")
+            raise TypeError(f"{field_name}[{idx}] 必须是 {model_cls.__name__} 或 dict，实际为 {type(item).__name__}")
     return normalized
 
 
@@ -47,7 +47,7 @@ def _group_shots_into_cameras(shot_descriptions: List[ShotDescription]) -> List[
     return list(cameras_by_idx.values())
 
 def _collect_priority_shot_idxs(camera_tree: List[Camera]) -> List[int]:
-    """Shot indices that other cameras depend on."""
+    """依赖其他镜头的镜头索引。
     return [camera.parent_shot_idx for camera in camera_tree if camera.parent_shot_idx is not None]
 
 
@@ -114,7 +114,7 @@ class Script2VideoPipeline:
         progress: Callable[[str, str, Dict[str, Any] | None], None] | None = None,
         quiet: bool = False,
     ):
-        """Generate only structured text artifacts required before rendering.
+        """仅生成渲染前所需的结构化文本产物。
 
         This helper intentionally stops before character portraits, frame generation,
         video generation, and final concatenation so an agent loop can pause for
@@ -171,13 +171,13 @@ class Script2VideoPipeline:
             # if os.path.exists(characters_path):
             #     with open(characters_path, "r", encoding="utf-8") as f:
             #         characters = [CharacterInScene.model_validate(c) for c in json.load(f)]
-            #     print(f"🚀 Loaded {len(characters)} characters from existing file.")
+            #     print(f"🚀 已从已有文件加载 {len(characters)} 个角色。")
             # else:
-            #     print(f"🔍 Extracting characters from script...")
+            #     print(f"🔍 正在从脚本中提取角色...")
             #     characters = await self.extract_characters(script=script)
             #     with open(characters_path, "w", encoding="utf-8") as f:
             #         json.dump([c.model_dump() for c in characters], f, ensure_ascii=False, indent=4)
-            #     print(f"☑️ Extracted {len(characters)} characters from script and saved to {characters_path}.")
+            #     print(f"☑️ 已从脚本中提取 {len(characters)} 个角色并保存到 {characters_path}。")
         else:
             characters = _normalize_model_list(characters, CharacterInScene, "characters")
             _emit_render_progress(progress, "extract_characters", "Using provided characters for render", {"provided": True, "count": len(characters)})
@@ -189,10 +189,10 @@ class Script2VideoPipeline:
             if os.path.exists(character_portraits_registry_path):
                 with open(character_portraits_registry_path, "r", encoding="utf-8") as f:
                     character_portraits_registry = json.load(f)
-                print(f"🚀 Loaded {len(character_portraits_registry)} character portraits from existing file.")
+                print(f"🚀 已从已有文件加载 {len(character_portraits_registry)} 个角色肖像。")
                 _emit_render_progress(progress, "character_portraits_loaded", "Loaded existing character portraits", {"count": len(character_portraits_registry)})
             else:
-                print(f"🔍 Generating character portraits...")
+                print(f"🔍 正在生成角色肖像...")
                 _emit_render_progress(progress, "character_portraits_start", "Generating character portraits", {"character_count": len(characters)})
                 character_portraits_registry = await self.generate_character_portraits(
                     characters=characters,
@@ -203,12 +203,12 @@ class Script2VideoPipeline:
 
                 with open(character_portraits_registry_path, "w", encoding="utf-8") as f:
                     json.dump(character_portraits_registry, f, ensure_ascii=False, indent=4)
-                print(f"☑️ Generated {len(character_portraits_registry)} character portraits and saved to {character_portraits_registry_path}.")
+                print(f"☑️ 已生成 {len(character_portraits_registry)} 个角色肖像并保存到 {character_portraits_registry_path}。")
                 _emit_render_progress(progress, "character_portraits_done", "Character portraits ready", {"count": len(character_portraits_registry)})
 
 
 
-        # design shots
+        # 设计镜头
         _emit_render_progress(progress, "load_storyboard", "Loading or designing storyboard")
         storyboard = await self.design_storyboard(
             script=script,
@@ -218,7 +218,7 @@ class Script2VideoPipeline:
         )
         _emit_render_progress(progress, "storyboard_ready", "Storyboard ready", {"shot_count": len(storyboard)})
 
-        # decompose visual descriptions of shots
+        # 分解镜头的视觉描述
         _emit_render_progress(progress, "load_shot_descriptions", "Loading or decomposing shot descriptions", {"shot_count": len(storyboard)})
         shot_descriptions = await self.decompose_visual_descriptions(
             shot_brief_descriptions=storyboard,
@@ -227,7 +227,7 @@ class Script2VideoPipeline:
         )
         _emit_render_progress(progress, "shot_descriptions_ready", "Shot descriptions ready", {"shot_count": len(shot_descriptions)})
 
-        # construct camera tree
+        # 构建相机树
         _emit_render_progress(progress, "load_camera_tree", "Loading or constructing camera tree", {"shot_count": len(shot_descriptions)})
         camera_tree = await self.construct_camera_tree(
             shot_descriptions=shot_descriptions,
@@ -262,10 +262,10 @@ class Script2VideoPipeline:
 
         final_video_path = os.path.join(self.working_dir, "final_video.mp4")
         if os.path.exists(final_video_path):
-            print(f"🚀 Skipped concatenating videos, already exists.")
+            print(f"🚀 已跳过视频拼接，文件已存在。")
             _emit_render_progress(progress, "final_video_exists", "Final video already exists", {"path": final_video_path})
         else:
-            print(f"🎬 Starting concatenating videos...")
+            print(f"🎬 开始拼接视频...")
             _emit_render_progress(progress, "concat_start", "Concatenating video clips", {"shot_count": len(shot_descriptions)})
             video_clips = [
                 VideoFileClip(os.path.join(self.working_dir, "shots", f"{shot_description.idx}", "video.mp4"))
@@ -273,7 +273,7 @@ class Script2VideoPipeline:
             ]
             final_video = concatenate_videoclips(video_clips)
             final_video.write_videofile(final_video_path, codec="libx264", preset="medium")
-            print(f"☑️ Concatenated videos, saved to {final_video_path}.")
+            print(f"☑️ 已拼接视频，保存到 {final_video_path}。")
             _emit_render_progress(progress, "concat_done", "Final video concatenated", {"path": final_video_path})
 
         _emit_render_progress(progress, "render_done", "Script2video render complete", {"final_video_path": final_video_path})
@@ -289,18 +289,18 @@ class Script2VideoPipeline:
         priority_shot_idxs: List[int],
         progress: Callable[[str, str, Dict[str, Any] | None], None] | None = None,
     ):
-        # 1. generate the first_frame of the first shot of the camera
+        # 1. 生成相机的第一个镜头的首帧
         first_shot_idx = camera.active_shot_idxs[0]
         first_shot_ff_path = os.path.join(self.working_dir, "shots", f"{first_shot_idx}", "first_frame.png")
         _emit_render_progress(progress, "camera_frames_start", f"Generating frames for camera {camera.idx}", {"camera_idx": camera.idx, "active_shot_idxs": camera.active_shot_idxs})
 
         if os.path.exists(first_shot_ff_path):
-            print(f"🚀 Skipped generating first_frame for shot {first_shot_idx}, already exists.")
+            print(f"🚀 跳过镜头 {first_shot_idx} 的首帧生成，因为已存在。")
             self.frame_events[first_shot_idx]["first_frame"].set()
             _emit_render_progress(progress, "frame_exists", f"First frame for shot {first_shot_idx} already exists", {"camera_idx": camera.idx, "shot_idx": first_shot_idx, "frame_type": "first_frame", "path": first_shot_ff_path})
 
         else:
-            print(f"🖼️ Starting first_frame generation for shot {first_shot_idx}...")
+            print(f"🖼️ 开始为镜头 {first_shot_idx} 生成首帧...")
             _emit_render_progress(progress, "frame_start", f"Generating first frame for shot {first_shot_idx}", {"camera_idx": camera.idx, "shot_idx": first_shot_idx, "frame_type": "first_frame"})
             available_image_path_and_text_pairs = []
 
@@ -310,19 +310,19 @@ class Script2VideoPipeline:
                 for view, item in registry_item.items():
                     available_image_path_and_text_pairs.append((item["path"], item["description"]))
             
-            # generate the first_frame based on the shot_description.ff_desc
+            # 根据 shot_description.ff_desc 生成首帧
             if camera.parent_shot_idx is not None:
-                # generate the first_frame based on the transition video
+                # 根据转场视频生成首帧
                 parent_shot_idx = camera.parent_shot_idx
                 await self.frame_events[parent_shot_idx]["first_frame"].wait()
                 parent_shot_ff_path = os.path.join(self.working_dir, "shots", f"{parent_shot_idx}", "first_frame.png")
                 transition_video_path = os.path.join(self.working_dir, "shots", f"{first_shot_idx}", f"transition_video_from_shot_{parent_shot_idx}.mp4")
 
                 if os.path.exists(transition_video_path):
-                    print(f"🚀 Skipped generating transition video for shot {first_shot_idx} from shot {parent_shot_idx}, already exists.")
+                    print(f"🚀 跳过从镜头 {parent_shot_idx} 为镜头 {first_shot_idx} 生成转场视频，因为已存在。")
                     _emit_render_progress(progress, "transition_video_exists", f"Transition video for shot {first_shot_idx} already exists", {"camera_idx": camera.idx, "shot_idx": first_shot_idx, "parent_shot_idx": parent_shot_idx, "path": transition_video_path})
                 else:
-                    print(f"🖼️ Starting transition video generation for shot {first_shot_idx} from shot {parent_shot_idx}...")
+                    print(f"🖼️ 开始从镜头 {parent_shot_idx} 为镜头 {first_shot_idx} 生成转场视频...")
                     _emit_render_progress(progress, "transition_video_start", f"Generating transition video for shot {first_shot_idx}", {"camera_idx": camera.idx, "shot_idx": first_shot_idx, "parent_shot_idx": parent_shot_idx})
                     transition_video_output = await self.camera_image_generator.generate_transition_video(
                         first_shot_visual_desc=shot_descriptions[parent_shot_idx].visual_desc,
@@ -331,19 +331,19 @@ class Script2VideoPipeline:
                         progress=_scoped_progress(progress, camera_idx=camera.idx, shot_idx=first_shot_idx, parent_shot_idx=parent_shot_idx, artifact="transition_video"),
                     )
                     transition_video_output.save(transition_video_path)
-                    print(f"☑️ Generated transition video for shot {first_shot_idx} from shot {parent_shot_idx}, saved to {transition_video_path}.")
+                    print(f"☑️ 已从镜头 {parent_shot_idx} 为镜头 {first_shot_idx} 生成转场视频，保存到 {transition_video_path}。")
                     _emit_render_progress(progress, "transition_video_done", f"Transition video for shot {first_shot_idx} generated", {"camera_idx": camera.idx, "shot_idx": first_shot_idx, "parent_shot_idx": parent_shot_idx, "path": transition_video_path})
 
                 new_camera_image_path = os.path.join(self.working_dir, "shots", f"{first_shot_idx}", f"new_camera_{camera.idx}.png")
                 if os.path.exists(new_camera_image_path):
-                    print(f"🚀 Skipped generating new camera image for shot {first_shot_idx}, already exists.")
+                    print(f"🚀 跳过为镜头 {first_shot_idx} 生成新相机图片，因为已存在。")
                     _emit_render_progress(progress, "new_camera_image_exists", f"New camera image for shot {first_shot_idx} already exists", {"camera_idx": camera.idx, "shot_idx": first_shot_idx, "path": new_camera_image_path})
                 else:
-                    print(f"🖼️ Starting new camera image generation for shot {first_shot_idx}...")
+                    print(f"🖼️ 开始为镜头 {first_shot_idx} 生成新相机图片...")
                     _emit_render_progress(progress, "new_camera_image_start", f"Extracting new camera image for shot {first_shot_idx}", {"camera_idx": camera.idx, "shot_idx": first_shot_idx})
                     new_camera_image = self.camera_image_generator.get_new_camera_image(transition_video_path)
                     new_camera_image.save(new_camera_image_path)
-                    print(f"☑️ Generated new camera image for shot {first_shot_idx} (not completed), saved to {new_camera_image_path}.")
+                    print(f"☑️ 已为镜头 {first_shot_idx} 生成新相机图片（未完成），保存到 {new_camera_image_path}。")
                     _emit_render_progress(progress, "new_camera_image_done", f"New camera image for shot {first_shot_idx} extracted", {"camera_idx": camera.idx, "shot_idx": first_shot_idx, "path": new_camera_image_path})
 
                 available_image_path_and_text_pairs.append(
@@ -360,10 +360,10 @@ class Script2VideoPipeline:
                 if os.path.exists(ff_selector_output_path):
                     with open(ff_selector_output_path, 'r', encoding='utf-8') as f:
                         ff_selector_output = json.load(f)
-                    print(f"🚀 Loaded existing reference image selection and prompt for first_frame of shot {first_shot_idx} from {ff_selector_output_path}.")
+                    print(f"🚀 已从 {ff_selector_output_path} 加载镜头 {first_shot_idx} 首帧的已有参考图片选择和 prompt。")
                     _emit_render_progress(progress, "frame_prompt_exists", f"First frame prompt for shot {first_shot_idx} already exists", {"camera_idx": camera.idx, "shot_idx": first_shot_idx, "frame_type": "first_frame", "path": ff_selector_output_path})
                 else:
-                    print(f"🔍 Selecting reference images and generating prompt for first_frame of shot {first_shot_idx}...")
+                    print(f"🔍 正在为镜头 {first_shot_idx} 的首帧选择参考图片并生成 prompt...")
                     _emit_render_progress(progress, "frame_prompt_start", f"Selecting references for first frame of shot {first_shot_idx}", {"camera_idx": camera.idx, "shot_idx": first_shot_idx, "frame_type": "first_frame"})
                     ff_selector_output = await self.reference_image_selector.select_reference_images_and_generate_prompt(
                         available_image_path_and_text_pairs=available_image_path_and_text_pairs,
@@ -372,7 +372,7 @@ class Script2VideoPipeline:
                     with open(ff_selector_output_path, 'w', encoding='utf-8') as f:
                         json.dump(ff_selector_output, f, ensure_ascii=False, indent=4)
 
-                    print(f"☑️ Selected reference images and generated prompt for first_frame of shot {first_shot_idx}, saved to {ff_selector_output_path}.")
+                    print(f"☑️ 已为镜头 {first_shot_idx} 的首帧选择参考图片并生成 prompt，保存到 {ff_selector_output_path}。")
                     _emit_render_progress(progress, "frame_prompt_done", f"Selected references for first frame of shot {first_shot_idx}", {"camera_idx": camera.idx, "shot_idx": first_shot_idx, "frame_type": "first_frame", "path": ff_selector_output_path})
 
                 reference_image_path_and_text_pairs, prompt = ff_selector_output["reference_image_path_and_text_pairs"], ff_selector_output["text_prompt"]
@@ -388,16 +388,16 @@ class Script2VideoPipeline:
                 )
                 ff_image.save(first_shot_ff_path)
                 self.frame_events[first_shot_idx]["first_frame"].set()
-                print(f"☑️ Generated first_frame for shot {first_shot_idx}, saved to {first_shot_ff_path}.")
+                print(f"☑️ 已为镜头 {first_shot_idx} 生成首帧，保存到 {first_shot_ff_path}。")
                 _emit_render_progress(progress, "frame_done", f"Generated first frame for shot {first_shot_idx}", {"camera_idx": camera.idx, "shot_idx": first_shot_idx, "frame_type": "first_frame", "path": first_shot_ff_path})
             else:
                 shutil.copy(new_camera_image_path, first_shot_ff_path)
                 self.frame_events[first_shot_idx]["first_frame"].set()
-                print(f"☑️ Generated first_frame for shot {first_shot_idx}, saved to {first_shot_ff_path}.")
+                print(f"☑️ 已为镜头 {first_shot_idx} 生成首帧，保存到 {first_shot_ff_path}。")
                 _emit_render_progress(progress, "frame_done", f"Generated first frame for shot {first_shot_idx}", {"camera_idx": camera.idx, "shot_idx": first_shot_idx, "frame_type": "first_frame", "path": first_shot_ff_path})
 
 
-        # 2. generate the following frames of the camera
+        # 2. 生成相机的后续帧
         priority_tasks = []
         normal_tasks = []
 
@@ -455,7 +455,7 @@ class Script2VideoPipeline:
     ):
         video_path = os.path.join(self.working_dir, "shots", f"{shot_description.idx}", "video.mp4")
         if os.path.exists(video_path):
-            print(f"🚀 Skipped generating video for shot {shot_description.idx}, already exists.")
+            print(f"🚀 跳过镜头 {shot_description.idx} 的视频生成，因为已存在。")
             _emit_render_progress(progress, "video_clip_exists", f"Video clip for shot {shot_description.idx} already exists", {"shot_idx": shot_description.idx, "path": video_path})
         else:
             _emit_render_progress(progress, "video_clip_waiting_for_frames", f"Waiting for frames before video clip {shot_description.idx}", {"shot_idx": shot_description.idx})
@@ -468,7 +468,7 @@ class Script2VideoPipeline:
             if shot_description.variation_type in ["medium", "large"]:
                 frame_paths.append(os.path.join(self.working_dir, "shots", f"{shot_description.idx}", "last_frame.png"))
 
-            print(f"🎬 Starting video generation for shot {shot_description.idx}...")
+            print(f"🎬 开始为镜头 {shot_description.idx} 生成视频...")
             _emit_render_progress(progress, "video_clip_start", f"Generating video clip for shot {shot_description.idx}", {"shot_idx": shot_description.idx, "frame_count": len(frame_paths)})
             video_output = await self.video_generator.generate_single_video(
                 prompt=shot_description.motion_desc + "\n" + shot_description.audio_desc,
@@ -476,7 +476,7 @@ class Script2VideoPipeline:
                 progress=_scoped_progress(progress, shot_idx=shot_description.idx, artifact="video_clip"),
             )
             video_output.save(video_path)
-            print(f"☑️ Generated video for shot {shot_description.idx}, saved to {video_path}.")
+            print(f"☑️ 已为镜头 {shot_description.idx} 生成视频，保存到 {video_path}。")
             _emit_render_progress(progress, "video_clip_done", f"Generated video clip for shot {shot_description.idx}", {"shot_idx": shot_description.idx, "path": video_path})
 
     async def generate_frame_for_single_shot(
@@ -493,11 +493,11 @@ class Script2VideoPipeline:
         frame_image_path = os.path.join(self.working_dir, "shots", f"{shot_idx}", f"{frame_type}.png")
 
         if os.path.exists(frame_image_path):
-            print(f"🚀 Skipped generating {frame_type} for shot {shot_idx}, already exists.")
+            print(f"🚀 跳过镜头 {shot_idx} 的 {frame_type} 生成，因为已存在。")
             _emit_render_progress(progress, "frame_exists", f"{frame_type} for shot {shot_idx} already exists", {"shot_idx": shot_idx, "frame_type": frame_type, "path": frame_image_path})
 
         else:
-            print(f"🖼️ Starting {frame_type} generation for shot {shot_idx}...")
+            print(f"🖼️ 开始为镜头 {shot_idx} 生成 {frame_type}...")
             _emit_render_progress(progress, "frame_start", f"Generating {frame_type} for shot {shot_idx}", {"shot_idx": shot_idx, "frame_type": frame_type})
             available_image_path_and_text_pairs = []
             for visible_character in visible_characters:
@@ -512,10 +512,10 @@ class Script2VideoPipeline:
             if os.path.exists(selector_output_path):
                 with open(selector_output_path, 'r', encoding='utf-8') as f:
                     selector_output = json.load(f)
-                print(f"🚀 Loaded existing reference image selection and prompt for {frame_type} frame of shot {shot_idx} from {selector_output_path}.")
+                print(f"🚀 已从 {selector_output_path} 加载镜头 {shot_idx} {frame_type} 帧的已有参考图片选择和 prompt。")
                 _emit_render_progress(progress, "frame_prompt_exists", f"Prompt for {frame_type} of shot {shot_idx} already exists", {"shot_idx": shot_idx, "frame_type": frame_type, "path": selector_output_path})
             else:
-                print(f"🔍 Selecting reference images and generating prompt for {frame_type} frame of shot {shot_idx}...")
+                print(f"🔍 正在为镜头 {shot_idx} 的 {frame_type} 帧选择参考图片并生成 prompt...")
                 _emit_render_progress(progress, "frame_prompt_start", f"Selecting references for {frame_type} of shot {shot_idx}", {"shot_idx": shot_idx, "frame_type": frame_type})
                 selector_output = await self.reference_image_selector.select_reference_images_and_generate_prompt(
                     available_image_path_and_text_pairs=available_image_path_and_text_pairs,
@@ -523,7 +523,7 @@ class Script2VideoPipeline:
                 )
                 with open(selector_output_path, 'w', encoding='utf-8') as f:
                     json.dump(selector_output, f, ensure_ascii=False, indent=4)
-                print(f"☑️ Selected reference images and generated prompt for {frame_type} frame of shot {shot_idx}, saved to {selector_output_path}.")
+                print(f"☑️ 已为镜头 {shot_idx} 的 {frame_type} 帧选择参考图片并生成 prompt，保存到 {selector_output_path}。")
                 _emit_render_progress(progress, "frame_prompt_done", f"Selected references for {frame_type} of shot {shot_idx}", {"shot_idx": shot_idx, "frame_type": frame_type, "path": selector_output_path})
 
             reference_image_path_and_text_pairs, prompt = selector_output["reference_image_path_and_text_pairs"], selector_output["text_prompt"]
@@ -539,7 +539,7 @@ class Script2VideoPipeline:
                 size="1600x900",
             )
             frame_image.save(frame_image_path)
-            print(f"☑️ Generated {frame_type} frame for shot {shot_idx}, saved to {frame_image_path}.")
+            print(f"☑️ 已为镜头 {shot_idx} 生成 {frame_type} 帧，保存到 {frame_image_path}。")
             _emit_render_progress(progress, "frame_done", f"Generated {frame_type} for shot {shot_idx}", {"shot_idx": shot_idx, "frame_type": frame_type, "path": frame_image_path})
 
 
@@ -558,7 +558,7 @@ class Script2VideoPipeline:
             with open(camera_tree_path, "r", encoding="utf-8") as f:
                 camera_tree = json.load(f)
             camera_tree = [Camera.model_validate(camera) for camera in camera_tree]
-            _pipeline_print(quiet, f"🚀 Loaded {len(camera_tree)} cameras from existing file.")
+            _pipeline_print(quiet, f"🚀 已从已有文件加载 {len(camera_tree)} 个相机。")
             return camera_tree
 
         shot_descriptions = _normalize_model_list(shot_descriptions, ShotDescription, "shot_descriptions")
@@ -568,7 +568,7 @@ class Script2VideoPipeline:
         camera_tree = _normalize_model_list(camera_tree, Camera, "camera_tree")
         with open(camera_tree_path, "w", encoding="utf-8") as f:
             json.dump([camera.model_dump() for camera in camera_tree], f, ensure_ascii=False, indent=4)
-        _pipeline_print(quiet, f"✅ Constructed camera tree and saved to {camera_tree_path}.")
+        _pipeline_print(quiet, f"✅ 已构建相机树并保存到 {camera_tree_path}。")
         return camera_tree
 
 
@@ -585,12 +585,12 @@ class Script2VideoPipeline:
             with open(save_path, "r", encoding="utf-8") as f:
                 characters = json.load(f)
             characters = [CharacterInScene.model_validate(character) for character in characters]
-            _pipeline_print(quiet, f"🚀 Loaded {len(characters)} characters from existing file.")
+            _pipeline_print(quiet, f"🚀 已从已有文件加载 {len(characters)} 个角色。")
         else:
             characters = await self.character_extractor.extract_characters(script)
             with open(save_path, "w", encoding="utf-8") as f:
                 json.dump([character.model_dump() for character in characters], f, ensure_ascii=False, indent=4)
-            _pipeline_print(quiet, f"✅ Extracted {len(characters)} characters from script and saved to {save_path}.")
+            _pipeline_print(quiet, f"✅ 已从剧本中提取 {len(characters)} 个角色并保存到 {save_path}。")
 
         for character in characters:
             self.character_portrait_events[character.idx] = asyncio.Event()
@@ -625,10 +625,10 @@ class Script2VideoPipeline:
                 with open(character_portraits_registry_path, 'w', encoding='utf-8') as f:
                     json.dump(character_portraits_registry, f, ensure_ascii=False, indent=4)
 
-            print(f"✅ Completed character portrait generation for {len(characters)} characters.")
+            print(f"✅ 已完成 {len(characters)} 个角色的肖像生成。")
             _emit_render_progress(progress, "character_portraits_done", "Completed character portrait generation", {"character_count": len(characters)})
         else:
-            print("🚀 All characters already have portraits, skipping portrait generation.")
+            print("🚀 所有角色已有肖像，跳过肖像生成。")
             _emit_render_progress(progress, "character_portraits_exist", "All character portraits already exist", {"character_count": len(characters)})
         return character_portraits_registry
 
@@ -673,7 +673,7 @@ class Script2VideoPipeline:
 
         self.character_portrait_events[character.idx].set()
 
-        print(f"☑️ Completed character portrait generation for {character.identifier_in_scene}.")
+        print(f"☑️ 已完成 {character.identifier_in_scene} 的肖像生成。")
         _emit_render_progress(progress, "character_portrait_done", f"Portraits for {character.identifier_in_scene} ready", {"character_idx": character.idx, "identifier": character.identifier_in_scene})
 
         return {
@@ -707,9 +707,9 @@ class Script2VideoPipeline:
             with open(storyboard_path, 'r', encoding='utf-8') as f:
                 storyboard = json.load(f)
             storyboard = [ShotBriefDescription.model_validate(shot) for shot in storyboard]
-            _pipeline_print(quiet, f"🚀 Loaded {len(storyboard)} shot brief descriptions from existing file.")
+            _pipeline_print(quiet, f"🚀 已从已有文件加载 {len(storyboard)} 个镜头简述。")
         else:
-            _pipeline_print(quiet, f"🔍 Designing storyboard...")
+            _pipeline_print(quiet, f"🔍 正在设计分镜...")
             storyboard = await self.storyboard_artist.design_storyboard(
                 script=script,
                 characters=characters,
@@ -719,7 +719,7 @@ class Script2VideoPipeline:
             storyboard = _normalize_model_list(storyboard, ShotBriefDescription, "storyboard")
             with open(storyboard_path, 'w', encoding='utf-8') as f:
                 json.dump([shot.model_dump() for shot in storyboard], f, ensure_ascii=False, indent=4)
-            _pipeline_print(quiet, f"✅ Designed storyboard and saved to {storyboard_path}.")
+            _pipeline_print(quiet, f"✅ 已设计分镜并保存到 {storyboard_path}。")
 
         for shot_brief_description in storyboard:
             self.shot_desc_events[shot_brief_description.idx] = asyncio.Event()
@@ -755,7 +755,7 @@ class Script2VideoPipeline:
         if os.path.exists(shot_description_path):
             with open(shot_description_path, 'r', encoding='utf-8') as f:
                 shot_description = ShotDescription.model_validate(json.load(f))
-            _pipeline_print(quiet, f"🚀 Loaded shot {shot_brief_description.idx} description from existing file.")
+            _pipeline_print(quiet, f"🚀 已从已有文件加载镜头 {shot_brief_description.idx} 的描述。")
         else:
             shot_description = await self.storyboard_artist.decompose_visual_description(
                 shot_brief_desc=shot_brief_description,
@@ -765,7 +765,7 @@ class Script2VideoPipeline:
             shot_description = _normalize_model_list([shot_description], ShotDescription, "shot_description")[0]
             with open(shot_description_path, 'w', encoding='utf-8') as f:
                 json.dump(shot_description.model_dump(), f, ensure_ascii=False, indent=4)
-            _pipeline_print(quiet, f"✅ Decomposed visual description for shot {shot_brief_description.idx} and saved to {shot_description_path}.")
+            _pipeline_print(quiet, f"✅ 已分解镜头 {shot_brief_description.idx} 的视觉描述并保存到 {shot_description_path}。")
 
         self.shot_desc_events[shot_brief_description.idx].set()
 

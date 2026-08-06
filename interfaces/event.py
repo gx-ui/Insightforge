@@ -5,22 +5,22 @@ from typing import List, Optional, Union, Dict
 
 class Event(BaseModel):
     index: int = Field(
-        description="The index of the event, starting from 0",
+        description="事件的索引，从 0 开始",
     )
 
     is_last: bool = Field(
-        description="Indicates if this is the last event in the sequence"
+        description="指示该事件是否为序列中的最后一个事件"
     )
 
     description: str = Field(
-        description="A concise description of the event, capturing its essence in one sentence",
+        description="事件的简明描述，用一句话概括其核心",
         examples=[
             "A thief who stole a gem from a museum was caught after a rooftop chase with guards, and the gem was recovered.",
         ]
     )
 
     process_chain: List[str] = Field(
-        description="A list of steps or actions that make up the event's process chain, which constitutes a complete causal chain.",
+        description="构成事件过程链的步骤或动作列表，构成一条完整的因果链。",
         examples=[
             [
                 "A thief steals a gem from a museum, triggering the alarm. Guards notice and begin the chase.",
@@ -35,9 +35,9 @@ class Event(BaseModel):
     )
 
     def __str__(self):
-        s = f"<Event {self.index}>"
-        s += f"\nDescription: {self.description}"
-        s += f"\nProcess Chain:"
+        s = f"<事件 {self.index}>"
+        s += f"\n描述: {self.description}"
+        s += f"\n过程链:"
         for process in self.process_chain:
             s += f"\n- {process}"
         return s

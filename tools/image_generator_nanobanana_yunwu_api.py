@@ -38,10 +38,10 @@ class ImageGeneratorNanobananaYunwuAPI:
         **kwargs,
     ) -> ImageOutput:
         """
-            aspect_ratio: The aspect ratio of the image.
+            aspect_ratio: 图片的宽高比。
         """
 
-        logging.info(f"Calling {self.model} to generate image...")
+        logging.info(f"正在调用 {self.model} 生成图片...")
 
         reference_images = [Image.open(path) for path in reference_image_paths]
 
@@ -65,8 +65,8 @@ class ImageGeneratorNanobananaYunwuAPI:
                 image = image_from_response_part(part)
 
         if image is None:
-            logging.error(f"No image generated. The response text is: {text}")
-            raise ValueError(f"Error occurred while generating image.")
+            logging.error(f"未生成图片。响应文本为: {text}")
+            raise ValueError(f"生成图片时发生错误。")
 
         if landscape_guard_requested(
             size=kwargs.get("size"),

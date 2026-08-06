@@ -29,7 +29,7 @@ from tools.reranker_bge_silicon_api import RerankerBgeSiliconapi
 
 
 class TestLLMClient(unittest.IsolatedAsyncioTestCase):
-    """Robustness contract for the langchain-backed LLM wrapper.
+    """基于 langchain 的 LLM 封装的健壮性契约。
 
     Retry/bounded-attempt behavior is now delegated to the langchain ChatModel
     (max_retries=LLM_MAX_ATTEMPTS). These tests guard the aspects that remain
@@ -43,8 +43,8 @@ class TestLLMClient(unittest.IsolatedAsyncioTestCase):
 
     def test_chat_model_configured_with_timeout(self):
         llm = OpenAICompatibleLLM(model="m", base_url="http://localhost:1", api_key="k")
-        # Retry (max_retries=3) and timeout (300s) delegated to langchain ChatModel.
-        # Retry behavior on 429/5xx is langchain upstream responsibility, not re-tested.
+        # 重试 (max_retries=3) 和超时 (300s) 委托给 langchain ChatModel。
+        # 429/5xx 的重试行为是 langchain 上游的责任，不再重复测试。
         self.assertEqual(llm._chat_model.max_retries, 3)
         self.assertEqual(llm._chat_model.request_timeout, 300.0)
 

@@ -1,4 +1,4 @@
-"""Unit tests for utils.provider_presets."""
+"""utils.provider_presets 的单元测试。"""
 
 import os
 import unittest
@@ -12,7 +12,7 @@ from utils.provider_presets import (
 
 
 class TestProviderPresets(unittest.TestCase):
-    """Tests for the PROVIDER_PRESETS registry."""
+    """PROVIDER_PRESETS 注册表的测试。"""
 
     def test_minimax_preset_exists(self):
         self.assertIn("minimax", PROVIDER_PRESETS)
@@ -42,7 +42,7 @@ class TestProviderPresets(unittest.TestCase):
 
 
 class TestResolveChatModelConfig(unittest.TestCase):
-    """Tests for resolve_chat_model_config()."""
+    """resolve_chat_model_config() 的测试。"""
 
     def test_unknown_provider_passes_through(self):
         args = {"model_provider": "openai", "model": "gpt-4", "base_url": "https://example.com"}
@@ -140,7 +140,7 @@ class TestResolveChatModelConfig(unittest.TestCase):
 
 
 class TestDetectProviderFromEnv(unittest.TestCase):
-    """Tests for detect_provider_from_env()."""
+    """detect_provider_from_env() 的测试。"""
 
     @patch.dict(os.environ, {"MINIMAX_API_KEY": "test-key"}, clear=False)
     def test_detects_minimax(self):
@@ -152,7 +152,7 @@ class TestDetectProviderFromEnv(unittest.TestCase):
 
 
 class TestConfigYAMLLoading(unittest.TestCase):
-    """Test that MiniMax example config files are valid YAML."""
+    """测试 MiniMax 示例配置文件是否为有效 YAML。"""
 
     def test_idea2video_minimax_yaml(self):
         import yaml

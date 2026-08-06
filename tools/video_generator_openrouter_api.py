@@ -90,11 +90,11 @@ class VideoGeneratorOpenRouterAPI:
             hard_timeout_seconds=request_timeout_seconds,
         )
         if create_status >= 400:
-            raise RuntimeError(f"OpenRouter video create failed with HTTP {create_status}: {create_payload}")
+            raise RuntimeError(f"OpenRouter 视频创建失败，HTTP {create_status}: {create_payload}")
         job_id = create_payload.get("id")
         polling_url = create_payload.get("polling_url")
         if not job_id or not polling_url:
-            raise RuntimeError(f"OpenRouter video create response missing id or polling_url: {create_payload}")
+            raise RuntimeError(f"OpenRouter 视频创建响应缺少 id 或 polling_url: {create_payload}")
         _emit_progress(progress, "video_task_created", "OpenRouter video generation task created", {"model": self.model, "job_id": job_id, "status": create_payload.get("status")})
 
         poll_url = _absolute_url(self.base_url, polling_url)
@@ -110,7 +110,7 @@ class VideoGeneratorOpenRouterAPI:
                 hard_timeout_seconds=request_timeout_seconds,
             )
             if poll_status >= 400:
-                raise RuntimeError(f"OpenRouter video poll failed with HTTP {poll_status}: {poll_payload}")
+                raise RuntimeError(f"OpenRouter 视频轮询失败，HTTP {poll_status}: {poll_payload}")
             last_payload = poll_payload
             status = poll_payload.get("status")
             last_status = status
@@ -130,13 +130,13 @@ class VideoGeneratorOpenRouterAPI:
                     hard_timeout_seconds=request_timeout_seconds,
                 )
                 if download_status >= 400:
-                    raise RuntimeError(f"OpenRouter video content download failed with HTTP {download_status}: {data[:500]!r}")
+                    raise RuntimeError(f"OpenRouter 视频内容下载失败，HTTP {download_status}: {data[:500]!r}")
                 _emit_progress(progress, "video_completed", "OpenRouter video generation completed and downloaded", {"model": self.model, "job_id": job_id})
                 return VideoOutput(fmt="bytes", ext="mp4", data=data)
             if status in {"failed", "cancelled", "expired"}:
-                raise RuntimeError(f"OpenRouter video generation {status} for job {job_id}: {poll_payload.get('error') or poll_payload}")
+                raise RuntimeError(f"OpenRouter 视频生成 {status}（任务 {job_id}）: {poll_payload.get('error') or poll_payload}")
 
-        raise RuntimeError(f"OpenRouter video generation timed out after {query_timeout_seconds:g}s for job {job_id}; last_status={last_status}; last_payload={last_payload}")
+        raise RuntimeError(f"OpenRouter 视频生成在 {query_timeout_seconds:g} 秒后超时（任务 {job_id}）；last_status={last_status}; last_payload={last_payload}")
 
     def _headers(self) -> dict[str, str]:
         headers = {
@@ -152,7 +152,7 @@ class VideoGeneratorOpenRouterAPI:
 
 def _frame_images(reference_image_paths: List[str]) -> list[dict]:
     if len(reference_image_paths) > 2:
-        raise ValueError("OpenRouter video generation supports at most first and last frame images")
+        raise ValueError("OpenRouter 视频生成最多支持首帧和尾帧图片")
     frame_types = ["first_frame", "last_frame"]
     return [
         {

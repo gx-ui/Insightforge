@@ -53,29 +53,27 @@ class VideoGeneratorVeoGoogleAPI:
             params["model"] = self.ff2v_model
             params["image"] = types.Image.from_file(location=reference_image_paths[0])
         elif len(reference_image_paths) == 2:
-            # First+last-frame ("flf2v") interpolation returns 400
-            # INVALID_ARGUMENT ("Your use case is currently not supported")
-            # on the public Gemini Developer API (it appears to require
-            # Vertex AI / allowlisting). Fall back to first-frame-only so
-            # the shot still renders instead of failing the pipeline; the
-            # clip just is not pinned to the generated last frame.
+            # 首尾帧（"flf2v"）插值会返回 400
+            # INVALID_ARGUMENT（"Your use case is currently not supported"）
+            # 错误（在公共 Gemini Developer API 上，该功能似乎需要
+            # Vertex AI / 白名单）。回退为仅首帧，使镜头仍能渲染
+            # 而非导致整条流水线失败；只是片段不会被锚定到生成的末帧。
             logging.warning(
-                "Two reference images provided but first+last-frame video "
-                "generation is not available on this API key; falling back "
-                "to first-frame-only generation."
+                "提供了两张参考图片，但该 API key 不支持首尾帧视频生成；"
+                "回退为仅首帧生成。"
             )
             params["model"] = self.ff2v_model
             params["image"] = types.Image.from_file(location=reference_image_paths[0])
         else:
-            raise ValueError("The number of reference images must be no more than 2")
+            raise ValueError("参考图片数量不得超过 2 张")
 
-        logging.info(f"Calling {params['model']} to generate video...")
+        logging.info(f"正在调用 {params['model']} 生成视频...")
 
-        # Apply rate limiting if configured
+        # 若配置了速率限制则应用
         if self.rate_limiter:
             await self.rate_limiter.acquire()
 
-        # Retry logic for rate limit errors
+        # 速率限制错误的重试逻辑
         max_retries = 3
         retry_delay = 5
 
@@ -87,12 +85,12 @@ class VideoGeneratorVeoGoogleAPI:
                 )
                 break
             except ClientError as e:
-                # google.genai.errors.ClientError exposes the HTTP status
-                # as `.code`; `.status_code` does not exist, so this line
-                # raised AttributeError and masked every real ClientError.
+                # google.genai.errors.ClientError 通过 `.code` 暴露 HTTP 状态码；
+                # `.status_code` 不存在，因此这一行
+                # 曾抛出 AttributeError 并掩盖了所有真正的 ClientError。
                 if e.code == 429 and attempt < max_retries - 1:
                     wait_time = retry_delay * (2 ** attempt)
-                    logging.warning(f"Rate limit hit (429), retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+                    logging.warning(f"触发速率限制 (429)，{wait_time} 秒后重试...（第 {attempt + 1}/{max_retries} 次尝试）")
                     await asyncio.sleep(wait_time)
                 else:
                     raise
@@ -100,21 +98,21 @@ class VideoGeneratorVeoGoogleAPI:
         while not operation.done:
             await asyncio.sleep(2)
             operation = self.client.operations.get(operation)
-            logging.info(f"Video generation not completed, waiting 2 seconds...")
+            logging.info(f"视频生成尚未完成，等待 2 秒...")
 
-        # Check if operation completed successfully
+        # 检查操作是否成功完成
         if operation.error:
-            error_msg = f"Video generation failed: {operation.error}"
+            error_msg = f"视频生成失败: {operation.error}"
             logging.error(error_msg)
             raise RuntimeError(error_msg)
 
         if not operation.response:
-            error_msg = "Video generation completed but no response received"
+            error_msg = "视频生成完成但未收到响应"
             logging.error(error_msg)
             raise RuntimeError(error_msg)
 
         if not hasattr(operation.response, 'generated_videos') or not operation.response.generated_videos:
-            error_msg = "Video generation completed but no videos were generated"
+            error_msg = "视频生成完成但未生成任何视频"
             logging.error(error_msg)
             raise RuntimeError(error_msg)
 

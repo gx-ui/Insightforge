@@ -31,13 +31,13 @@ class VideoGeneratorVeoYunwuAPI:
     def __init__(
         self,
         api_key: str,
-        t2v_model: str = "veo3.1-fast",  # text to video
-        ff2v_model: str = "veo3.1-fast",   # first frame to video
-        flf2v_model: str = "veo2-fast-frames",  # first and last frame to video
+        t2v_model: str = "veo3.1-fast",  # 文生视频
+        ff2v_model: str = "veo3.1-fast",   # 首帧生视频
+        flf2v_model: str = "veo2-fast-frames",  # 首尾帧生视频
         base_url: str = "https://yunwu.ai",
     ):
         """
-        all models:
+        所有模型:
             veo2
             veo2-fast
             veo2-fast-frames
@@ -50,7 +50,7 @@ class VideoGeneratorVeoYunwuAPI:
             veo3-fast-frames
             veo3-frames
 
-        NOTE: veo3 does not support first and last frame to video generation.
+        注意: veo3 不支持首尾帧生视频。
         """
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
@@ -78,18 +78,18 @@ class VideoGeneratorVeoYunwuAPI:
         elif len(reference_image_paths) == 2:
             model = self.flf2v_model
         else:
-            raise ValueError("The number of reference images must be no more than 2")
+            raise ValueError("参考图片数量不得超过 2 张")
 
-        logging.info(f"Calling {model} to generate video...")
+        logging.info(f"正在调用 {model} 生成视频...")
 
-        # 1. Create video generation task
+        # 1. 创建视频生成任务
         payload = {
             "prompt": prompt,
             "model": model,
             "images": [image_path_to_b64(image_path, mime=True) for image_path in reference_image_paths],
             "enhance_prompt": True,
         }
-        # only veo3 supports aspect ratio setting
+        # 仅 veo3 支持宽高比设置
         if model.startswith("veo3"):
             payload["aspect_ratio"] = aspect_ratio
 
@@ -111,24 +111,24 @@ class VideoGeneratorVeoYunwuAPI:
                         response_payload = await response.json(content_type=None)
                         logging.debug(f"Response: {response_payload}")
                         if response.status >= 400:
-                            raise RuntimeError(f"Video create failed with HTTP {response.status}: {response_payload}")
+                            raise RuntimeError(f"视频创建失败，HTTP {response.status}: {response_payload}")
                         task_id = response_payload.get("id")
                         if not task_id:
-                            raise RuntimeError(f"Video create response missing id: {response_payload}")
-                        logging.info(f"Video generation task created successfully. Task ID: {task_id}")
-                        _emit_progress(progress, "video_task_created", "Video generation task created", {"model": model, "task_id": task_id})
+                            raise RuntimeError(f"视频创建响应缺少 id: {response_payload}")
+                        logging.info(f"视频生成任务创建成功。任务 ID: {task_id}")
+                        _emit_progress(progress, "video_task_created", "视频生成任务已创建", {"model": model, "task_id": task_id})
                         break
             except Exception as e:
                 last_create_error = e
-                logging.error(f"Error occurred while creating video generation task: {e}.")
-                _emit_progress(progress, "video_create_error", f"Video create attempt {attempt} failed", {"model": model, "attempt": attempt, "error": str(e)})
+                logging.error(f"创建视频生成任务时出错: {e}。")
+                _emit_progress(progress, "video_create_error", f"视频创建第 {attempt} 次尝试失败", {"model": model, "attempt": attempt, "error": str(e)})
                 if attempt < create_retries:
                     await asyncio.sleep(1)
         if not task_id:
-            raise RuntimeError(f"Video create failed after {create_retries} attempts: {last_create_error}")
+            raise RuntimeError(f"经过 {create_retries} 次尝试后视频创建仍失败: {last_create_error}")
 
 
-        # 2. Query the video generation task until the video generation is completed
+        # 2. 轮询视频生成任务直至视频生成完成
         headers = {
             'Accept': 'application/json',
             'Authorization': f'Bearer {self.api_key}',
@@ -144,34 +144,34 @@ class VideoGeneratorVeoYunwuAPI:
                         payload = await response.json(content_type=None)
                         logging.debug(f"Response: {payload}")
                         if response.status >= 400:
-                            raise RuntimeError(f"Video query failed with HTTP {response.status}: {payload}")
+                            raise RuntimeError(f"视频查询失败，HTTP {response.status}: {payload}")
                         status = payload.get("status")
                         if not status:
-                            raise RuntimeError(f"Video query response missing status: {payload}")
+                            raise RuntimeError(f"视频查询响应缺少 status: {payload}")
                         query_errors = 0
             except Exception as e:
                 query_errors += 1
-                logging.error(f"Error occurred while querying video generation task: {e}.")
-                _emit_progress(progress, "video_query_error", "Video query failed", {"model": model, "task_id": task_id, "error": str(e), "query_errors": query_errors, "max_query_errors": max_query_errors})
+                logging.error(f"查询视频生成任务时出错: {e}。")
+                _emit_progress(progress, "video_query_error", "视频查询失败", {"model": model, "task_id": task_id, "error": str(e), "query_errors": query_errors, "max_query_errors": max_query_errors})
                 if query_errors >= max_query_errors:
-                    raise RuntimeError(f"Video query failed {query_errors} times for task {task_id}: {e}")
+                    raise RuntimeError(f"任务 {task_id} 的视频查询连续失败 {query_errors} 次: {e}")
                 await asyncio.sleep(poll_interval_seconds)
                 continue
 
             if status == "completed":
-                logging.info(f"Video generation completed successfully")
+                logging.info(f"视频生成成功完成")
                 video_url = payload.get("video_url")
                 if not video_url:
-                    raise RuntimeError(f"Video task completed without video_url: {payload}")
-                _emit_progress(progress, "video_completed", "Video generation completed", {"model": model, "task_id": task_id})
+                    raise RuntimeError(f"视频任务完成但未返回 video_url: {payload}")
+                _emit_progress(progress, "video_completed", "视频生成已完成", {"model": model, "task_id": task_id})
                 return VideoOutput(fmt="url", ext="mp4", data=video_url)
             elif status == "failed":
-                logging.error(f"Video generation failed: \n{payload}")
-                raise RuntimeError(f"Video generation failed for task {task_id}: {payload}")
+                logging.error(f"视频生成失败: \n{payload}")
+                raise RuntimeError(f"任务 {task_id} 的视频生成失败: {payload}")
             else:
-                logging.info(f"Video generation status: {status}, waiting 1 second...")
+                logging.info(f"视频生成状态: {status}，等待 1 秒...")
                 last_status = status
-                _emit_progress(progress, "video_status", f"Video generation status: {status}", {"model": model, "task_id": task_id, "status": status})
+                _emit_progress(progress, "video_status", f"视频生成状态: {status}", {"model": model, "task_id": task_id, "status": status})
                 await asyncio.sleep(poll_interval_seconds)
                 continue
-        raise RuntimeError(f"Video generation timed out after {query_timeout_seconds:g}s for task {task_id}; last_status={last_status}")
+        raise RuntimeError(f"视频生成在 {query_timeout_seconds:g} 秒后超时（任务 {task_id}）；last_status={last_status}")

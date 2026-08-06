@@ -16,19 +16,19 @@ export function applyStreamEvent(lines: WorkspaceLine[], state: MappingState, ev
     case 'token':
       return appendAssistantToken(lines, state, event.delta ?? '');
     case 'tool_start':
-      return append(lines, state, {kind: 'tool', status: 'running', text: `tool ${event.tool?.name ?? 'unknown'} started`});
+      return append(lines, state, {kind: 'tool', status: 'running', text: `工具 ${event.tool?.name ?? '未知'} 已启动`});
     case 'tool_progress':
       return append(lines, state, {
         kind: 'tool',
         status: 'running',
-        text: compactJoin([`tool ${event.tool?.name ?? 'unknown'}`, event.progress?.stage, event.progress?.message]),
+        text: compactJoin([`工具 ${event.tool?.name ?? '未知'}`, event.progress?.stage, event.progress?.message]),
       });
     case 'tool_result': {
       const result = event.tool_result ?? {};
       const ok = result.ok !== false;
       const name = result.name ?? 'unknown';
       const detail = ok ? '' : cleanToolError(result.content);
-      return append(lines, state, {kind: 'tool', status: ok ? 'done' : 'error', text: detail ? `tool ${name} error: ${detail}` : `tool ${name} ${ok ? 'done' : 'error'}`});
+      return append(lines, state, {kind: 'tool', status: ok ? 'done' : 'error', text: detail ? `工具 ${name} 错误: ${detail}` : `工具 ${name} ${ok ? '完成' : '错误'}`});
     }
     case 'terminal':
       return append(lines, state, {kind: 'terminal', text: compactJoin([event.stream ? `[${event.stream}]` : '', event.line])});
@@ -37,7 +37,7 @@ export function applyStreamEvent(lines: WorkspaceLine[], state: MappingState, ev
     case 'done':
       return {lines, state: createMappingState()};
     case 'error':
-      return append(lines, state, {kind: 'error', text: event.message ?? 'Unknown error'});
+      return append(lines, state, {kind: 'error', text: event.message ?? '未知错误'});
     default:
       return {lines, state};
   }

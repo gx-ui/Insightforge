@@ -153,7 +153,7 @@ class GlobalInformationPlanner:
     
     @retry(
         stop=stop_after_attempt(3),
-        after=lambda retry_state: logging.warning(f"Retrying due to {retry_state.outcome.exception()}"),
+        after=lambda retry_state: logging.warning(f"因 {retry_state.outcome.exception()} 正在重试"),
     )
     async def merge_characters_across_scenes_in_event(
         self,
@@ -194,28 +194,28 @@ class GlobalInformationPlanner:
         response: MergeCharactersAcrossScenesInEventResponse = await chain.ainvoke(messages)
         characters_in_event = response.characters
 
-        # check the output is valid
+        # 检查输出是否有效
         flags = [{c.identifier_in_scene: False for c in s.characters} for s in scenes]
 
-        # check if all character identifiers can be found in the scenes
+        # 检查所有角色标识符是否能在场景中找到
         for character in characters_in_event:
             for scene_idx, identifier_in_scene in character.active_scenes.items():
                 if identifier_in_scene not in [c.identifier_in_scene for c in scenes[scene_idx].characters]:
-                    raise ValueError(f"Character {identifier_in_scene} not found in scene {scene_idx} of event {event_idx}")
+                    raise ValueError(f"在事件 {event_idx} 的场景 {scene_idx} 中未找到角色 {identifier_in_scene}")
                 else:
                     flags[scene_idx][identifier_in_scene] = True
 
-        # check if all characters are included
+        # 检查是否包含所有角色
         for scene_idx, flag in enumerate(flags):
             for identifier_in_scene, included in flag.items():
                 if not included:
-                    raise ValueError(f"Character {identifier_in_scene} in scene {scene_idx} of event {event_idx} not included in the merged characters")
+                    raise ValueError(f"事件 {event_idx} 场景 {scene_idx} 中的角色 {identifier_in_scene} 未包含在合并后的角色中")
 
         return characters_in_event
 
     @retry(
         stop=stop_after_attempt(3),
-        after=lambda retry_state: logging.warning(f"Retrying due to {retry_state.outcome.exception()}"),
+        after=lambda retry_state: logging.warning(f"因 {retry_state.outcome.exception()} 正在重试"),
     )
     def merge_characters_to_existing_characters_in_novel(
         self,
@@ -257,7 +257,7 @@ class GlobalInformationPlanner:
 
         for character in response.characters:
             if character.index_in_novel == -1:
-                # new character, add to existing characters
+                # 新角色，添加到现有角色列表
                 new_character = CharacterInNovel(
                     index=len(existing_characters_in_novel),
                     identifier_in_novel=character.identifier_in_novel,
@@ -275,7 +275,7 @@ class GlobalInformationPlanner:
     # # TODO: 如果是长篇小说，事件太多，很容易报错，出场的角色会分不清在哪个事件里，也很容易漏，需要想办法解决
     # @retry(
     #     stop=stop_after_attempt(3),
-    #     after=lambda retry_state: logging.warning(f"Retrying due to {retry_state.outcome.exception()}"),
+    #     after=lambda retry_state: logging.warning(f"因 {retry_state.outcome.exception()} 正在重试"),
     # )
     # def merge_characters_across_events_in_novel(
     #     self,
@@ -318,22 +318,22 @@ class GlobalInformationPlanner:
     #     response: MergeCharactersAcrossEventsInNovelResponse = chain.invoke(messages)
     #     characters_in_novel = response.characters
 
-    #     # check the output is valid
+    #     # 检查输出是否有效
     #     flags = [{c.identifier_in_event: False for c in characters} for characters in characters_in_event]
 
-    #     # check if all character identifiers can be found in the events
+    #     # 检查所有角色标识符是否都能在事件中找到
     #     for character in characters_in_novel:
     #         for event_idx, identifier_in_event in character.active_events.items():
     #             if identifier_in_event not in [c.identifier_in_event for c in characters_in_event[event_idx]]:
-    #                 raise ValueError(f"Character {identifier_in_event} not found in event {event_idx}")
+    #                 raise ValueError(f"角色 {identifier_in_event} 在事件 {event_idx} 中未找到")
     #             else:
     #                 flags[event_idx][identifier_in_event] = True
 
-    #     # check if all characters are included
+    #     # 检查是否包含所有角色
     #     # for event_idx, flag in enumerate(flags):
     #     #     for identifier_in_event, included in flag.items():
     #     #         if not included:
-    #     #             raise ValueError(f"Character {identifier_in_event} in event {event_idx} not included in the merged characters")
+    #     #             raise ValueError(f"事件 {event_idx} 中的角色 {identifier_in_event} 未包含在合并后的角色列表中")
 
     #     return characters_in_novel
 
@@ -350,7 +350,7 @@ class GlobalInformationPlanner:
     #         context_fragments_str += chunk + "\n"
     #         context_fragments_str += f"<CONTEXT_FRAGMENT_{i}_END>\n"
 
-    #     parser = None  # no need to parse the output, just return the text
+    #     parser = None  # 无需解析输出，直接返回文本
 
     #     messages = [
     #         SystemMessage(

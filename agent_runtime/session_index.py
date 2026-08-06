@@ -20,11 +20,11 @@ STALE_KEYS = ["story", "characters", "script", "storyboard", "shot_descriptions"
 
 
 def _synchronized(method):
-    """Hold the index file lock across a read-modify-write cycle.
+    """在一次读-改-写周期内持有索引文件锁。
 
-    Every mutator loads the whole sessions file, edits it, and saves it back;
-    without a lock, two concurrent writers (threads or processes) silently
-    drop each other's updates.
+    每个修改器都会加载整个 sessions 文件，编辑后再保存回去；
+    若无锁，两个并发写入者（线程或进程）会静默地丢弃
+    对方的更新。
     """
 
     @wraps(method)
@@ -70,15 +70,15 @@ class SessionIndex:
         except FileNotFoundError:
             return {"active_session_id": "", "sessions": {}}
         except json.JSONDecodeError:
-            # A corrupt file usually means a crash mid-write. Returning empty
-            # state is fine for this call, but the next save() would overwrite
-            # the file and destroy every session — keep the evidence first.
+            # 损坏的文件通常意味着写入过程中发生崩溃。本次调用返回空
+            # 状态没有问题，但下次 save() 会覆盖文件并销毁所有会
+            # 话记录--因此先保留证据。
             backup = self.sessions_path.with_name(f"sessions.json.corrupt-{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}")
             try:
                 os.replace(self.sessions_path, backup)
-                logging.error("sessions.json was corrupt; preserved it at %s and starting with empty state", backup)
+                logging.error("sessions.json 已损坏；已备份至 %s 并以空状态启动", backup)
             except OSError:
-                logging.error("sessions.json is corrupt and could not be backed up; starting with empty state")
+                logging.error("sessions.json 已损坏且无法备份；以空状态启动")
             return {"active_session_id": "", "sessions": {}}
 
     def save(self, data: dict[str, Any]) -> None:
@@ -153,7 +153,7 @@ class SessionIndex:
         normalized = self._normalize_session_id(session_id)
         data = self.load()
         if normalized not in data.get("sessions", {}):
-            raise KeyError(f"Unknown session_id: {session_id}")
+            raise KeyError(f"未知的 session_id: {session_id}")
         data["active_session_id"] = normalized
         self.save(data)
         return dict(data["sessions"][normalized])
@@ -163,7 +163,7 @@ class SessionIndex:
         data = self.load()
         record = data.get("sessions", {}).get(session_id)
         if not isinstance(record, dict):
-            raise KeyError(f"Unknown session_id: {session_id}")
+            raise KeyError(f"未知的 session_id: {session_id}")
         record["stage"] = stage
         if summary:
             record["summary"] = summary
@@ -175,7 +175,7 @@ class SessionIndex:
         data = self.load()
         record = data.get("sessions", {}).get(session_id)
         if not isinstance(record, dict):
-            raise KeyError(f"Unknown session_id: {session_id}")
+            raise KeyError(f"未知的 session_id: {session_id}")
         stale = record.setdefault("stale", {key: False for key in STALE_KEYS})
         for key in keys:
             stale[key] = True
@@ -187,7 +187,7 @@ class SessionIndex:
         data = self.load()
         session = data.get("sessions", {}).get(session_id)
         if not isinstance(session, dict):
-            raise KeyError(f"Unknown session_id: {session_id}")
+            raise KeyError(f"未知的 session_id: {session_id}")
         summary = str(result.get("summary", "") or "")
         compacted_count = int(result.get("compacted_message_count", 0) or 0)
         snapshot = {
@@ -240,7 +240,7 @@ class SessionIndex:
             record = self.create()
         path = (self.workspace_root / str(record["working_dir"])).resolve()
         if path != self.working_root and self.working_root not in path.parents:
-            raise ValueError(f"Session working_dir escapes .working_dir: {record.get('working_dir')}")
+            raise ValueError(f"会话 working_dir 超出了 .working_dir: {record.get('working_dir')}")
         path.mkdir(parents=True, exist_ok=True)
         return path
 
@@ -333,14 +333,14 @@ class SessionIndex:
     def _normalize_session_id(self, session_id: str | None) -> str:
         raw = str(session_id or "").strip()
         if not raw:
-            raise ValueError("session_id cannot be empty")
+            raise ValueError("session_id 不能为空")
         normalized = re.sub(r"[^a-zA-Z0-9]+", "-", raw).strip("-")[:96]
         if not normalized:
-            raise ValueError(f"Invalid session_id: {session_id}")
+            raise ValueError(f"无效的 session_id: {session_id}")
         return normalized
 
     def _working_dir_for_id(self, session_id: str) -> Path:
         path = (self.working_root / session_id).resolve()
         if path != self.working_root and self.working_root not in path.parents:
-            raise ValueError(f"Session path escapes .working_dir: {session_id}")
+            raise ValueError(f"会话路径超出了 .working_dir: {session_id}")
         return path

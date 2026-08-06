@@ -1,4 +1,4 @@
-# TODO: NOT IMPLEMENTED YET
+# TODO: 尚未实现
 
 import os
 import shutil
@@ -78,7 +78,7 @@ class Novel2MoviePipeline:
         progress: Callable[[str, str, Dict[str, Any] | None], None] | None = None,
         quiet: bool = False,
     ) -> dict[str, Any]:
-        """Generate structured text artifacts for novel adaptation only.
+        """仅生成小说改编所需的结构化文本产物。
 
         This helper intentionally stops before character portrait generation,
         scene video generation, and final concatenation so the agent loop can
@@ -96,7 +96,7 @@ class Novel2MoviePipeline:
         for idx, novel_chunk in enumerate(novel_chunks):
             with open(os.path.join(working_dir_novel, f"novel_chunk_{idx}.txt"), "w", encoding="utf-8") as f:
                 f.write(novel_chunk)
-        _pipeline_print(quiet, f"Split novel into {len(novel_chunks)} chunks.")
+        _pipeline_print(quiet, f"已将小说分割为 {len(novel_chunks)} 个分块。")
 
         _emit_text_plan_progress(progress, "compress_novel", "Compressing novel chunks", {"chunk_count": len(novel_chunks)})
         compressed_novel_chunks: list[str | None] = [None] * len(novel_chunks)
@@ -316,7 +316,7 @@ class Novel2MoviePipeline:
         progress: Callable[[str, str, Dict[str, Any] | None], None] | None = None,
         quiet: bool = False,
     ) -> dict[str, Any]:
-        """Render portraits and per-scene videos from existing novel planning artifacts.
+        """根据已有的小说规划产物渲染角色肖像和逐场景视频。
 
         This helper assumes plan_text_artifacts has already completed. It does not
         re-run compression, event extraction, RAG retrieval, scene extraction, or
@@ -332,11 +332,11 @@ class Novel2MoviePipeline:
         novel_level_dir = os.path.join(working_dir_characters, "novel_level")
 
         if not os.path.isdir(working_dir_events):
-            raise RuntimeError("novel2video/events is missing; run insightforge_novel_planning first")
+            raise RuntimeError("novel2video/events 缺失；请先运行 insightforge_novel_planning")
         if not os.path.isdir(working_dir_scenes):
-            raise RuntimeError("novel2video/scenes is missing; run insightforge_novel_planning first")
+            raise RuntimeError("novel2video/scenes 缺失；请先运行 insightforge_novel_planning")
         if not os.path.isdir(event_level_dir) or not os.path.isdir(novel_level_dir):
-            raise RuntimeError("novel2video/global_information/characters is missing; run insightforge_novel_planning first")
+            raise RuntimeError("novel2video/global_information/characters 缺失；请先运行 insightforge_novel_planning")
 
         event_files = [
             os.path.join(working_dir_events, fname)
@@ -348,13 +348,13 @@ class Novel2MoviePipeline:
             with open(event_path, "r", encoding="utf-8") as f:
                 extracted_events.append(Event.model_validate(json.load(f)))
         if not extracted_events:
-            raise RuntimeError("novel2video/events has no event_*.json files")
+            raise RuntimeError("novel2video/events 中没有 event_*.json 文件")
 
         event_idx_to_scenes: dict[int, list[Scene]] = {}
         for event in extracted_events:
             scenes_dir = os.path.join(working_dir_scenes, f"event_{event.index}")
             if not os.path.isdir(scenes_dir):
-                raise RuntimeError(f"novel2video/scenes/event_{event.index} is missing")
+                raise RuntimeError(f"novel2video/scenes/event_{event.index} 缺失")
             scene_files = [
                 os.path.join(scenes_dir, fname)
                 for fname in os.listdir(scenes_dir)
@@ -365,20 +365,20 @@ class Novel2MoviePipeline:
                 with open(scene_path, "r", encoding="utf-8") as f:
                     scenes.append(Scene.model_validate(json.load(f)))
             if not scenes:
-                raise RuntimeError(f"novel2video/scenes/event_{event.index} has no scene_*.json files")
+                raise RuntimeError(f"novel2video/scenes/event_{event.index} 中没有 scene_*.json 文件")
             event_idx_to_scenes[event.index] = scenes
 
         event_idx_to_characters_in_event: dict[int, list[CharacterInEvent]] = {}
         for event in extracted_events:
             path = os.path.join(event_level_dir, f"event_{event.index}_characters.json")
             if not os.path.exists(path):
-                raise RuntimeError(f"novel2video/global_information/characters/event_level/event_{event.index}_characters.json is missing")
+                raise RuntimeError(f"novel2video/global_information/characters/event_level/event_{event.index}_characters.json 缺失")
             with open(path, "r", encoding="utf-8") as f:
                 event_idx_to_characters_in_event[event.index] = [CharacterInEvent.model_validate(item) for item in json.load(f)]
 
         novel_files = [fname for fname in os.listdir(novel_level_dir) if fname.startswith("novel_characters_after_event_") and fname.endswith(".json")]
         if not novel_files:
-            raise RuntimeError("novel2video/global_information/characters/novel_level has no novel characters file")
+            raise RuntimeError("novel2video/global_information/characters/novel_level 中没有小说角色文件")
         latest_novel_file = max(novel_files, key=lambda fname: int(fname.split("_")[-1].split(".json")[0]))
         with open(os.path.join(novel_level_dir, latest_novel_file), "r", encoding="utf-8") as f:
             characters_in_novel = [CharacterInNovel.model_validate(item) for item in json.load(f)]
@@ -481,35 +481,35 @@ class Novel2MoviePipeline:
         novel_text: str,
         style: str,
     ):
-        print("🎬 Novel to Movie Pipeline Started".center(80, "="))
+        print("🎬 小说转电影流水线已启动".center(80, "="))
 
-        # Step 1: Compress the novel text
+        # 步骤 1：压缩小说文本
         print()
-        print("📋 Step 1: Compress the novel text".center(80, "-"))
+        print("📋 步骤 1：压缩小说文本".center(80, "-"))
 
         working_dir_novel_compressor = os.path.join(self.working_dir, "novel")
         os.makedirs(working_dir_novel_compressor, exist_ok=True)
         with open(os.path.join(working_dir_novel_compressor, "novel.txt"), "w", encoding="utf-8") as f:
             f.write(novel_text)
-        print(f"🗂️ Working directory: {working_dir_novel_compressor}")
+        print(f"🗂️ 工作目录: {working_dir_novel_compressor}")
 
-        print("🔖 Splitting the novel into chunks...")
+        print("🔖 正在将小说分割为分块...")
         novel_chunks = self.novel_compressor.split(novel_text)
         for idx, novel_chunk in enumerate(novel_chunks):
             with open(os.path.join(working_dir_novel_compressor, f"novel_chunk_{idx}.txt"), "w", encoding="utf-8") as f:
                 f.write(novel_chunk)
-        print(f"🔖 Split the novel into {len(novel_chunks)} chunks, all saved to {working_dir_novel_compressor}.")
+        print(f"🔖 已将小说分割为 {len(novel_chunks)} 个分块，全部保存到 {working_dir_novel_compressor}。")
 
 
         print()
-        print("🔖 Compressing the novel chunks...")
+        print("🔖 正在压缩小说分块...")
         compressed_novel_chunks = [None] * len(novel_chunks)
         index_chunk_pairs_unfinished = []
         for index, novel_chunk in enumerate(novel_chunks):
             path = os.path.join(working_dir_novel_compressor, f"novel_chunk_{index}_compressed.txt")
             if os.path.exists(path):
                 compressed_novel_chunks[index] = open(path, "r", encoding="utf-8").read()
-                print(f"⏭️ Skipping compression for chunk {index} as it already exists.")
+                print(f"⏭️ 跳过分块 {index} 的压缩，因为已存在。")
             else:
                 index_chunk_pairs_unfinished.append((index, novel_chunk))
 
@@ -523,40 +523,40 @@ class Novel2MoviePipeline:
             save_path = os.path.join(working_dir_novel_compressor, f"novel_chunk_{index}_compressed.txt")
             with open(save_path, "w", encoding="utf-8") as f:
                 f.write(novel_chunk_compressed)
-            print(f"✅ Compressed chunk {index}, saved to {save_path}")
+            print(f"✅ 已压缩分块 {index}，保存到 {save_path}")
             compressed_novel_chunks[index] = novel_chunk_compressed
-        print("🔖 Compressed all novel chunks.")
+        print("🔖 已压缩所有小说分块。")
 
 
         print()
-        print("🔖 Merging the compressed novel chunks...")
+        print("🔖 正在合并压缩后的小说分块...")
         path = os.path.join(working_dir_novel_compressor, "novel_compressed.txt")
         if os.path.exists(path):
             compressed_novel = open(path, "r", encoding="utf-8").read()
-            print(f"⏭️ Skipping merging as {path} already exists.")
+            print(f"⏭️ 跳过合并，因为 {path} 已存在。")
         else:
             compressed_novel = self.novel_compressor.aggregate(compressed_novel_chunks)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(compressed_novel)
-            print(f"✅ Merged the compressed novel chunks, saved to {path}")
-        print(f"🔖 Merging completed.")
+            print(f"✅ 已合并压缩后的小说分块，保存到 {path}")
+        print(f"🔖 合并完成。")
 
         # summary
         print()
-        print("📌 Summary:")
-        print(f"📌 Before Compression: {len(novel_text)} characters")
-        print(f"📌 After Compression: {len(compressed_novel)} characters")
-        print(f"📌 Compression Ratio: {len(compressed_novel) / len(novel_text):.2%}")
+        print("📌 摘要：")
+        print(f"📌 压缩前: {len(novel_text)} 个字符")
+        print(f"📌 压缩后: {len(compressed_novel)} 个字符")
+        print(f"📌 压缩率: {len(compressed_novel) / len(novel_text):.2%}")
 
-        print("📋 Step 1: Compress the novel text".center(80, "-"))
+        print("📋 步骤 1：压缩小说文本".center(80, "-"))
 
 
-        # Step 2: Extract events from the compressed novel
+        # 步骤 2：从压缩后的小说中提取事件
         print()
-        print("📋 Step 2: Extract events from the compressed novel".center(80, "-"))
+        print("📋 步骤 2：从压缩后的小说中提取事件".center(80, "-"))
         working_dir_event_extractor = os.path.join(self.working_dir, "events")
         os.makedirs(working_dir_event_extractor, exist_ok=True)
-        print(f"🗂️ Working directory: {working_dir_event_extractor}")
+        print(f"🗂️ 工作目录: {working_dir_event_extractor}")
 
         extracted_events = []
         for event_json_fname in sorted(os.listdir(working_dir_event_extractor), key=lambda x: int(x.split('_')[1].split('.')[0])):
@@ -569,11 +569,11 @@ class Novel2MoviePipeline:
 
         if len(extracted_events) > 0:
             if extracted_events[-1].is_last:
-                print(f"⏭️ Skipping event extraction as all events already exist in {working_dir_event_extractor}.")
+                print(f"⏭️ 跳过事件提取，因为所有事件已存在于 {working_dir_event_extractor}。")
             else:
-                print(f"🔖 Continuing event extraction from {len(extracted_events)} existing events...")
+                print(f"🔖 从 {len(extracted_events)} 个已有事件继续提取事件...")
         else:
-            print("🔖 Starting event extraction ...")
+            print("🔖 开始提取事件...")
 
         while len(extracted_events) == 0 or not extracted_events[-1].is_last:
             next_event = self.event_extractor.extract_next_event(
@@ -583,28 +583,28 @@ class Novel2MoviePipeline:
             event_json_path = os.path.join(working_dir_event_extractor, f"event_{len(extracted_events)}.json")
             with open(event_json_path, "w", encoding="utf-8") as f:
                 json.dump(next_event.model_dump(), f, ensure_ascii=False, indent=4)
-            print(f"✅ Extracted event {next_event.index}, saved to {event_json_path}")
+            print(f"✅ 已提取事件 {next_event.index}，保存到 {event_json_path}")
 
             extracted_events.append(next_event)
 
         # summary
         print()
-        print("📌 Summary:")
-        print(f"📌 Extracted a total of {len(extracted_events)} events.")
+        print("📌 摘要：")
+        print(f"📌 共提取了 {len(extracted_events)} 个事件。")
 
-        print("📋 Step 2: Extract events from the compressed novel".center(80, "-"))
+        print("📋 步骤 2：从压缩后的小说中提取事件".center(80, "-"))
 
 
         # Step 3:  Extract relevant chunks for each event
         print()
-        print("📋 Step 3: Retrieve relevant chunks for each event".center(80, "-"))
+        print("📋 步骤 3：为每个事件检索相关分块".center(80, "-"))
         working_dir_knowledge_base = os.path.join(self.working_dir, "knowledge_base")
         working_dir_retrieve = os.path.join(self.working_dir, "relevant_chunks")
         os.makedirs(working_dir_knowledge_base, exist_ok=True)
         os.makedirs(working_dir_retrieve, exist_ok=True)
-        print(f"🗂️ Working directory: {working_dir_knowledge_base} and {working_dir_retrieve}")
+        print(f"🗂️ 工作目录: {working_dir_knowledge_base} 和 {working_dir_retrieve}")
 
-        print("🔖 Constructing knowledge base from the raw novel text...")
+        print("🔖 正在从原始小说文本构建知识库...")
         embeddings = CacheBackedEmbeddings.from_bytes_store(
             underlying_embeddings=self.embeddings,
             document_embedding_cache=LocalFileStore(
@@ -619,10 +619,10 @@ class Novel2MoviePipeline:
         )
         novel_chunks = novel_splitter.split_text(novel_text)
         knowledge_base = FAISS.from_texts(texts=novel_chunks, embedding=embeddings)
-        print(f"🔖 Constructed knowledge base with {len(novel_chunks)} chunks, saved to {working_dir_knowledge_base}")
+        print(f"🔖 已用 {len(novel_chunks)} 个分块构建知识库，保存到 {working_dir_knowledge_base}")
 
 
-        print("🔖 Retrieving relevant chunks for each event...")
+        print("🔖 正在为每个事件检索相关分块...")
         async def retrieve_relevant_chunks(sem, knowledge_base, event):
             async with sem:
                 relevant_chunk_score_dict = {}
@@ -661,7 +661,7 @@ class Novel2MoviePipeline:
                         chunk = f.read()
                     relevant_chunk_score_dict[chunk] = score
                 event_idx_to_relevant_chunk_score_dict[event.index] = relevant_chunk_score_dict
-                print(f"⏭️ Skipping retrieval for event {event.index} as it already exists.")
+                print(f"⏭️ 跳过事件 {event.index} 的检索，因为已存在。")
             else:
                 tasks.append(retrieve_relevant_chunks(sem, knowledge_base, event))
 
@@ -675,19 +675,19 @@ class Novel2MoviePipeline:
                     with open(chunk_path, "w", encoding="utf-8") as f:
                         f.write(chunk)
                 event_idx_to_relevant_chunk_score_dict[event_index] = relevant_chunk_score_dict
-                print(f"✅ Retrieved {len(relevant_chunk_score_dict)} relevant chunks for event {event_index}, saved to {chunks_dir}")
+                print(f"✅ 已为事件 {event_index} 检索到 {len(relevant_chunk_score_dict)} 个相关分块，保存到 {chunks_dir}")
 
-        print("🔖 Retrieved relevant chunks for all events.")
-        print("📋 Step 3: Retrieve relevant chunks for each event".center(80, "-"))
+        print("🔖 已为所有事件检索相关分块。")
+        print("📋 步骤 3：为每个事件检索相关分块".center(80, "-"))
 
 
 
-        # Step 4: Extract scenes for each event, design the script for each scene
+        # 步骤 4：为每个事件提取场景，为每个场景设计剧本
         print()
-        print("📋 Step 4: Extract scenes for each event, design the script for each scene".center(80, "-"))
+        print("📋 步骤 4：为每个事件提取场景，为每个场景设计剧本".center(80, "-"))
         working_dir_scene_extractor = os.path.join(self.working_dir, "scenes")
         os.makedirs(working_dir_scene_extractor, exist_ok=True)
-        print(f"🗂️ Working directory: {working_dir_scene_extractor}")
+        print(f"🗂️ 工作目录: {working_dir_scene_extractor}")
 
 
         unfinished_event_indices = []
@@ -703,15 +703,15 @@ class Novel2MoviePipeline:
                     event_idx_to_scenes[event.index].append(scene)
 
             if len(event_idx_to_scenes[event.index]) > 0 and event_idx_to_scenes[event.index][-1].is_last:
-                print(f"⏭️ Skipping scene extraction for event {event.index} as all scenes already exist in {scenes_dir}.")
+                print(f"⏭️ 跳过事件 {event.index} 的场景提取，因为所有场景已存在于 {scenes_dir}。")
             else:
                 unfinished_event_indices.append(event.index)
 
         if len(unfinished_event_indices) > 0:
             if len(unfinished_event_indices) == len(extracted_events):
-                print(f"🔖 Starting scene extraction for all events...")
+                print(f"🔖 开始为所有事件提取场景...")
             else:
-                print(f"🔖 Continuing scene extraction for events: {unfinished_event_indices}")
+                print(f"🔖 继续为以下事件提取场景: {unfinished_event_indices}")
 
 
         async def extract_scenes_for_event(sem, relevant_chunks, event, previous_scenes):
@@ -727,10 +727,10 @@ class Novel2MoviePipeline:
                     scene_json_path = os.path.join(working_dir_scene_extractor, f"event_{event.index}", f"scene_{len(previous_scenes)}.json")
                     with open(scene_json_path, "w", encoding="utf-8") as f:
                         json.dump(next_scene.model_dump(), f, ensure_ascii=False, indent=4)
-                    print(f"✔️​ Extracted scene {next_scene.idx} for event {event.index}, saved to {scene_json_path}")
+                    print(f"✔️​ 已为事件 {event.index} 提取场景 {next_scene.idx}，保存到 {scene_json_path}")
                     previous_scenes.append(next_scene)
 
-            print(f"✅ Extracted all {len(previous_scenes)} scenes for event {event.index}.")
+            print(f"✅ 已为事件 {event.index} 提取全部 {len(previous_scenes)} 个场景。")
             return event.index, previous_scenes
 
 
@@ -743,20 +743,20 @@ class Novel2MoviePipeline:
         for event_index, previous_scenes in task_outputs:
             event_idx_to_scenes[event_index] = previous_scenes
 
-        print("🔖 Extracted scenes for all events.")
-        print("📋 Step 4: Extract scenes for each event, design the script for each scene".center(80, "-"))
+        print("🔖 已为所有事件提取场景。")
+        print("📋 步骤 4：为每个事件提取场景，为每个场景设计剧本".center(80, "-"))
 
 
 
         # Step 5: Merge characters from scene-level to event-level, then to novel-level
         print()
-        print("📋 Step 5: Merge characters from scene-level to novel-level".center(80, "-"))
+        print("📋 步骤 5：将角色从场景级合并到小说级".center(80, "-"))
         working_dir_global_information_planner = os.path.join(self.working_dir, "global_information")
         os.makedirs(working_dir_global_information_planner, exist_ok=True)
-        print(f"🗂️ Working directory: {working_dir_global_information_planner}")
+        print(f"🗂️ 工作目录: {working_dir_global_information_planner}")
 
         # Step 5.1: Merge characters from scene-level to event-level
-        print("🔖 Merging characters across scenes in each event...")
+        print("🔖 正在合并每个事件内跨场景的角色...")
         working_dir_characters = os.path.join(working_dir_global_information_planner, "characters")
         os.makedirs(working_dir_characters, exist_ok=True)
 
@@ -770,7 +770,7 @@ class Novel2MoviePipeline:
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump([char.model_dump() for char in merged_characters], f, ensure_ascii=False, indent=4)
-                print(f"✅ Merged characters for event {event_idx}, saved to {path}")
+                print(f"✅ 已合并事件 {event_idx} 的角色，保存到 {path}")
 
             return event_idx, merged_characters
 
@@ -786,7 +786,7 @@ class Novel2MoviePipeline:
                     character_data = json.load(f)
                 characters = [CharacterInEvent.model_validate(char) for char in character_data]
                 event_idx_to_characters_in_event[event.index] = characters
-                print(f"⏭️ Skipping character merging for event {event.index} as it already exists.")
+                print(f"⏭️ 跳过事件 {event.index} 的角色合并，因为已存在。")
             else:
                 tasks.append(merge_characters_across_scenes_in_event(sem, event.index, event_idx_to_scenes[event.index]))
 
@@ -794,10 +794,10 @@ class Novel2MoviePipeline:
         for event_index, merged_characters in task_outputs:
             event_idx_to_characters_in_event[event_index] = merged_characters
 
-        print("🔖 Merged characters across scenes in each event.")
+        print("🔖 已合并每个事件内跨场景的角色。")
 
         # Step 5.2: Merge characters from event-level to novel-level
-        print("🔖 Merging characters across events in the novel...")
+        print("🔖 正在合并小说中跨事件的角色...")
 
         working_dir_characters_novel = os.path.join(working_dir_characters, f"novel_level")
         os.makedirs(working_dir_characters_novel, exist_ok=True)
@@ -813,9 +813,9 @@ class Novel2MoviePipeline:
             existing_characters_in_novel = [CharacterInNovel.model_validate(char) for char in character_data]
             
             if start_event_idx == len(extracted_events):
-                print(f"⏭️ Skipping merging as all events already merged to novel-level in {working_dir_characters_novel}.")
+                print(f"⏭️ 跳过合并，因为所有事件已合并到小说级（{working_dir_characters_novel}）。")
             else:
-                print(f"🔖 Continuing merging from event {start_event_idx}, currently {len(existing_characters_in_novel)} characters in novel.")
+                print(f"🔖 从事件 {start_event_idx} 继续合并，小说中现有 {len(existing_characters_in_novel)} 个角色。")
 
         else:
             existing_characters_in_novel = []
@@ -831,26 +831,26 @@ class Novel2MoviePipeline:
             )
             with open(path, "w", encoding="utf-8") as f:
                 json.dump([char.model_dump() for char in existing_characters_in_novel], f, ensure_ascii=False, indent=4)
-            print(f"✅ Merged characters from event {event.index} to novel-level, now {len(existing_characters_in_novel)} characters in novel, saved to {path}")
+            print(f"✅ 已将事件 {event.index} 的角色合并到小说级，小说中现有 {len(existing_characters_in_novel)} 个角色，保存到 {path}")
 
-        print("🔖 Merged characters across events in the novel.")
+        print("🔖 已合并小说中跨事件的角色。")
 
         characters_in_novel = existing_characters_in_novel
 
-        print("📋 Step 5: Merge characters from scene-level to novel-level".center(80, "-"))
+        print("📋 步骤 5：将角色从场景级合并到小说级".center(80, "-"))
 
 
 
 
         # Step 6: Generate the portrait for all characters in the novel
         print()
-        print("📋 Step 6: Generate the reference images for all characters in the specific scene")
+        print("📋 步骤 6：为特定场景中的所有角色生成参考图片")
 
         working_dir_character_portrait = os.path.join(self.working_dir, "character_portraits")
         os.makedirs(working_dir_character_portrait, exist_ok=True)
-        print(f"🗂️ Working directory: {working_dir_character_portrait}")
+        print(f"🗂️ 工作目录: {working_dir_character_portrait}")
 
-        print("🔖 Generating character portraits based on static features ...")
+        print("🔖 正在根据静态特征生成角色肖像...")
         base_character_portrait_dir = os.path.join(working_dir_character_portrait, "base")
         os.makedirs(base_character_portrait_dir, exist_ok=True)
 
@@ -859,7 +859,7 @@ class Novel2MoviePipeline:
                 image_path = os.path.join(base_character_portrait_dir, f"character_{character.index}_{safe_path_component(character.identifier_in_novel)}.png")
                 
                 if os.path.exists(image_path):
-                    print(f"⏭️ Skipping portrait generation for character {character.idx} as it already exists.")
+                    print(f"⏭️ 跳过角色 {character.idx} 的肖像生成，因为已存在。")
                     return
 
                 prompt = f"Generate a full-body, front-view portrait based on the following description, in the style of {style}:"
@@ -872,7 +872,7 @@ class Novel2MoviePipeline:
                     size="512x512",
                 )
                 image.save(image_path)
-                print(f"✅ Generated portrait for character {character.index} ({character.identifier_in_novel}), saved to {image_path}")
+                print(f"✅ 已为角色 {character.index}（{character.identifier_in_novel}）生成肖像，保存到 {image_path}")
 
 
         sem = asyncio.Semaphore(5)
@@ -882,10 +882,10 @@ class Novel2MoviePipeline:
         ]
 
         await asyncio.gather(*tasks)
-        print("🔖 Generated character portraits based on static features.")
+        print("🔖 已根据静态特征生成角色肖像。")
 
 
-        print("🔖 Generating character portraits based on dynamic features in the specific scene")
+        print("🔖 正在根据特定场景中的动态特征生成角色肖像")
 
         async def generate_portrait_for_character_in_scene(
             sem,
@@ -904,17 +904,17 @@ class Novel2MoviePipeline:
                 os.makedirs(os.path.dirname(image_path), exist_ok=True)
 
                 if os.path.exists(image_path):
-                    print(f"⏭️ Skipping portrait generation for event {event_idx}, scene {scene_idx}, character {character.idx} as it already exists.")
+                    print(f"⏭️ 跳过事件 {event_idx} 场景 {scene_idx} 角色 {character.idx} 的肖像生成，因为已存在。")
                     return
 
                 if not character.is_visible:
                     shutil.copy(base_character_image_path, image_path)
-                    print(f"⏭️ For event {event_idx}, scene {scene_idx}, character {character.idx} ({character.identifier_in_scene}) is not visible, copied base portrait to {image_path}")
+                    print(f"⏭️ 事件 {event_idx} 场景 {scene_idx} 角色 {character.idx}（{character.identifier_in_scene}）不可见，已将基础肖像复制到 {image_path}")
                     return
 
                 if character.dynamic_features is None:
                     shutil.copy(base_character_image_path, image_path)
-                    print(f"⏭️ For event {event_idx}, scene {scene_idx}, character {character.idx} ({character.identifier_in_scene}) has no dynamic features, copied base portrait to {image_path}")
+                    print(f"⏭️ 事件 {event_idx} 场景 {scene_idx} 角色 {character.idx}（{character.identifier_in_scene}）无动态特征，已将基础肖像复制到 {image_path}")
                     return
 
                 prompt = f"Generate a full-body, front-view portrait based on the provided base image. Modify the base image according to the following dynamic features, in the style of {style}. Keep the character's identity consistent with the base image:"
@@ -931,7 +931,7 @@ class Novel2MoviePipeline:
                     size="512x512",
                 )
                 image.save(image_path)
-                print(f"✅ For event {event_idx}, scene {scene_idx}, generated portrait for character {character.idx} ({character.identifier_in_scene}), saved to {image_path}")
+                print(f"✅ 事件 {event_idx} 场景 {scene_idx} 已为角色 {character.idx}（{character.identifier_in_scene}）生成肖像，保存到 {image_path}")
 
 
         sem = asyncio.Semaphore(3)
@@ -954,14 +954,14 @@ class Novel2MoviePipeline:
                         )
                     )
         await asyncio.gather(*tasks)
-        print("🔖 Generated character portraits based on dynamic features in the specific scene")
+        print("🔖 已根据特定场景中的动态特征生成角色肖像")
 
-        print("📋 Step 6: Generate the reference images for all characters in the specific scene".center(80, "-"))
+        print("📋 步骤 6：为特定场景中的所有角色生成参考图片".center(80, "-"))
 
 
 
         # Step 7: Generate video for each scene
-        print("📋 Step 7: Generate the video for each scene".center(80, "-"))
+        print("📋 步骤 7：为每个场景生成视频".center(80, "-"))
         working_dir_scene_videos = os.path.join(self.working_dir, "videos")
         os.makedirs(working_dir_scene_videos, exist_ok=True)
 
@@ -992,12 +992,11 @@ class Novel2MoviePipeline:
                     style=style,
                     character_registry=character_registry
                 )
-                print(f"✅ Generated video for event {event.index}, scene {scene.idx}, saved to {scene_video_dir}")
-        print("📋 Step 7: Generate the video for each scene".center(80, "-"))
+                print(f"✅ 已为事件 {event.index} 场景 {scene.idx} 生成视频，保存到 {scene_video_dir}")
+        print("📋 步骤 7：为每个场景生成视频".center(80, "-"))
 
 
-# is_last flags are asserted by the LLM only; cap the extraction loops so a
-# model that never sets one cannot spend tokens forever.
+# is_last 标志仅由 LLM 断言；限制提取循环次数，防止模型永不设置该标志而无限消耗 token。
 MAX_EXTRACTED_EVENTS = 50
 MAX_SCENES_PER_EVENT = 30
 
@@ -1005,6 +1004,6 @@ MAX_SCENES_PER_EVENT = 30
 def _ensure_extraction_cap(count: int, cap: int, what: str) -> None:
     if count >= cap:
         raise RuntimeError(
-            f"Extraction reached {count} {what} without an is_last marker (cap: {cap}); "
-            "aborting to avoid unbounded LLM calls."
+            f"提取已达到 {count} 个 {what}，且未出现 is_last 标记（上限: {cap}）；"
+            "为避免无限 LLM 调用而中止。"
         )

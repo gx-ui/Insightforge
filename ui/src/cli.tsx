@@ -34,7 +34,7 @@ function parseCliArgs(argv: string[]): CliOptions {
     }
     if (arg === '--session') {
       const sessionId = argv[index + 1];
-      if (!sessionId) throw new Error('--session requires a session id');
+      if (!sessionId) throw new Error('--session 需要会话 ID');
       agentArgs.push('--session', sessionId);
       index += 1;
       continue;
@@ -42,7 +42,7 @@ function parseCliArgs(argv: string[]): CliOptions {
     if (arg === '--help' || arg === '-h') {
       printHelpAndExit();
     }
-    throw new Error(`Unknown TUI argument: ${arg}`);
+    throw new Error(`未知的 TUI 参数: ${arg}`);
   }
   return {agentArgs};
 }
@@ -53,9 +53,9 @@ function printHelpAndExit(): never {
   ./insightforge tui new
   ./insightforge tui resume [session_id]
 
-Direct TUI args:
-  --new-session        create and activate a new empty session
-  --session <id>       activate an existing session`);
+TUI 直接参数:
+  --new-session        创建并激活一个新的空会话
+  --session <id>       激活一个已有会话`);
   process.exit(0);
 }
 
@@ -84,9 +84,8 @@ function useTerminalWidth(stdout: NodeJS.WriteStream): number {
     let resizeTimer: NodeJS.Timeout | null = null;
     const redraw = (clear: boolean) => {
       if (clear) {
-        // Ink does not always erase cells from the previous frame when the
-        // terminal is resized quickly. Clear only after resize, then force a
-        // render even when the new width equals the previous width.
+        // 当终端快速调整大小时，Ink 不总会清除上一帧的单元格。
+        // 仅在调整后清除，然后即使新宽度与之前相同也强制重新渲染。
         stdout.write('\u001b[2J\u001b[3J\u001b[H');
       }
       setTerminal((current) => ({width: Math.max(20, stdout.columns || 100), revision: current.revision + 1}));

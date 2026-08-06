@@ -11,18 +11,18 @@ from utils.retry import download_retry
 @download_retry
 def download_image(url, save_path):
     try:
-        logging.info(f"Downloading image from {url} to {save_path}")
+        logging.info(f"正在从 {url} 下载图片到 {save_path}")
 
         response = requests.get(url, stream=True, timeout=(10, 300))
-        response.raise_for_status() # Check for HTTP errors
+        response.raise_for_status()  # 检查 HTTP 错误
 
         with open(save_path, 'wb') as file:
             for chunk in response.iter_content(chunk_size=1024):
                 file.write(chunk)
-        logging.info(f"Image downloaded successfully to {save_path}")
+        logging.info(f"图片已成功下载到 {save_path}")
 
     except Exception as e:
-        logging.error(f"Error downloading image: {e}")
+        logging.error(f"下载图片出错: {e}")
         raise e
 
 
@@ -51,10 +51,9 @@ def pil_to_b64(image, mime: bool = True) -> str:
 
 
 def save_base64_image(b64_string, save_path):
-    # If the base64 string has a data URL prefix, remove it
+    # 如果 base64 字符串带有 data URL 前缀，则移除该前缀
     if ',' in b64_string:
         b64_string = b64_string.split(',')[1]
 
     with open(save_path, 'wb') as image_file:
         image_file.write(base64.b64decode(b64_string))
-

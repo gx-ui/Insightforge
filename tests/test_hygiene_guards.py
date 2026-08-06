@@ -1,4 +1,4 @@
-"""Regression tests for rate-limiter lock behavior, media resource cleanup,
+"""针对速率限制器锁行为、媒体资源清理的回归测试，
 packaging metadata, config templates, and test-suite isolation."""
 
 import asyncio
@@ -56,7 +56,7 @@ class TestVideoConcatenationCleanup(unittest.TestCase):
         for clip in clips:
             clip.close.assert_called_once()
 
-        # And when writing fails, the ffmpeg readers must still be released.
+        # 且当写入失败时，ffmpeg 读取器仍必须被释放。
         clips = [MagicMock(), MagicMock()]
         final = MagicMock()
         final.write_videofile.side_effect = OSError("disk full")

@@ -59,7 +59,7 @@ class VideoGeneratorOmniYunwuAPI:
         enable_sample: Optional[bool],
     ) -> dict:
         if len(reference_image_paths) > 3:
-            raise ValueError("The number of reference images must be no more than 3")
+            raise ValueError("参考图片数量不得超过 3 张")
 
         payload = {
             "model": self.t2v_model if len(reference_image_paths) == 0 else self.i2v_model,
@@ -107,7 +107,7 @@ class VideoGeneratorOmniYunwuAPI:
             enable_sample=self.enable_sample if enable_sample is None else enable_sample,
         )
 
-        logging.info("Calling %s to generate video...", payload["model"])
+        logging.info("正在调用 %s 生成视频...", payload["model"])
 
         if self.rate_limiter:
             await self.rate_limiter.acquire()
@@ -120,11 +120,11 @@ class VideoGeneratorOmniYunwuAPI:
                     async with session.post(url, headers=self._headers(), json=payload) as response:
                         response_json = await response.json()
                         http_status = response.status
-                logging.debug("Response: %s", response_json)
+                logging.debug("响应: %s", response_json)
             except Exception as e:
                 last_error = e
                 logging.error(
-                    "Error occurred while creating video generation task (attempt %s/%s): %s",
+                    "创建视频生成任务时出错（第 %s/%s 次尝试）: %s",
                     attempt,
                     self.max_create_attempts,
                     e,
@@ -134,23 +134,23 @@ class VideoGeneratorOmniYunwuAPI:
                 continue
 
             if http_status >= 400:
-                message = f"Video generation task creation failed with HTTP {http_status}: {response_json}"
+                message = f"视频生成任务创建失败，HTTP {http_status}: {response_json}"
                 if http_status < 500:
                     raise RuntimeError(message)
                 last_error = RuntimeError(message)
-                logging.error("%s (attempt %s/%s)", message, attempt, self.max_create_attempts)
+                logging.error("%s（第 %s/%s 次尝试）", message, attempt, self.max_create_attempts)
                 if attempt < self.max_create_attempts:
                     await asyncio.sleep(attempt)
                 continue
 
             task_id = response_json.get("id")
             if not task_id:
-                raise RuntimeError(f"Video generation task creation returned no task id: {response_json}")
-            logging.info("Video generation task created successfully. Task ID: %s", task_id)
+                raise RuntimeError(f"视频生成任务创建未返回任务 ID: {response_json}")
+            logging.info("视频生成任务创建成功。任务 ID: %s", task_id)
             return task_id, payload["model"]
 
         raise RuntimeError(
-            f"Failed to create video generation task after {self.max_create_attempts} attempts."
+            f"经过 {self.max_create_attempts} 次尝试后仍未能创建视频生成任务。"
         ) from last_error
 
     async def query_video_generation_task(self, task_id: str, model: str) -> str:
@@ -160,17 +160,17 @@ class VideoGeneratorOmniYunwuAPI:
         attempts = 0
         while True:
             if self.max_poll_attempts is not None and attempts >= self.max_poll_attempts:
-                raise TimeoutError(f"Video generation did not complete after {attempts} polls.")
+                raise TimeoutError(f"视频生成在 {attempts} 次轮询后仍未完成。")
             attempts += 1
 
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url, headers=self._headers(), params=params) as response:
                         response_json = await response.json()
-                logging.debug("Response: %s", response_json)
+                logging.debug("响应: %s", response_json)
             except Exception as e:
                 logging.error(
-                    "Error occurred while querying video generation task: %s. Retrying in %s seconds...",
+                    "查询视频生成任务时出错: %s。将在 %s 秒后重试...",
                     e,
                     self.poll_interval,
                 )
@@ -186,14 +186,14 @@ class VideoGeneratorOmniYunwuAPI:
                     or detail.get("video_url")
                 )
                 if not video_url:
-                    raise RuntimeError(f"Video generation completed without a video URL: {response_json}")
-                logging.info("Video generation completed successfully. Video URL: %s", video_url)
+                    raise RuntimeError(f"视频生成完成但未返回视频 URL: {response_json}")
+                logging.info("视频生成成功完成。视频 URL: %s", video_url)
                 return video_url
 
             if status in {"failed", "error"}:
-                raise RuntimeError(f"Video generation failed: {response_json}")
+                raise RuntimeError(f"视频生成失败: {response_json}")
 
-            logging.info("Video generation status: %s, waiting %s seconds...", status, self.poll_interval)
+            logging.info("视频生成状态: %s，等待 %s 秒...", status, self.poll_interval)
             await asyncio.sleep(self.poll_interval)
 
     async def generate_single_video(
@@ -221,4 +221,4 @@ class VideoGeneratorOmniYunwuAPI:
 
 
 class VideoGeneratorOminiYunwuAPI(VideoGeneratorOmniYunwuAPI):
-    """Backward-compatible alias for the common "omini" spelling."""
+    """为常见的 "omini" 拼写提供的向后兼容别名。"""

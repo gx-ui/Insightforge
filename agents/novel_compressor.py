@@ -129,7 +129,7 @@ class NovelCompressor:
         novel_chunk: str,
     ) -> str:
         async with semaphore:
-            logging.info(f"Compressing novel chunk {index}")
+            logging.info(f"正在压缩小说分块 {index}")
             messages = [
                 SystemMessage(
                     content=system_prompt_template_compress_novel_chunk
@@ -142,7 +142,7 @@ class NovelCompressor:
             ]
             response = await self.chat_model.ainvoke(messages)
             compressed_novel_chunk = response.content
-            logging.info(f"Compressed novel chunk {index}")
+            logging.info(f"已压缩小说分块 {index}")
         return index, compressed_novel_chunk
     
 

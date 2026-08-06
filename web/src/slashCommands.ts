@@ -9,7 +9,7 @@ export type SlashCommandMatch = SlashCommand & {
 };
 
 export const SLASH_COMMANDS: SlashCommand[] = [
-  {name: '/compact', description: 'Compact the current session context'},
+  {name: '/compact', description: '压缩当前会话上下文'},
 ];
 
 export function matchingSlashCommands(input: string): SlashCommandMatch[] {

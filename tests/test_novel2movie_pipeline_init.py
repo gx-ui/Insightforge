@@ -1,4 +1,4 @@
-"""Tests for Novel2MoviePipeline initialization."""
+"""Novel2MoviePipeline 初始化的测试。"""
 
 import ast
 from pathlib import Path

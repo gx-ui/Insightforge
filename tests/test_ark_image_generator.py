@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-"""Unit tests for the Volcano Engine Ark API image generator."""
+"""火山引擎 Ark API 图片生成器的单元测试。"""
 
 import unittest
 from unittest.mock import patch
@@ -9,7 +9,7 @@ from tools.image_generator_doubao_seedream_ark_api import ImageGeneratorDoubaoSe
 
 
 class ArkImageGeneratorFactoryTests(unittest.TestCase):
-    """Tests that the agent runtime factory selects the Ark generator for volcengine URLs."""
+    """测试 agent 运行时工厂是否为 volcengine URL 选择 Ark 生成器。"""
 
     def test_factory_selects_ark_from_volcengine_base_url(self):
         with patch("agent_runtime.insightforge_adapters.image_api_key", return_value="ark-key"), \
@@ -33,7 +33,7 @@ class ArkImageGeneratorFactoryTests(unittest.TestCase):
 
 
 class ArkImageGeneratorInitTests(unittest.TestCase):
-    """Tests for ImageGeneratorDoubaoSeedreamArkAPI constructor."""
+    """ImageGeneratorDoubaoSeedreamArkAPI 构造函数的测试。"""
 
     def test_default_base_url_is_ark_api(self):
         gen = ImageGeneratorDoubaoSeedreamArkAPI(api_key="key")

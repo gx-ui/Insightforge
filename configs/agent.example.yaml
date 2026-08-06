@@ -1,5 +1,5 @@
-﻿# InsightForge agent runtime local configuration template.
-# Keep real keys out of commits. Prefer environment variables for shared or CI usage.
+﻿# InsightForge agent 运行时本地配置模板。
+# 切勿将真实密钥提交到版本库。共享或 CI 场景请优先使用环境变量。
 
 llm:
   model_provider: openai
@@ -9,35 +9,35 @@ llm:
 
 image:
   model: <YOUR_IMAGE_MODEL>
-  # Supported providers (auto-detected from base_url):
-  #   Volcano Engine Ark: https://ark.cn-beijing.volces.com/api/v3
-  #   OpenRouter:         https://openrouter.ai/api/v1
-  #   Yunwu proxy:        https://yunwu.ai
+  # 支持的供应商（根据 base_url 自动检测）：
+  #   火山引擎 Ark: https://ark.cn-beijing.volces.com/api/v3
+  #   OpenRouter:           https://openrouter.ai/api/v1
+  #   云雾代理:             https://yunwu.ai
   base_url: <YOUR_IMAGE_BASE_URL>
   api_key: ''
 
 video:
-  # Main model (used for all modes if t2v_model/i2v_model are not set).
-  # For Volcano Engine, you can also use an Endpoint ID like ep-xxx.
+  # 主模型（若未设置 t2v_model/i2v_model，则用于所有模式）。
+  # 对于火山引擎，也可以使用 Endpoint ID 如 ep-xxx。
   model: <YOUR_VIDEO_MODEL>
-  # Optional: separate model IDs for text-to-video and image-to-video
+  # 可选：分别为文生视频和图生视频设置模型 ID
   # t2v_model: <YOUR_T2V_MODEL>
   # i2v_model: <YOUR_I2V_MODEL>
-  # Supported providers (auto-detected from base_url):
-  #   Volcano Engine Ark: https://ark.cn-beijing.volces.com/api/v3
-  #   OpenRouter:         https://openrouter.ai/api/v1
-  #   Yunwu proxy:        https://yunwu.ai
+  # 支持的供应商（根据 base_url 自动检测）：
+  #   火山引擎 Ark: https://ark.cn-beijing.volces.com/api/v3
+  #   OpenRouter:           https://openrouter.ai/api/v1
+  #   云雾代理:             https://yunwu.ai
   base_url: <YOUR_VIDEO_BASE_URL>
   api_key: ''
 
-# Optional. Fill these only when using novel2video planning.
+# 可选。仅在使用 novel2video 规划时填写。
 embedding:
   model_provider: openai
   model: <YOUR_EMBEDDING_MODEL>
   base_url: <YOUR_EMBEDDING_BASE_URL>
   api_key: ''
 
-# Optional. Fill these only when using novel2video planning.
+# 可选。仅在使用 novel2video 规划时填写。
 reranker:
   model: <YOUR_RERANKER_MODEL>
   base_url: <YOUR_RERANKER_BASE_URL>

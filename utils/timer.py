@@ -5,8 +5,8 @@ from functools import wraps
 class Timer:
     def __init__(
         self,
-        prefix: str = "Start at {start_time}",
-        postfix: str = "End at {end_time}, took {duration} seconds.",
+        prefix: str = "开始于 {start_time}",
+        postfix: str = "结束于 {end_time}，耗时 {duration} 秒。",
     ):
         self.prefix = prefix
         self.format = format
@@ -57,8 +57,8 @@ class Timer:
 
 if __name__ == "__main__":
     with Timer(
-        prefix="Begin timing at {start_time}",
-        postfix="Finished at {end_time}",
+        prefix="开始计时于 {start_time}",
+        postfix="结束于 {end_time}",
     ):
         time.sleep(1)
 

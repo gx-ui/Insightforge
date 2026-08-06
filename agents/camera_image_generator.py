@@ -133,7 +133,7 @@ class CameraImageGenerator:
             for shot_idx in cam.active_shot_idxs:
                 shot_desc = shot_desc_by_idx.get(shot_idx)
                 if shot_desc is None:
-                    raise ValueError(f"Camera {cam.idx} references missing shot {shot_idx}")
+                    raise ValueError(f"相机 {cam.idx} 引用了不存在的镜头 {shot_idx}")
                 camera_seq_str += f"Shot {shot_idx}: {shot_desc.visual_desc}\n"
             camera_seq_str += f"</CAMERA_{cam.idx}>\n"
         camera_seq_str += "</CAMERA_SEQ>"
@@ -147,7 +147,7 @@ class CameraImageGenerator:
         response: CameraTreeResponse = await chain.ainvoke(messages)
         parent_items = response.camera_parent_items
         if len(parent_items) != len(cameras):
-            raise ValueError(f"Camera tree response length mismatch: expected {len(cameras)}, got {len(parent_items)}")
+            raise ValueError(f"相机树响应长度不匹配：期望 {len(cameras)}，实际 {len(parent_items)}")
 
         valid_camera_idxs = {cam.idx for cam in cameras}
         valid_shot_idxs = set(shot_desc_by_idx)
@@ -156,11 +156,11 @@ class CameraImageGenerator:
             parent_cam_idx = parent_cam_item.parent_cam_idx if parent_cam_item is not None else None
             parent_shot_idx = parent_cam_item.parent_shot_idx if parent_cam_item is not None else None
             if parent_cam_idx is not None and parent_cam_idx not in valid_camera_idxs:
-                raise ValueError(f"Camera {cam.idx} has invalid parent camera {parent_cam_idx}")
+                raise ValueError(f"相机 {cam.idx} 的父相机 {parent_cam_idx} 无效")
             if parent_cam_idx == cam.idx:
-                raise ValueError(f"Camera {cam.idx} cannot be its own parent")
+                raise ValueError(f"相机 {cam.idx} 不能是自己的父相机")
             if parent_shot_idx is not None and parent_shot_idx not in valid_shot_idxs:
-                raise ValueError(f"Camera {cam.idx} has invalid parent shot {parent_shot_idx}")
+                raise ValueError(f"相机 {cam.idx} 的父镜头 {parent_shot_idx} 无效")
             parent_by_camera[cam.idx] = parent_cam_idx
 
         for cam in cameras:
@@ -169,7 +169,7 @@ class CameraImageGenerator:
             while parent_by_camera.get(current) is not None:
                 current = parent_by_camera[current]
                 if current in seen:
-                    raise ValueError(f"Camera tree contains a cycle involving camera {cam.idx}")
+                    raise ValueError(f"相机树包含涉及相机 {cam.idx} 的环")
                 seen.add(current)
 
         for cam, parent_cam_item in zip(cameras, parent_items):
@@ -218,13 +218,13 @@ class CameraImageGenerator:
         video_name = os.path.basename(transition_video_path).split('.')[0]
         second_video_path = os.path.join(output_dir, f"{video_name}-Scene-002.mp4")
         if os.path.exists(second_video_path):
-            # use first frame of second shot as new camera image
+            # 使用第二个镜头的第一帧作为新相机图片
             clip = VideoFileClip(second_video_path)
             ff = clip.get_frame(0)
             ff = Image.fromarray(ff.astype('uint8'), 'RGB')
             return ImageOutput(fmt="pil", ext="png", data=ff)
         else:
-            # use last frame of transition video to instead
+            # 改用转场视频的最后一帧
             clip = VideoFileClip(transition_video_path)
             lf_time = clip.duration - (1 / clip.fps)
             lf_time = max(0, lf_time)
@@ -254,20 +254,20 @@ class CameraImageGenerator:
 
 
 def _validate_camera_tree(cameras: List[Camera]) -> None:
-    """Reject parent assignments that would deadlock frame generation."""
+    """拒绝会导致帧生成死锁的父级分配。"""
     by_idx = {cam.idx: cam for cam in cameras}
     for cam in cameras:
         if cam.parent_cam_idx is None:
             continue
         if cam.parent_cam_idx == cam.idx:
-            raise ValueError(f"Camera {cam.idx} lists itself as its parent.")
+            raise ValueError(f"相机 {cam.idx} 将自己列为父相机。")
         if cam.parent_cam_idx not in by_idx:
-            raise ValueError(f"Camera {cam.idx} references unknown parent camera {cam.parent_cam_idx}.")
+            raise ValueError(f"相机 {cam.idx} 引用了未知的父相机 {cam.parent_cam_idx}。")
     for cam in cameras:
         seen = set()
         current = cam
         while current.parent_cam_idx is not None:
             if current.idx in seen:
-                raise ValueError(f"Cycle detected in camera parent graph involving camera {current.idx}.")
+                raise ValueError(f"在相机父图中检测到涉及相机 {current.idx} 的环。")
             seen.add(current.idx)
             current = by_idx[current.parent_cam_idx]

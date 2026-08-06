@@ -1,18 +1,18 @@
-# rendering abstraction
+# 渲染抽象层
 from .protocols import ImageGenerator, VideoGenerator
 from .render_backend import RenderBackend
 
-# image generators
+# 图片生成器
 from .image_generator_doubao_seedream_yunwu_api import ImageGeneratorDoubaoSeedreamYunwuAPI
 from .image_generator_nanobanana_google_api import ImageGeneratorNanobananaGoogleAPI
 from .image_generator_nanobanana_yunwu_api import ImageGeneratorNanobananaYunwuAPI
 from .image_generator_openrouter_api import ImageGeneratorOpenRouterAPI
 from .image_generator_doubao_seedream_ark_api import ImageGeneratorDoubaoSeedreamArkAPI
 
-# reranker for rag
+# 用于 RAG 的重排序器
 from .reranker_bge_silicon_api import RerankerBgeSiliconapi
 
-# video generators
+# 视频生成器
 from .video_generator_doubao_seedance_yunwu_api import VideoGeneratorDoubaoSeedanceYunwuAPI
 from .video_generator_omni_yunwu_api import VideoGeneratorOmniYunwuAPI, VideoGeneratorOminiYunwuAPI
 from .video_generator_openrouter_api import VideoGeneratorOpenRouterAPI

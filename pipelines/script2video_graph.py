@@ -1,4 +1,4 @@
-﻿"""Phase 6: script2video text-planning as a LangGraph StateGraph.
+﻿"""Phase 6: 基于 LangGraph StateGraph 的 script2video 文本规划。"""
 
 Replaces the inline orchestration in Script2VideoPipeline.plan_text_artifacts
 with a stateful graph. Each node delegates to the pipeline's existing methods
@@ -109,7 +109,7 @@ def build_planning_graph(pipeline: Any):
 
 
 async def run_planning_graph(pipeline: Any, **kwargs) -> dict:
-    """Build + run the planning graph, returning the artifact dict."""
+    """构建并运行规划图，返回产物字典。"""
     app = build_planning_graph(pipeline)
     result = await app.ainvoke(kwargs)
     return {

@@ -46,7 +46,7 @@ def _build_loop(tmp, llm, registry=None, compactor=None):
 
 
 def _type_phase(event):
-    """Reduce an event to its (type, phase-or-key) signature for golden comparison."""
+    """将事件归约为其 (类型, phase 或键) 签名以进行黄金比对。"""
     t = event["type"]
     if t == "status":
         return (t, event.get("phase"))
@@ -135,7 +135,7 @@ class JsonlEventContractTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("Reference Context Only", index.active()["compacted_summary"])
 
     async def test_every_event_carries_turn_id_and_done_has_required_fields(self):
-        """Field-shape invariant: every event has turn_id; done carries assistant+tool_results."""
+        """字段形状不变量：每个事件都有 turn_id；done 携带 assistant+tool_results。"""
         with tempfile.TemporaryDirectory() as tmp:
             def hello(args):
                 return ToolResult("hello", True, "hello result")

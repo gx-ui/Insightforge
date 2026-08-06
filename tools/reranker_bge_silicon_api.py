@@ -23,7 +23,7 @@ class RerankerBgeSiliconapi:
         wait=wait_exponential(multiplier=1, max=30),
         retry=retry_if_exception_type((aiohttp.ClientError, asyncio.TimeoutError)),
         reraise=True,
-        after=lambda retry_state: logging.warning(f"Retrying SiliconReranker due to error: {retry_state.outcome.exception()}"),
+        after=lambda retry_state: logging.warning(f"因错误正在重试 SiliconReranker: {retry_state.outcome.exception()}"),
     )
     async def __call__(
         self,
@@ -53,7 +53,7 @@ class RerankerBgeSiliconapi:
             async with session.post(url, json=payload, headers=headers) as resp:
                 response = await resp.json()
                 if resp.status >= 400:
-                    raise RuntimeError(f"Rerank request failed with HTTP {resp.status}: {response}")
+                    raise RuntimeError(f"重排请求失败，HTTP {resp.status}: {response}")
 
 
         """

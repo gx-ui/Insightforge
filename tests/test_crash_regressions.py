@@ -1,4 +1,4 @@
-"""Regression tests for small crash bugs in helper stringification paths."""
+"""针对辅助字符串化路径中小型崩溃 bug 的回归测试。"""
 
 import unittest
 

@@ -41,7 +41,7 @@ def _is_retryable_image_error(exc: BaseException) -> bool:
 
 
 class ImageGeneratorOpenRouterAPI:
-    """Generate images through OpenRouter's dedicated Images API."""
+    """通过 OpenRouter 专属 Images API 生成图片。"""
 
     def __init__(
         self,
@@ -81,7 +81,7 @@ class ImageGeneratorOpenRouterAPI:
     ) -> ImageOutput:
         references = list(reference_image_paths or [])
         if len(references) > 16:
-            raise ValueError("OpenRouter GPT Image supports at most 16 reference images")
+            raise ValueError("OpenRouter GPT Image 最多支持 16 张参考图片")
         if self.rate_limiter is not None:
             await self.rate_limiter.acquire()
 
@@ -112,7 +112,7 @@ class ImageGeneratorOpenRouterAPI:
         _emit_progress(
             progress,
             "image_generation",
-            f"Generating image with {self.model}",
+            f"正在使用 {self.model} 生成图片",
             {"model": self.model, "reference_count": len(references)},
         )
         timeout = aiohttp.ClientTimeout(total=_request_timeout_seconds())
@@ -131,7 +131,7 @@ class ImageGeneratorOpenRouterAPI:
         _emit_progress(
             progress,
             "image_completed",
-            "OpenRouter image generation completed",
+            "OpenRouter 图片生成完成",
             {"model": self.model, "width": image.width, "height": image.height},
         )
         return ImageOutput(fmt="pil", ext=extension, data=image)
@@ -158,7 +158,7 @@ def _decode_image_response(payload: Any) -> tuple[Image.Image, str]:
     item = data[0] if isinstance(data, list) and data and isinstance(data[0], dict) else None
     encoded = item.get("b64_json") if item else None
     if not isinstance(encoded, str) or not encoded:
-        raise ValueError(f"OpenRouter image response missing data[0].b64_json: {payload}")
+        raise ValueError(f"OpenRouter 图片响应缺少 data[0].b64_json: {payload}")
     if encoded.startswith("data:"):
         encoded = encoded.split(",", 1)[-1]
     try:
@@ -167,7 +167,7 @@ def _decode_image_response(payload: Any) -> tuple[Image.Image, str]:
             opened.load()
             image = opened.copy()
     except Exception as exc:
-        raise ValueError("OpenRouter image response contained invalid image data") from exc
+        raise ValueError("OpenRouter 图片响应包含无效的图片数据") from exc
     media_type = item.get("media_type", "image/png")
     extension = {"image/jpeg": "jpg", "image/webp": "webp"}.get(media_type, "png")
     return image, extension

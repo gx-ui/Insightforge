@@ -1,4 +1,3 @@
-# https://ai.google.dev/gemini-api/docs/image-generation
 
 import logging
 import asyncio
@@ -37,18 +36,18 @@ class ImageGeneratorNanobananaGoogleAPI:
     ) -> ImageOutput:
 
         """
-            aspect_ratio: The aspect ratio of the image.
+            aspect_ratio: 图片的宽高比。
         """
 
-        logging.info(f"Calling {self.model} to generate image...")
+        logging.info(f"正在调用 {self.model} 生成图片...")
 
-        # Apply rate limiting if configured
+        # 若配置了速率限制则应用
         if self.rate_limiter:
             await self.rate_limiter.acquire()
 
         reference_images = [Image.open(path) for path in reference_image_paths]
 
-        # Retry logic for rate limit errors
+        # 速率限制错误的重试逻辑
         max_retries = 3
         retry_delay = 5
 
@@ -68,7 +67,7 @@ class ImageGeneratorNanobananaGoogleAPI:
             except ClientError as e:
                 if e.status_code == 429 and attempt < max_retries - 1:
                     wait_time = retry_delay * (2 ** attempt)
-                    logging.warning(f"Rate limit hit (429), retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+                    logging.warning(f"触发速率限制 (429)，{wait_time} 秒后重试...（第 {attempt + 1}/{max_retries} 次尝试）")
                     await asyncio.sleep(wait_time)
                 else:
                     raise
@@ -82,8 +81,8 @@ class ImageGeneratorNanobananaGoogleAPI:
                 image = image_from_response_part(part)
 
         if image is None:
-            logging.error(f"No image generated. The response text is: {text}")
-            raise ValueError("No image generated")
+            logging.error(f"未生成图片。响应文本为: {text}")
+            raise ValueError("未生成图片")
 
         if landscape_guard_requested(
             size=kwargs.get("size"),
@@ -94,4 +93,3 @@ class ImageGeneratorNanobananaGoogleAPI:
             ensure_not_portrait(image)
 
         return ImageOutput(fmt="pil", ext="png", data=image)
-

@@ -27,9 +27,9 @@ def load_agent_config(workspace_root: str | Path = ".") -> dict[str, Any]:
     try:
         payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
-        raise RuntimeError(f"Invalid configs/agent.local.yaml: {exc}") from exc
+        raise RuntimeError(f"无效的 configs/agent.local.yaml: {exc}") from exc
     if not isinstance(payload, dict):
-        raise RuntimeError("configs/agent.local.yaml must be a YAML mapping")
+        raise RuntimeError("configs/agent.local.yaml 必须是 YAML 映射")
     return payload
 
 
@@ -116,12 +116,12 @@ def video_api_key(workspace_root: str | Path = ".") -> str:
 
 
 def video_t2v_model(workspace_root: str | Path = ".") -> str:
-    """Text-to-video model ID for the video section. Falls back to video.model."""
+    """视频部分的文生视频模型 ID。回退到 video.model。"""
     return config_value("video", "t2v_model", ["INSIGHTFORGE_VIDEO_T2V_MODEL"], video_model(workspace_root), workspace_root)
 
 
 def video_i2v_model(workspace_root: str | Path = ".") -> str:
-    """Image-to-video model ID for the video section. Falls back to video.model."""
+    """视频部分的图生视频模型 ID。回退到 video.model。"""
     return config_value("video", "i2v_model", ["INSIGHTFORGE_VIDEO_I2V_MODEL"], video_model(workspace_root), workspace_root)
 
 
@@ -137,10 +137,9 @@ def api_provider_from_base_url(base_url: str) -> str:
 
 
 def video_provider(workspace_root: str | Path = ".") -> str:
-    """Infer the video API relay/provider from video.base_url.
+    """从 video.base_url 推断视频 API 中转/供应商。
 
-    This is not a model provider setting. OpenRouter/Yunwu are transport/API
-    gateways here, so users should configure base_url and let the adapter pick
-    the matching implementation.
+    这不是模型供应商设置。OpenRouter/Yunwu 在此作为传输/API
+    网关，因此用户应配置 base_url，由适配器选择匹配的实现。
     """
     return api_provider_from_base_url(video_base_url(workspace_root))

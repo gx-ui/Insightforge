@@ -7,7 +7,7 @@ let storedTheme: string | null = null;
 try {
   storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
 } catch {
-  // Local storage can be unavailable in hardened browser contexts.
+  // 在加固的浏览器环境中，本地存储可能不可用。
 }
 applyTheme(resolveTheme(storedTheme, window.matchMedia('(prefers-color-scheme: dark)').matches));
 

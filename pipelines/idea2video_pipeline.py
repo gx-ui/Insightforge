@@ -68,13 +68,13 @@ class Idea2VideoPipeline:
                 characters = json.load(f)
             characters = [CharacterInScene.model_validate(
                 character) for character in characters]
-            _pipeline_print(quiet, f"🚀 Loaded {len(characters)} characters from existing file.")
+            _pipeline_print(quiet, f"🚀 已从已有文件加载 {len(characters)} 个角色。")
         else:
             characters = await self.character_extractor.extract_characters(story)
             with open(save_path, "w", encoding="utf-8") as f:
                 json.dump([character.model_dump()
                           for character in characters], f, ensure_ascii=False, indent=4)
-            _pipeline_print(quiet, f"✅ Extracted {len(characters)} characters from story and saved to {save_path}.")
+            _pipeline_print(quiet, f"✅ 已从故事中提取 {len(characters)} 个角色并保存到 {save_path}。")
 
         return characters
 
@@ -97,10 +97,9 @@ class Idea2VideoPipeline:
             self.generate_portraits_for_single_character(character, style)
             for character in characters
             if character.identifier_in_scene not in character_portraits_registry
-            # Characters never shown on screen (e.g. a voice or chat-only
-            # character) have no physical description, so asking the image
-            # model for front/side/back portraits of them is nonsensical and
-            # fails repeatedly (finish_reason=IMAGE_OTHER, empty candidates).
+            # 从不在画面中出现的角色（例如仅语音或仅聊天角色）
+            # 没有外貌描述，因此让图像模型为其生成正面/侧面/背面
+            # 肖像毫无意义，且会反复失败（finish_reason=IMAGE_OTHER，候选为空）。
             and character.is_visible
         ]
         if tasks:
@@ -111,10 +110,10 @@ class Idea2VideoPipeline:
                               f, ensure_ascii=False, indent=4)
 
             print(
-                f"✅ Completed character portrait generation for {len(characters)} characters.")
+                f"✅ 已完成 {len(characters)} 个角色的肖像生成。")
         else:
             print(
-                "🚀 All characters already have portraits, skipping portrait generation.")
+                "🚀 所有角色已有肖像，跳过肖像生成。")
 
         return character_portraits_registry
 
@@ -128,13 +127,13 @@ class Idea2VideoPipeline:
         if os.path.exists(save_path):
             with open(save_path, "r", encoding="utf-8") as f:
                 story = f.read()
-            _pipeline_print(quiet, f"🚀 Loaded story from existing file.")
+            _pipeline_print(quiet, f"🚀 已从已有文件加载故事。")
         else:
-            _pipeline_print(quiet, "🧠 Developing story...")
+            _pipeline_print(quiet, "🧠 正在构思故事...")
             story = await self.screenwriter.develop_story(idea=idea, user_requirement=user_requirement)
             with open(save_path, "w", encoding="utf-8") as f:
                 f.write(story)
-            _pipeline_print(quiet, f"✅ Developed story and saved to {save_path}.")
+            _pipeline_print(quiet, f"✅ 已构思故事并保存到 {save_path}。")
 
         return story
 
@@ -148,13 +147,13 @@ class Idea2VideoPipeline:
         if os.path.exists(save_path):
             with open(save_path, "r", encoding="utf-8") as f:
                 script = json.load(f)
-            _pipeline_print(quiet, f"🚀 Loaded script from existing file.")
+            _pipeline_print(quiet, f"🚀 已从已有文件加载剧本。")
         else:
-            _pipeline_print(quiet, "🧠 Writing script based on story...")
+            _pipeline_print(quiet, "🧠 正在根据故事撰写剧本...")
             script = await self.screenwriter.write_script_based_on_story(story=story, user_requirement=user_requirement)
             with open(save_path, "w", encoding="utf-8") as f:
                 json.dump(script, f, ensure_ascii=False, indent=4)
-            _pipeline_print(quiet, f"✅ Written script based on story and saved to {save_path}.")
+            _pipeline_print(quiet, f"✅ 已根据故事撰写剧本并保存到 {save_path}。")
         return script
 
     async def generate_portraits_for_single_character(
@@ -181,12 +180,11 @@ class Idea2VideoPipeline:
                 side_portrait_output = await self.character_portraits_generator.generate_side_portrait(character, front_portrait_path)
                 side_portrait_output.save(side_portrait_path)
             except Exception as e:
-                # gemini-2.5-flash-image intermittently (sometimes beyond
-                # the tenacity retry budget) fails this front->side
-                # re-angling edit with finish_reason=IMAGE_OTHER / empty
-                # content. Fall back to the front portrait rather than
-                # aborting the whole pipeline.
-                print(f"⚠️ Side portrait generation failed for {character.identifier_in_scene} after retries ({e}); reusing front portrait as fallback.")
+                # gemini-2.5-flash-image 会间歇性地（有时超出 tenacity
+                # 重试预算）在正面->侧面重新角度编辑上失败，
+                # 返回 finish_reason=IMAGE_OTHER / 空内容。
+                # 回退到正面肖像，而非中止整个流水线。
+                print(f"⚠️ {character.identifier_in_scene} 的侧面肖像生成在重试后失败（{e}）；回退使用正面肖像。")
                 shutil.copy(front_portrait_path, side_portrait_path)
 
         back_portrait_path = os.path.join(character_dir, "back.png")
@@ -197,7 +195,7 @@ class Idea2VideoPipeline:
                 back_portrait_output = await self.character_portraits_generator.generate_back_portrait(character, front_portrait_path)
                 back_portrait_output.save(back_portrait_path)
             except Exception as e:
-                print(f"⚠️ Back portrait generation failed for {character.identifier_in_scene} after retries ({e}); reusing front portrait as fallback.")
+                print(f"⚠️ {character.identifier_in_scene} 的背面肖像生成在重试后失败（{e}）；回退使用正面肖像。")
                 shutil.copy(front_portrait_path, back_portrait_path)
 
         print(
@@ -263,9 +261,9 @@ class Idea2VideoPipeline:
 
         final_video_path = os.path.join(self.working_dir, "final_video.mp4")
         if os.path.exists(final_video_path):
-            _pipeline_print(quiet, f"🚀 Skipped concatenating videos, already exists.")
+            _pipeline_print(quiet, f"🚀 已跳过视频拼接，文件已存在。")
         else:
-            _pipeline_print(quiet, f"🎬 Starting concatenating videos...")
+            _pipeline_print(quiet, f"🎬 开始拼接视频...")
             concatenate_video_files(all_video_paths, final_video_path)
-            _pipeline_print(quiet, f"☑️ Concatenated videos, saved to {final_video_path}.")
+            _pipeline_print(quiet, f"☑️ 已拼接视频，保存到 {final_video_path}。")
         return final_video_path

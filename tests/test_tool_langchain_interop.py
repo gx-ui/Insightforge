@@ -27,12 +27,12 @@ class ToolSchemaLangchainInteropTests(unittest.TestCase):
             tools = registry.list_function_tools()
             self.assertEqual(len(tools), 13)
             model = init_chat_model(model="test", model_provider="openai", api_key="k", base_url="http://localhost:1")
-            # Must not raise: every schema is bind_tools-compatible
+            # 不得抛出异常：每个 schema 都与 bind_tools 兼容
             bound = model.bind_tools(tools)
             self.assertIsNotNone(bound)
 
     def test_every_tool_schema_has_additional_properties_false(self):
-        """Contract invariant: all tool parameters carry additionalProperties:false."""
+        """契约不变量：所有工具参数都携带 additionalProperties:false。"""
         with tempfile.TemporaryDirectory() as tmp:
             index = SessionIndex(tmp)
             registry = build_builtin_registry(tmp, index, [])

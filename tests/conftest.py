@@ -17,7 +17,7 @@ _counter = [0]
 
 
 class _TemporaryDirectory:
-    """Drop-in replacement for tempfile.TemporaryDirectory."""
+    """tempfile.TemporaryDirectory 的直接替代品。"""
 
     def __init__(self, *args, **kwargs):
         _counter[0] += 1

@@ -7,13 +7,13 @@ import requests
 def after_func(retry_state: tenacity.RetryCallState) -> None:
     if retry_state.outcome.failed:
         exc = retry_state.outcome.exception()
-        logging.warning(f"Retrying {retry_state.fn.__name__} due to {repr(exc)} (Attempt {retry_state.attempt_number})")
+        logging.warning(f"正在重试 {retry_state.fn.__name__}，原因: {repr(exc)}（第 {retry_state.attempt_number} 次尝试）")
         logging.debug(traceback.format_exception(type(exc), exc, exc.__traceback__))
 
 
 def is_retryable_download_error(exc: BaseException) -> bool:
-    """Network errors and 5xx responses are retryable; other HTTP errors (expired
-    or invalid URLs, auth failures) will never succeed and must fail fast."""
+    """网络错误和 5xx 响应可重试；其他 HTTP 错误（URL 过期或无效、鉴权失败）
+    永远不会成功，必须立即失败。"""
     if isinstance(exc, requests.HTTPError):
         response = exc.response
         return response is None or response.status_code >= 500

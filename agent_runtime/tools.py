@@ -71,7 +71,7 @@ class ToolRuntimeContext:
     def is_cancelled(self) -> bool:
         return self.cancel_event.is_set() if self.cancel_event is not None else False
 
-    def raise_if_cancelled(self, default_reason: str = "Tool execution cancelled") -> None:
+    def raise_if_cancelled(self, default_reason: str = "工具执行已取消") -> None:
         if self.is_cancelled():
             raise RuntimeError(str(self.metadata.get("cancel_reason") or default_reason))
 
@@ -192,15 +192,15 @@ def build_builtin_registry(workspace_root: str | Path, session_index: Any, adapt
     def safe_path(raw: Any) -> Path:
         path = (root / str(raw)).resolve()
         if root not in path.parents and path != root:
-            raise ValueError(f"Path escapes workspace: {raw}")
+            raise ValueError(f"路径超出了工作区: {raw}")
         return path
 
     def _legacy_virtual_read(raw_path: Any, *, as_json: bool) -> ToolResult | None:
-        """Compatibility for paths older prompts/models may hallucinate.
+        """为旧版 prompt/模型可能幻觉出的路径提供兼容。
 
-        The authoritative session state is .insightforge/sessions.json and logs are
-        .insightforge/logs/*.jsonl, but some model turns ask for per-session files like
-        .working_dir/<session>/session.json or .insightforge/logs/<session>.log.
+        权威的会话状态存储在 .insightforge/sessions.json，日志在
+        .insightforge/logs/*.jsonl，但某些模型轮次会请求按会话的文件，如
+        .working_dir/<session>/session.json 或 .insightforge/logs/<session>.log。
         """
         path = safe_path(raw_path)
         try:

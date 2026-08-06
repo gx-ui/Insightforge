@@ -1,4 +1,4 @@
-"""Regression tests for silent wrong-output bugs in the script2video render path."""
+"""针对 script2video 渲染路径中静默错误输出的回归测试。"""
 
 import asyncio
 import os
@@ -37,7 +37,7 @@ def _shot(idx, cam_idx, variation_type="small", ff_chars=None, lf_chars=None):
 
 class TestCameraGrouping(unittest.TestCase):
     def test_out_of_order_camera_indices_group_correctly(self):
-        # Shot 0 uses camera 1, shot 1 uses camera 0, shot 2 uses camera 1 again.
+        # 镜头 0 使用相机 1，镜头 1 使用相机 0，镜头 2 再次使用相机 1。
         shots = [_shot(0, cam_idx=1), _shot(1, cam_idx=0), _shot(2, cam_idx=1)]
         cameras = _group_shots_into_cameras(shots)
         by_idx = {camera.idx: camera for camera in cameras}
@@ -47,7 +47,7 @@ class TestCameraGrouping(unittest.TestCase):
 
 class TestPriorityShotIdxs(unittest.TestCase):
     def test_priorities_are_shot_indices_not_camera_indices(self):
-        # Camera 2 depends on shot 7 of camera 0: shot 7 must be prioritized.
+        # 相机 2 依赖相机 0 的镜头 7：镜头 7 必须优先处理。
         camera_tree = [
             Camera(idx=0, active_shot_idxs=[7, 8]),
             Camera(idx=2, active_shot_idxs=[9], parent_cam_idx=0, parent_shot_idx=7),
@@ -105,7 +105,7 @@ class TestResumeIncludesNewCameraReference(unittest.IsolatedAsyncioTestCase):
                 1: {"first_frame": asyncio.Event()},
             }
 
-            # Resume state: transition video and new-camera image already on disk.
+            # 恢复状态：转场视频和新相机图片已在磁盘上。
             shot_dir = os.path.join(tmp, "shots", "1")
             os.makedirs(shot_dir, exist_ok=True)
             new_camera_path = os.path.join(shot_dir, "new_camera_1.png")

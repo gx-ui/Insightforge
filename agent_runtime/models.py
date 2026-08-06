@@ -23,8 +23,8 @@ class ToolResult:
     ok: bool
     content: str
     metadata: dict[str, Any] = field(default_factory=dict)
-    # Transient multimodal blocks for the next LLM turn. Deliberately omitted
-    # from as_dict() so image bytes never enter JSONL logs or session history.
+    # 下一轮 LLM 调用的临时多模态块。有意从 as_dict() 中省略，
+    # 确保图片字节不会进入 JSONL 日志或会话历史。
     model_content: list[dict[str, Any]] | None = field(default=None, repr=False)
 
     def as_dict(self) -> dict[str, Any]:

@@ -2,7 +2,7 @@ import asyncio
 from pipelines.script2video_pipeline import Script2VideoPipeline
 
 
-# SET YOUR OWN SCRIPT, USER REQUIREMENT, AND STYLE HERE
+# 在此设置你自己的剧本、用户需求和风格
 script = \
 """
 EXT. SCHOOL GYM - DAY

@@ -4,17 +4,17 @@ from typing import List, Optional, Literal, Tuple
 
 class ShotBriefDescription(BaseModel):
     idx: int = Field(
-        description="The index of the shot in the sequence, starting from 0.",
+        description="镜头在序列中的索引，从 0 开始。",
         examples=[0, 1, 2],
     )
     is_last: bool = Field(
-        description="Whether this is the last shot. If True, the story of the script has ended and no more shots will be planned after this one.",
+        description="该镜头是否为最后一个镜头。若为 True，表示剧本故事已结束，此后不会再规划更多镜头。",
         examples=[False, True],
     )
 
-    # visual
+    # 视觉
     cam_idx: int = Field(
-        description="The index of the camera in the scene.",
+        description="相机在场景中的索引。",
         examples=[0, 1, 2],
     )
     visual_desc: str = Field(
@@ -27,9 +27,9 @@ class ShotBriefDescription(BaseModel):
     )
 
 
-    # audio
+    # 音频
     audio_desc: str = Field(
-        description="A detailed description of the audio in the shot.",
+        description="镜头中音频的详细描述。",
         examples=[
             "[Sound Effect] Ambient sound (supermarket background noise, shopping cart wheels rolling)",
             "[Speaker] Alice (Happy): Hello, how are you?",
@@ -39,15 +39,15 @@ class ShotBriefDescription(BaseModel):
 
     # sound_effect: Optional[str] = Field(
     #     default=None,
-    #     description="The sound effects used in the shot.",
+    #     description="镜头中使用的音效。",
     #     examples=[
-    #         "Ambient sound (supermarket background noise, shopping cart wheels rolling)",
+    #         "环境音（超市背景噪音、购物车轮滚动声）",
     #         None,
     #     ],
     # )
     # speaker: Optional[str] = Field(
     #     default=None,
-    #     description="The speaker in the shot, if applicable. If there is no speaker, this field should be set to None.",
+    #     description="镜头中的说话人（如适用）。若无说话人，该字段应设为 None。",
     #     examples=[
     #         "Alice",
     #         None,
@@ -55,7 +55,7 @@ class ShotBriefDescription(BaseModel):
     # )
     # is_speaker_lip_visible: Optional[bool] = Field(
     #     default=None,
-    #     description="Indicates whether the speaker's lips are visible in the shot. If there is no speaker, this field should be set to None.",
+    #     description="指示说话人的嘴唇在镜头中是否可见。若无说话人，该字段应设为 None。",
     #     examples=[
     #         True,
     #         False,
@@ -64,7 +64,7 @@ class ShotBriefDescription(BaseModel):
     # )
     # line: Optional[str] = Field(
     #     default=None,
-    #     description="The dialogue or monologue in the shot, if applicable. If there is a speaker, there must be a line. If there is no speaker, this field should be set to None.",
+    #     description="镜头中的对话或独白（如适用）。若有说话人，则必须有台词。若无说话人，该字段应设为 None。",
     #     examples=[
     #         "Hello, how are you?",
     #         None,
@@ -72,7 +72,7 @@ class ShotBriefDescription(BaseModel):
     # )
     # emotion: Optional[str] = Field(
     #     default=None,
-    #     description="The emotion of the speaker when delivering the line, if applicable. If there is a speaker, there must be an emotion. If there is no speaker, this field should be set to None.",
+    #     description="说话人念台词时的情绪（如适用）。若有说话人，则必须有情绪。若无说话人，该字段应设为 None。",
     #     examples=[
     #         "Happy",
     #         None,
@@ -80,25 +80,25 @@ class ShotBriefDescription(BaseModel):
     # )
 
     def __str__(self):
-        s = f"Shot {self.idx}:\n"
-        s += f"Camera Index: {self.cam_idx}\n"
-        s += f"Visual: {self.visual_desc}\n"
+        s = f"镜头 {self.idx}:\n"
+        s += f"相机索引: {self.cam_idx}\n"
+        s += f"画面: {self.visual_desc}\n"
         if self.audio_desc:
-            s += f"Audio: {self.audio_desc}"
+            s += f"音频: {self.audio_desc}"
         return s
 
 
 class ShotDescription(BaseModel):
     idx: int = Field(
-        description="The index of the shot in the sequence, starting from 0."
+        description="镜头在序列中的索引，从 0 开始。"
     )
     is_last: bool = Field(
-        description="Whether this is the last shot in the sequence. If True, no more shots will be planned after this one."
+        description="该镜头是否为序列中的最后一个镜头。若为 True，此后不会再规划更多镜头。"
     )
 
-    # visual
+    # 视觉
     cam_idx: int = Field(
-        description="The index of the camera in the scene.",
+        description="相机在场景中的索引。",
         examples=[0, 1, 2],
     )
     visual_desc: str = Field(
@@ -135,7 +135,7 @@ class ShotDescription(BaseModel):
     )
     ff_vis_char_idxs: List[int] = Field(
         default=[],
-        description="The indices of the characters in the first frame.",
+        description="第一帧中角色的索引列表。",
         examples=[
             [0, 1],
             [0],
@@ -143,20 +143,20 @@ class ShotDescription(BaseModel):
         ],
     )
     lf_desc: str = Field(
-        description="The last frame of the shot.",
+        description="镜头的最后一帧。",
     )
     lf_vis_char_idxs: List[int] = Field(
         default=[],
-        description="The indices of the characters in the last frame.",
+        description="最后一帧中角色的索引列表。",
     )
     motion_desc: str = Field(
         description='''The motion description of the shot.
         If there is a conversation, please write down the content of the conversation), when you meet some dialogue, you should write into the visual content description with :" " symbols and the character's features (eg. SLING (male, late 20s, Texan accent softened by military precision, confident and energetic.) says: "Gear retracted. Flaps transitioning. Flight path stable. You are clear to climb."). If there is a narration, you should write into the visual content description with :" " symbols and the narration's features (eg. Narration: "Everything is looking good. "). ''',
     )
 
-    # audio
+    # 音频
     audio_desc: str = Field(
-        description="A detailed description of the audio in the shot.",
+        description="镜头中音频的详细描述。",
         examples=[
             "[Sound Effect] Ambient sound (supermarket background noise, shopping cart wheels rolling)",
             "[Speaker] Alice (Happy): Hello, how are you?",
@@ -165,21 +165,21 @@ class ShotDescription(BaseModel):
     )
     # sound_effect: Optional[str] = Field(
     #     default=None,
-    #     description="The sound effects used in the shot. For example, a door creaking or footsteps approaching.",
+    #     description="镜头中使用的音效。例如门吱呀声或脚步声逼近。",
     # )
     # speaker: Optional[str] = Field(
     #     default=None,
-    #     description="The speaker in the shot, if applicable. If there is no speaker, this field should be set to None.",
+    #     description="镜头中的说话人（如适用）。若无说话人，该字段应设为 None。",
     # )
     # is_speaker_lip_visible: Optional[bool] = Field(
     #     default=None,
-    #     description="Indicates whether the speaker's lips are visible in the shot. If there is no speaker, this field should be set to None.",
+    #     description="指示说话人的嘴唇在镜头中是否可见。若无说话人，该字段应设为 None。",
     # )
     # line: Optional[str] = Field(
     #     default=None,
-    #     description="The dialogue or monologue in the shot, if applicable. If there is a speaker, there must be a line. If there is no speaker, this field should be set to None.",
+    #     description="镜头中的对话或独白（如适用）。若有说话人，则必须有台词。若无说话人，该字段应设为 None。",
     # )
     # emotion: Optional[str] = Field(
     #     default=None,
-    #     description="The emotion of the speaker when delivering the line, if applicable. If there is a speaker, there must be an emotion. If there is no speaker, this field should be set to None.",
+    #     description="说话人念台词时的情绪（如适用）。若有说话人，则必须有情绪。若无说话人，该字段应设为 None。",
     # )

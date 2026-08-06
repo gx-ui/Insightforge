@@ -17,7 +17,7 @@ export async function readAgentConfig(repoRoot) {
 
 export async function saveAgentConfig(repoRoot, input) {
   if (!input || typeof input !== 'object' || !input.sections || typeof input.sections !== 'object') {
-    throw new Error('Configuration sections are required');
+    throw new Error('需要配置节');
   }
   const {configPath, payload} = await loadConfig(repoRoot);
   for (const [section, fields] of Object.entries(SECTION_FIELDS)) {
@@ -49,7 +49,7 @@ async function loadConfig(repoRoot) {
   }
   const payload = text ? parse(text) : {};
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    throw new Error('configs/agent.local.yaml must be a YAML mapping');
+    throw new Error('configs/agent.local.yaml 必须是 YAML 映射');
   }
   return {configPath, payload};
 }
@@ -68,11 +68,11 @@ function publicConfig(payload) {
 }
 
 function validatedValue(value, label, maxLength) {
-  if (typeof value !== 'string') throw new Error(`${label} must be a string`);
+  if (typeof value !== 'string') throw new Error(`${label} 必须是字符串`);
   const normalized = value.trim();
-  if (normalized.length > maxLength) throw new Error(`${label} is too long`);
+  if (normalized.length > maxLength) throw new Error(`${label} 过长`);
   if (label.endsWith('.base_url') && normalized && !/^https?:\/\//i.test(normalized)) {
-    throw new Error(`${label} must use http:// or https://`);
+    throw new Error(`${label} 必须使用 http:// 或 https://`);
   }
   return normalized;
 }

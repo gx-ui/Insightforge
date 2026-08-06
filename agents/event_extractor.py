@@ -93,27 +93,27 @@ class EventExtractor:
         self.parser = PydanticOutputParser(pydantic_object=Event)
 
 
-    # Cap on extracted events: is_last is asserted by the LLM only, so without a
-    # bound a model that never sets it would loop (and spend tokens) forever.
+    # 提取事件的上限：is_last 仅由 LLM 断言，若不加
+    # 上限，一个永不设置它的模型会无限循环（并消耗 token）。
     max_events = 50
 
     def __call__(
         self,
         novel_text: str,
     ):
-        logging.info("Extracting events from novel...")
+        logging.info("正在从小说中提取事件...")
 
         events = []
         while True:
             if len(events) >= self.max_events:
                 raise RuntimeError(
-                    f"Event extraction exceeded the maximum of {self.max_events} events "
-                    "without an is_last marker; aborting to avoid unbounded LLM calls."
+                    f"事件提取超过了 {self.max_events} 个事件的上限，"
+                    "且未出现 is_last 标记；为避免无限 LLM 调用而中止。"
                 )
             event = self.extract_next_event(novel_text, events)
 
             events.append(event)
-            logging.info(f"Extracted event: \n{event}")
+            logging.info(f"已提取事件: \n{event}")
             if event.is_last:
                 break
 
@@ -122,7 +122,7 @@ class EventExtractor:
 
     @retry(
         stop=stop_after_attempt(3),
-        after=lambda retry_state: logging.warning(f"Retrying extract_next_event due to error: {retry_state.outcome.exception()}"),
+        after=lambda retry_state: logging.warning(f"因错误正在重试 extract_next_event: {retry_state.outcome.exception()}"),
     )
     def extract_next_event(
         self,

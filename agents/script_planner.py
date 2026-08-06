@@ -358,7 +358,7 @@ class ScriptPlanner:
         Returns:
             PlannedScriptResponse: A comprehensive script with structure, characters, and narrative detail
         """
-        # 1) Route intent to select the appropriate template
+        # 1) 路由意图以选择合适的模板
         router_parser = PydanticOutputParser(pydantic_object=IntentRouterResponse)
         router_prompt_template = ChatPromptTemplate.from_messages(
             [
@@ -387,12 +387,12 @@ class ScriptPlanner:
             }
         )
         chosen_intent = routing.intent if isinstance(routing, IntentRouterResponse) else "narrative"
-        logging.info(f"[ScriptPlanner] Intent routed to: {chosen_intent}")
+        logging.info(f"[ScriptPlanner] 意图路由至: {chosen_intent}")
 
-        # 2) Build the planning chain with the selected template
+        # 2) 使用所选模板构建规划链
         planning_parser = PydanticOutputParser(pydantic_object=PlannedScriptResponse)
 
-        # Template selection with graceful fallbacks
+        # 模板选择，带优雅回退
         def get_system_template(intent: str) -> str:
             try:
                 if intent == "narrative":
@@ -402,9 +402,9 @@ class ScriptPlanner:
                 if intent == "montage":
                     return montage_script_prompt_template
             except NameError:
-                # Fallbacks if specific templates not defined in scope
+                # 若特定模板未在作用域中定义则回退
                 pass
-            # Default fallback
+            # 默认回退
             return narrative_script_prompt_template
 
         system_template = get_system_template(chosen_intent)
@@ -418,17 +418,17 @@ class ScriptPlanner:
         planning_chain = planning_prompt_template | self.chat_model | planning_parser
 
         try:
-            logging.info(f"Planning script from basic idea: {basic_idea[:100]}...")
+            logging.info(f"正在根据基本构思规划剧本: {basic_idea[:100]}...")
             response = planning_chain.invoke(
                 {
                     "format_instructions": planning_parser.get_format_instructions(),
                     "basic_idea": basic_idea,
                 }
             )
-            logging.info("Script planning completed.")
+            logging.info("剧本规划已完成。")
             return response
         except Exception as e:
-            logging.error(f"Error planning script: \n{e}")
+            logging.error(f"规划剧本出错: \n{e}")
             raise e
 
 

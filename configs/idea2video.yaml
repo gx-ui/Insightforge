@@ -4,8 +4,8 @@ chat_model:
     model_provider: openai
     api_key:
     base_url: https://openrouter.ai/api/v1
-  # Rate limits for chat model API calls
-  # Set to null to disable rate limiting for this service
+  # 对话模型 API 调用的速率限制
+  # 设为 null 可禁用该服务的速率限制
   max_requests_per_minute: 500
   max_requests_per_day: 2000
 
@@ -13,8 +13,8 @@ image_generator:
   class_path: tools.ImageGeneratorNanobananaGoogleAPI
   init_args:
     api_key:
-  # Rate limits for image generation API calls
-  # Set to null to disable rate limiting for this service
+  # 图片生成 API 调用的速率限制
+  # 设为 null 可禁用该服务的速率限制
   max_requests_per_minute: 10
   max_requests_per_day: 500
 
@@ -23,8 +23,8 @@ video_generator:
   class_path: tools.VideoGeneratorVeoGoogleAPI
   init_args:
     api_key:
-  # Rate limits for video generation API calls
-  # Set to null to disable rate limiting for this service
+  # 视频生成 API 调用的速率限制
+  # 设为 null 可禁用该服务的速率限制
   max_requests_per_minute: 2
   max_requests_per_day: 10
 

@@ -36,10 +36,10 @@ from .tools import ToolArgumentSchema, ToolRuntimeContext, ToolSpec
 
 class _UnavailableGenerator:
     async def generate_single_image(self, *args: Any, **kwargs: Any) -> Any:
-        raise RuntimeError("Image generator is not available in narrative planning mode")
+        raise RuntimeError("叙事规划模式下图片生成器不可用")
 
     async def generate_single_video(self, *args: Any, **kwargs: Any) -> Any:
-        raise RuntimeError("Video generator is not available in narrative planning mode")
+        raise RuntimeError("叙事规划模式下视频生成器不可用")
 
 
 def build_insightforge_adapter_specs(workspace_root: str | Path, session_index: Any) -> list[ToolSpec]:
@@ -145,8 +145,8 @@ class InsightForgeAdapters:
                 runtime.emit_progress("Bounded chat model initialized", stage="chat_model_ready", metadata={"session_id": session_id})
                 await asyncio.sleep(0)
             dummy = _UnavailableGenerator()
-            # Do not globally redirect stdout/stderr while the JSONL CLI is streaming events.
-            # The adapter exposes pipeline progress through explicit tool_progress events instead.
+            # 当 JSONL CLI 正在流式输出事件时，不要全局重定向 stdout/stderr。
+            # 适配器改为通过显式的 tool_progress 事件暴露流水线进度。
             if idea:
                 idea_pipeline = Idea2VideoPipeline(chat_model=chat_model, image_generator=dummy, video_generator=dummy, working_dir=str(idea_dir))
                 if runtime:
@@ -515,9 +515,9 @@ async def _run_planning_step(
                 return await awaitable
             return await asyncio.wait_for(awaitable, timeout=timeout_seconds)
     except asyncio.TimeoutError as exc:
-        raise RuntimeError(f"{message} timed out after {timeout_seconds:g}s") from exc
+        raise RuntimeError(f"{message} 在 {timeout_seconds:g} 秒后超时") from exc
     except Exception as exc:
-        raise RuntimeError(f"{message} failed: {exc}") from exc
+        raise RuntimeError(f"{message} 失败: {exc}") from exc
 
 
 def _is_new_source_for_session(session: dict[str, Any], requested_source: str) -> bool:
@@ -561,7 +561,7 @@ def _pipeline_progress(runtime: ToolRuntimeContext | None, session_id: str, *, s
 def _build_chat_model() -> Any:
     api_key = llm_api_key()
     if not api_key:
-        raise RuntimeError("INSIGHTFORGE_LLM_API_KEY or configs/agent.local.yaml llm.api_key is required for narrative planning")
+        raise RuntimeError("叙事规划需要 INSIGHTFORGE_LLM_API_KEY 或 configs/agent.local.yaml llm.api_key")
     return init_chat_model(
         model=llm_model(),
         model_provider=llm_model_provider(),
@@ -576,7 +576,7 @@ def _build_chat_model() -> Any:
 def _build_image_generator() -> ImageGeneratorNanobananaYunwuAPI | ImageGeneratorOpenRouterAPI | ImageGeneratorDoubaoSeedreamArkAPI:
     api_key = image_api_key()
     if not api_key:
-        raise RuntimeError("INSIGHTFORGE_IMAGE_API_KEY, INSIGHTFORGE_LLM_API_KEY, or configs/agent.local.yaml image/llm api_key is required for image generation")
+        raise RuntimeError("图片生成需要 INSIGHTFORGE_IMAGE_API_KEY、INSIGHTFORGE_LLM_API_KEY 或 configs/agent.local.yaml image/llm api_key")
     model = image_model()
     base_url = image_base_url()
     provider = api_provider_from_base_url(base_url)
@@ -590,7 +590,7 @@ def _build_image_generator() -> ImageGeneratorNanobananaYunwuAPI | ImageGenerato
 def _build_video_generator() -> VideoGeneratorVeoYunwuAPI | VideoGeneratorOpenRouterAPI | VideoGeneratorDoubaoSeedanceArkAPI:
     api_key = video_api_key()
     if not api_key:
-        raise RuntimeError("INSIGHTFORGE_VIDEO_API_KEY, INSIGHTFORGE_LLM_API_KEY, or configs/agent.local.yaml video/llm api_key is required for video generation")
+        raise RuntimeError("视频生成需要 INSIGHTFORGE_VIDEO_API_KEY、INSIGHTFORGE_LLM_API_KEY 或 configs/agent.local.yaml video/llm api_key")
     model = video_model()
     base_url = video_base_url()
     provider = video_provider().strip().lower()
@@ -600,7 +600,7 @@ def _build_video_generator() -> VideoGeneratorVeoYunwuAPI | VideoGeneratorOpenRo
         return VideoGeneratorVeoYunwuAPI(api_key=api_key, t2v_model=model, ff2v_model=model, base_url=base_url)
     if provider == "volcengine":
         return VideoGeneratorDoubaoSeedanceArkAPI(api_key=api_key, t2v_model=video_t2v_model(), i2v_model=video_i2v_model(), base_url=base_url)
-    raise RuntimeError(f"Unsupported video base_url for automatic provider matching: {base_url}")
+    raise RuntimeError(f"不支持的视频 base_url，无法自动匹配供应商: {base_url}")
 
 
 class _IdentityRewriter:
@@ -613,9 +613,9 @@ def _build_embedding_model() -> Any:
     base_url = embedding_base_url()
     provider = embedding_model_provider().strip().lower()
     if not api_key or not base_url:
-        raise RuntimeError("INSIGHTFORGE_EMBEDDING_API_KEY or configs/agent.local.yaml embedding api_key/base_url is required for novel planning")
+        raise RuntimeError("小说规划需要 INSIGHTFORGE_EMBEDDING_API_KEY 或 configs/agent.local.yaml embedding api_key/base_url")
     if provider != "openai":
-        raise RuntimeError(f"Unsupported embedding model_provider: {provider}")
+        raise RuntimeError(f"不支持的 embedding model_provider: {provider}")
     return OpenAIEmbeddings(model=embedding_model(), api_key=api_key, base_url=base_url)
 
 
@@ -623,14 +623,14 @@ def _build_reranker() -> RerankerBgeSiliconapi:
     api_key = reranker_api_key()
     base_url = reranker_base_url()
     if not api_key or not base_url:
-        raise RuntimeError("INSIGHTFORGE_RERANKER_API_KEY or configs/agent.local.yaml reranker api_key/base_url is required for novel planning")
+        raise RuntimeError("小说规划需要 INSIGHTFORGE_RERANKER_API_KEY 或 configs/agent.local.yaml reranker api_key/base_url")
     return RerankerBgeSiliconapi(api_key=api_key, base_url=base_url, model=reranker_model())
 
 
 def _build_novel_pipeline(working_dir: Path) -> Novel2MoviePipeline:
     api_key = llm_api_key()
     if not api_key:
-        raise RuntimeError("INSIGHTFORGE_LLM_API_KEY or configs/agent.local.yaml llm.api_key is required for novel planning")
+        raise RuntimeError("小说规划需要 INSIGHTFORGE_LLM_API_KEY 或 configs/agent.local.yaml llm.api_key")
     base_url = llm_base_url()
     model = llm_model()
     dummy = _UnavailableGenerator()
@@ -651,7 +651,7 @@ def _build_novel_pipeline(working_dir: Path) -> Novel2MoviePipeline:
 def _build_novel_render_pipeline(working_dir: Path, chat_model: Any, image_generator: Any, video_generator: Any) -> Novel2MoviePipeline:
     api_key = llm_api_key()
     if not api_key:
-        raise RuntimeError("INSIGHTFORGE_LLM_API_KEY or configs/agent.local.yaml llm.api_key is required for novel rendering")
+        raise RuntimeError("小说渲染需要 INSIGHTFORGE_LLM_API_KEY 或 configs/agent.local.yaml llm.api_key")
     base_url = llm_base_url()
     model = llm_model()
     script_pipeline = Script2VideoPipeline(chat_model=chat_model, image_generator=image_generator, video_generator=video_generator, working_dir=str(working_dir / "videos"))
@@ -751,10 +751,10 @@ def _load_script_text(working_dir: Path) -> str:
 def _resolve_artifact_path(working_dir: Path, revision_target: str) -> Path:
     rel = Path(revision_target)
     if rel.is_absolute():
-        raise ValueError(f"revision_target must be relative to session working_dir: {revision_target}")
+        raise ValueError(f"revision_target 必须相对于会话 working_dir: {revision_target}")
     path = (working_dir / rel).resolve()
     if path != working_dir and working_dir not in path.parents:
-        raise ValueError(f"revision_target escapes session working_dir: {revision_target}")
+        raise ValueError(f"revision_target 超出了会话 working_dir: {revision_target}")
     return path
 
 
@@ -773,7 +773,7 @@ async def _revise_artifact_with_llm(chat_model: Any, target: str, current_text: 
     elif hasattr(chat_model, "invoke"):
         response = chat_model.invoke(prompt)
     else:
-        raise RuntimeError("chat_model does not support invoke/ainvoke for revision mode")
+        raise RuntimeError("chat_model 在修订模式下不支持 invoke/ainvoke")
     content = getattr(response, "content", response)
     if isinstance(content, list):
         content = "".join(str(item.get("text", item)) if isinstance(item, dict) else str(item) for item in content)

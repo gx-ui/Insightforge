@@ -261,15 +261,13 @@ class StoryboardArtist:
 
 
 def validate_char_idxs(idxs, num_characters, field_name):
-    """Reject LLM-emitted character indices outside [0, num_characters).
-
+    """拒绝 LLM 发的超出 [0, num_characters) 范围的角色索引。
     Negative values would silently select the wrong character via Python
     indexing; out-of-range values would crash deep inside the render gather.
-    Raising here lets the @retry on decompose_visual_description re-ask.
-    """
+    在此处抛出异常会让 decompose_visual_description 上的 @retry 重新请求。"""
     invalid = [idx for idx in idxs if idx < 0 or idx >= num_characters]
     if invalid:
         raise ValueError(
-            f"{field_name} contains invalid character indices {invalid}; "
-            f"valid range is 0..{num_characters - 1}"
+            f"{field_name} 包含无效的角色索引 {invalid}；"
+            f"有效范围为 0..{num_characters - 1}"
         )

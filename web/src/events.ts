@@ -41,7 +41,7 @@ export function applyAgentEvent(state: ChatState, event: AgentEvent): ChatState 
         tool: name,
         status: 'running',
         stage: 'starting',
-        text: 'Starting',
+        text: '启动中',
       });
     }
     case 'tool_progress': {
@@ -51,7 +51,7 @@ export function applyAgentEvent(state: ChatState, event: AgentEvent): ChatState 
         tool: name,
         status: 'running',
         stage: event.progress?.stage || 'running',
-        text: event.progress?.message || humanize(event.progress?.stage || 'Running'),
+        text: event.progress?.message || humanize(event.progress?.stage || '运行中'),
       });
     }
     case 'tool_result': {
@@ -62,7 +62,7 @@ export function applyAgentEvent(state: ChatState, event: AgentEvent): ChatState 
         tool: name,
         status: ok ? 'done' : 'error',
         stage: ok ? 'completed' : 'failed',
-        text: ok ? 'Completed' : cleanError(event.tool_result?.content || 'Tool failed'),
+        text: ok ? '已完成' : cleanError(event.tool_result?.content || '工具失败'),
       });
     }
     case 'terminal':
@@ -74,14 +74,14 @@ export function applyAgentEvent(state: ChatState, event: AgentEvent): ChatState 
           role: 'activity',
           status: 'error',
           tool: 'runtime',
-          text: cleanError(event.line || 'Runtime error'),
+          text: cleanError(event.line || '运行时错误'),
         }],
       };
     case 'error':
       return {
         ...state,
         busy: false,
-        messages: [...state.messages, {id: `error-${turnId}-${Date.now()}`, role: 'error', text: event.message || 'Unknown agent error'}],
+        messages: [...state.messages, {id: `error-${turnId}-${Date.now()}`, role: 'error', text: event.message || '未知的 agent 错误'}],
       };
     case 'done': {
       const hasAssistant = state.messages.some((message) => message.id === `assistant-${turnId}`);
@@ -96,7 +96,7 @@ export function applyAgentEvent(state: ChatState, event: AgentEvent): ChatState 
         ...state,
         busy: false,
         messages: state.messages.map((message) => message.role === 'activity' && message.status === 'running'
-          ? {...message, status: 'error', stage: 'interrupted', text: event.message || 'Generation stopped'}
+          ? {...message, status: 'error', stage: 'interrupted', text: event.message || '生成已停止'}
           : message),
       };
     default:
@@ -143,7 +143,8 @@ export function humanize(value: string) {
   return value
     .replace(/[_-]+/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
-    .replace(/\bInsightforge\b/g, 'InsightForge');
+    .replace(/\bInsightforge\b/g, 'InsightForge')
+    .replace(/\bWorkflow\b/g, '工作流');
 }
 
 function cleanError(value: string) {

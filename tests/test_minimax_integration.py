@@ -1,4 +1,4 @@
-"""Integration tests for MiniMax provider support.
+"""MiniMax 供应商支持的集成测试。
 
 These tests verify provider preset resolution and default pipeline config
 loading. They mock the LangChain factory so no real API calls are made.
@@ -33,15 +33,15 @@ def setUpModule():
     for _mod in _STUB_MODULES:
         _saved[_mod] = sys.modules.get(_mod)
         mock = MagicMock()
-        # Give stub a __spec__ so importlib.util.find_spec() works
+        # 为 stub 设置 __spec__，使 importlib.util.find_spec() 正常工作
         mock.__spec__ = importlib.machinery.ModuleSpec(_mod, None)
         mock.__path__ = []
         sys.modules[_mod] = mock
 
 
 def tearDownModule():
-    # Drop project modules that were first imported while the stubs were
-    # active, so later test modules import them fresh against real libraries.
+    # 丢弃在 stub 激活期间首次导入的项目模块，
+    # 以便后续测试模块能基于真实库重新导入它们。
     for name in list(sys.modules):
         if name in _modules_before_stubs:
             continue
@@ -60,7 +60,7 @@ from utils.provider_presets import resolve_chat_model_config
 
 
 class TestPipelineConfigResolution(unittest.TestCase):
-    """Integration: config dict -> resolve -> init_chat_model kwargs."""
+    """集成：配置字典 -> 解析 -> init_chat_model 参数。"""
 
     def _make_minimax_config(self, **overrides):
         base = {
@@ -100,7 +100,7 @@ class TestPipelineConfigResolution(unittest.TestCase):
         self.assertEqual(resolved["api_key"], "env-api-key")
 
     def test_openrouter_config_unchanged(self):
-        """Existing OpenRouter configs must not be affected."""
+        """现有的 OpenRouter 配置不应受到影响。"""
         config = {
             "model": "google/gemini-2.5-flash-lite-preview-09-2025",
             "model_provider": "openai",
@@ -113,7 +113,7 @@ class TestPipelineConfigResolution(unittest.TestCase):
         self.assertEqual(resolved["model"], "google/gemini-2.5-flash-lite-preview-09-2025")
 
     def test_init_chat_model_receives_openai_provider(self):
-        """Verify that resolved kwargs have model_provider='openai'."""
+        """验证解析后的参数包含 model_provider='openai'。"""
         config = self._make_minimax_config()
         resolved = resolve_chat_model_config(config)
         self.assertEqual(resolved["model_provider"], "openai")
@@ -133,7 +133,7 @@ class TestPipelineConfigResolution(unittest.TestCase):
 
 
 class TestPipelineInitFromConfig(unittest.TestCase):
-    """Integration: full pipeline init_from_config with provider configs."""
+    """集成：使用供应商配置进行完整流水线 init_from_config。"""
 
     @patch("pipelines.idea2video_pipeline.init_chat_model")
     @patch("pipelines.idea2video_pipeline.RenderBackend.from_config")
@@ -166,7 +166,7 @@ class TestPipelineInitFromConfig(unittest.TestCase):
         self.assertEqual(call_kwargs["model_provider"], "openai")
         self.assertEqual(call_kwargs["base_url"], "https://api.minimax.io/v1")
         self.assertEqual(call_kwargs["model"], "MiniMax-M3")
-    """Integration: full pipeline init_from_config with default configs."""
+    """集成：使用默认配置进行完整流水线 init_from_config。"""
 
     @patch("pipelines.idea2video_pipeline.init_chat_model")
     @patch("pipelines.idea2video_pipeline.RenderBackend.from_config")

@@ -37,7 +37,7 @@ class ToolExecutor:
         if validation_error:
             result = ToolResult(canonical_name, False, validation_error, {"validation_error": True})
         elif control.cancel_event.is_set():
-            result = ToolResult(canonical_name, False, control.cancel_reason or "Tool execution cancelled", {"cancelled": True})
+            result = ToolResult(canonical_name, False, control.cancel_reason or "工具执行已取消", {"cancelled": True})
         else:
             result = await self.registry.execute(canonical_name, arguments, runtime=runtime)
         finished_at = time()

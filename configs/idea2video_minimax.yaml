@@ -1,18 +1,18 @@
-# Example configuration using MiniMax as the chat model provider.
-# MiniMax M3 is used via its OpenAI-compatible API.
+# 使用 MiniMax 作为对话模型供应商的示例配置。
+# MiniMax M3 通过其 OpenAI 兼容 API 使用。
 #
-# Set your API key below or export MINIMAX_API_KEY in the environment.
-# Available models:
-#   - MiniMax-M3             (latest, recommended)
-#   - MiniMax-M2.7           (previous generation)
-#   - MiniMax-M2.7-highspeed (fast variant)
+# 在下方设置 API key，或在环境中导出 MINIMAX_API_KEY。
+# 可用模型：
+#   - MiniMax-M3             （最新，推荐）
+#   - MiniMax-M2.7           （上一代）
+#   - MiniMax-M2.7-highspeed （快速版本）
 
 chat_model:
   init_args:
     model: MiniMax-M3
     model_provider: minimax
-    api_key:  # leave empty to use the MINIMAX_API_KEY environment variable
-    # base_url is auto-resolved to https://api.minimax.io/v1
+    api_key:  # 留空则使用 MINIMAX_API_KEY 环境变量
+    # base_url 自动解析为 https://api.minimax.io/v1
   max_requests_per_minute: 500
   max_requests_per_day: 2000
 

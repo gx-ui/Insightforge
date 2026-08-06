@@ -1,4 +1,4 @@
-"""Regression tests for unbounded retry/polling loops and LLM-trusted graphs.
+"""针对无限重试/轮询循环和 LLM 信任图的回归测试。
 
 The bugs under test previously looped forever. Each test's fakes succeed after
 N calls, so the buggy code produces a fast assertion failure (extra calls or a
@@ -107,7 +107,7 @@ class _FakeResponse:
 
 
 class _FakeSession:
-    """Returns each scripted (payload, status) in turn, repeating the last one."""
+    """依次返回每个脚本化的 (payload, status)，并重复最后一个。"""
 
     def __init__(self, scripted):
         self.scripted = list(scripted)

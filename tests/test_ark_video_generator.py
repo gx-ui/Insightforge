@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-"""Unit tests for the Volcano Engine Ark API video generator."""
+"""火山引擎 Ark API 视频生成器的单元测试。"""
 
 import unittest
 from unittest.mock import patch
@@ -9,7 +9,7 @@ from tools.video_generator_doubao_seedance_ark_api import VideoGeneratorDoubaoSe
 
 
 class ArkVideoGeneratorFactoryTests(unittest.TestCase):
-    """Tests that the agent runtime factory selects the Ark generator for volcengine URLs."""
+    """测试 agent 运行时工厂是否为 volcengine URL 选择 Ark 生成器。"""
 
     def test_factory_selects_ark_from_volcengine_base_url(self):
         with patch("agent_runtime.insightforge_adapters.video_api_key", return_value="ark-key"), \
@@ -28,7 +28,7 @@ class ArkVideoGeneratorFactoryTests(unittest.TestCase):
         self.assertEqual(generator.base_url, "https://ark.cn-beijing.volces.com/api/v3")
 
     def test_factory_falls_back_to_model_when_t2v_i2v_not_set(self):
-        """When t2v_model/i2v_model are not configured, they should fall back to video.model."""
+        """当未配置 t2v_model/i2v_model 时，应回退到 video.model。"""
         with patch("agent_runtime.insightforge_adapters.video_api_key", return_value="ark-key"), \
              patch("agent_runtime.insightforge_adapters.video_model",
                    return_value="ep-2024xxx"), \
@@ -45,7 +45,7 @@ class ArkVideoGeneratorFactoryTests(unittest.TestCase):
 
 
 class ArkVideoGeneratorModelSelectionTests(unittest.TestCase):
-    """Tests for _select_model based on reference image count."""
+    """基于参考图片数量测试 _select_model。"""
 
     def setUp(self):
         self.gen = VideoGeneratorDoubaoSeedanceArkAPI(
@@ -67,7 +67,7 @@ class ArkVideoGeneratorModelSelectionTests(unittest.TestCase):
 
 
 class ArkVideoGeneratorInitTests(unittest.TestCase):
-    """Tests for VideoGeneratorDoubaoSeedanceArkAPI constructor."""
+    """VideoGeneratorDoubaoSeedanceArkAPI 构造函数的测试。"""
 
     def test_default_base_url_is_ark_api(self):
         gen = VideoGeneratorDoubaoSeedanceArkAPI(api_key="key")

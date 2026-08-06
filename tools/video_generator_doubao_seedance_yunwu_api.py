@@ -1,8 +1,8 @@
-﻿"""Yunwu proxy variant of the doubao-seedance video generator.
+"""doubao-seedance 视频生成器的云雾代理变体。
 
-Consolidated (Phase 5): thin subclass of VideoGeneratorDoubaoSeedanceArkAPI
-with the Yunwu base_url, 3-model selection (t2v/ff2v/flf2v), and poll_interval.
-Same payload/response format (see ARK docstring).
+整合（阶段5）：VideoGeneratorDoubaoSeedanceArkAPI 的轻量子类，
+使用云雾 base_url、3 模型选择（t2v/ff2v/flf2v）和 poll_interval。
+负载/响应格式相同（见 ARK docstring）。
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from .video_generator_doubao_seedance_ark_api import VideoGeneratorDoubaoSeedanc
 
 
 class VideoGeneratorDoubaoSeedanceYunwuAPI(VideoGeneratorDoubaoSeedanceArkAPI):
-    """doubao-seedance via the Yunwu proxy (same format as Ark, different endpoint)."""
+    """通过云雾代理调用 doubao-seedance（格式与 Ark 相同，端点不同）。"""
 
     def __init__(
         self,

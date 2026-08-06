@@ -24,7 +24,7 @@ def ensure_not_portrait(image: Image.Image, *, tolerance: float | None = None) -
         return
     threshold = tolerance if tolerance is not None else _portrait_tolerance()
     if height > width * threshold:
-        raise ValueError(f"Generated image is portrait-oriented ({width}x{height}); retrying for a landscape frame")
+        raise ValueError(f"生成的图片为竖向构图（{width}x{height}）；将重试以获取横向画面")
 
 
 def _portrait_tolerance() -> float:

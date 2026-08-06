@@ -54,7 +54,7 @@ class ViewImageHandler:
         return ToolResult(
             "view_image",
             True,
-            f"Image loaded for visual inspection: {relative} ({original_size[0]}x{original_size[1]}).",
+            f"图片已加载以供视觉检查: {relative} ({original_size[0]}x{original_size[1]})。",
             metadata,
             model_content=[{"type": "image_url", "image_url": {"url": data_url, "detail": "high"}}],
         )
@@ -63,7 +63,7 @@ class ViewImageHandler:
 def _resolve_session_path(workspace_root: Path, session_root: Path, raw: Any) -> Path:
     text = str(raw).strip()
     if not text:
-        raise ValueError("view_image path is required")
+        raise ValueError("view_image 路径不能为空")
     supplied = Path(text)
     if supplied.is_absolute():
         path = supplied.resolve()
@@ -72,17 +72,17 @@ def _resolve_session_path(workspace_root: Path, session_root: Path, raw: Any) ->
     else:
         path = (session_root / supplied).resolve()
     if path != session_root and session_root not in path.parents:
-        raise ValueError(f"Image path escapes active session workspace: {text}")
+        raise ValueError(f"图片路径超出了当前会话工作区: {text}")
     if not path.exists():
-        raise ValueError(f"Image not found in active session: {text}")
+        raise ValueError(f"在当前会话中未找到图片: {text}")
     if not path.is_file():
-        raise ValueError(f"Image path is not a file: {text}")
+        raise ValueError(f"图片路径不是文件: {text}")
     return path
 
 
 def _load_image(path: Path) -> tuple[Image.Image, tuple[int, int]]:
     if path.suffix.lower() not in SUPPORTED_IMAGE_SUFFIXES:
-        raise ValueError(f"Unsupported image type: {path.suffix or '<none>'}")
+        raise ValueError(f"不支持的图片类型: {path.suffix or '<无>'}")
     try:
         with Image.open(path) as source:
             source.seek(0)
@@ -91,7 +91,7 @@ def _load_image(path: Path) -> tuple[Image.Image, tuple[int, int]]:
             image.load()
             return image, original_size
     except Exception as exc:
-        raise ValueError(f"Cannot decode image {path.name}: {exc}") from exc
+        raise ValueError(f"无法解码图片 {path.name}: {exc}") from exc
 
 
 def _encode_for_model(image: Image.Image, *, max_dimension: int, max_bytes: int) -> tuple[str, dict[str, Any]]:
@@ -116,7 +116,7 @@ def _encode_for_model(image: Image.Image, *, max_dimension: int, max_bytes: int)
             rendered.save(buffer, format="JPEG", quality=55, optimize=True)
             payload = buffer.getvalue()
         if len(payload) > max_bytes:
-            raise ValueError(f"Image cannot be reduced below configured {max_bytes} byte limit")
+            raise ValueError(f"图片无法缩减到配置的 {max_bytes} 字节限制以下")
         encoded = base64.b64encode(payload).decode("ascii")
         return f"data:image/jpeg;base64,{encoded}", {
             "mime_type": "image/jpeg",

@@ -2,7 +2,7 @@ import asyncio
 from pipelines.idea2video_pipeline import Idea2VideoPipeline
 
 
-# SET YOUR OWN IDEA, USER REQUIREMENT, AND STYLE HERE
+# 在此设置你自己的构思、用户需求和风格
 idea = \
     """
 A beaufitul fit woman with black hair, great butt and thigs is exercising in a

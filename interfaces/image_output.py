@@ -24,35 +24,35 @@ class ImageOutput:
 
 
     def save_b64(self, path: str) -> None:
-        """Save a base64 encoded image to the specified path.
+        """将 base64 编码的图片保存到指定路径。
 
         Args:
-            path (str): Path where the image will be saved.
+            path (str): 图片保存路径。
         """
         with open(path, 'wb') as f:
             f.write(base64.b64decode(self.data))
 
     def save_url(self, path: str) -> None:
-        """Download and save an image from a URL to the specified path.
+        """从 URL 下载图片并保存到指定路径。
 
         Args:
-            path (str): Path where the image will be saved.
+            path (str): 图片保存路径。
         """
         download_image(self.data, path)
 
     def save_pil(self, path: str) -> None:
-        """Save a PIL Image to the specified path.
+        """将 PIL Image 保存到指定路径。
 
         Args:
-            path (str): Path where the image will be saved.
+            path (str): 图片保存路径。
         """
         self.data.save(path)
 
     def save_np(self, path: str) -> None:
-        """Save a numpy array to the specified path.
+        """将 numpy 数组保存到指定路径。
 
         Args:
-            path (str): Path where the image will be saved.
+            path (str): 图片保存路径。
         """
         cv2.imencode('.png', self.data)[1].tofile(path)
 

@@ -1,8 +1,8 @@
-﻿"""Yunwu proxy variant of the doubao-seedream image generator.
+"""doubao-seedream 图片生成器的云雾代理变体。
 
-Consolidated (Phase 5): thin subclass of ImageGeneratorDoubaoSeedreamArkAPI
-with the Yunwu base_url and sequential_image_generation default. Same
-payload/response format (see ARK docstring).
+整合（阶段5）：ImageGeneratorDoubaoSeedreamArkAPI 的轻量子类，
+使用云雾 base_url 和 sequential_image_generation 默认值。
+负载/响应格式相同（见 ARK docstring）。
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from .image_generator_doubao_seedream_ark_api import ImageGeneratorDoubaoSeedrea
 
 
 class ImageGeneratorDoubaoSeedreamYunwuAPI(ImageGeneratorDoubaoSeedreamArkAPI):
-    """doubao-seedream via the Yunwu proxy (same format as Ark, different endpoint)."""
+    """通过云雾代理调用 doubao-seedream（格式与 Ark 相同，端点不同）。"""
 
     def __init__(
         self,

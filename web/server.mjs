@@ -133,14 +133,14 @@ if (isDev) {
 }
 
 server.listen(port, host, () => {
-  console.log(`InsightForge Web: http://${host}:${port}`);
+  console.log(`InsightForge Web 服务: http://${host}:${port}`);
 });
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 async function startAgent({newSession, sessionId, projectName = ''}) {
-  if (newSession && sessionId) throw new Error('Choose either a new or existing session');
+  if (newSession && sessionId) throw new Error('请选择新建或已有会话');
   stopAgent('switch');
   const {command, args} = agentCommand();
   const sessionArgs = newSession
@@ -264,7 +264,7 @@ async function readJsonBody(request) {
   for await (const chunk of request) chunks.push(chunk);
   if (!chunks.length) return {};
   const text = Buffer.concat(chunks).toString('utf8');
-  if (text.length > 1_000_000) throw new Error('Request body is too large');
+  if (text.length > 1_000_000) throw new Error('请求体过大');
   return JSON.parse(text);
 }
 

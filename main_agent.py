@@ -7,8 +7,8 @@ import sys
 from typing import Any, Iterable
 from uuid import uuid4
 
-# Force UTF-8 on Windows so emoji and other wide characters survive the
-# JSONL bridge to the Web UI.
+# 在 Windows 上强制使用 UTF-8，以确保 emoji 和其他宽字符能通过
+# JSONL 桥接正确传递到 Web UI。
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
 
@@ -22,12 +22,12 @@ def event_stdout():
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the InsightForge agent loop.")
-    parser.add_argument("--session", default="", help="Existing session id to activate before the run starts.")
-    parser.add_argument("--new-session", action="store_true", help="Create and activate a new empty session before the run starts.")
-    parser.add_argument("--new-session-name", default="", help="Display name for a newly created session.")
-    parser.add_argument("--jsonl", action="store_true", help="Print one JSON event per line.")
-    parser.add_argument("--once", default="", help="Run a single prompt and exit. If omitted and stdin is not a TTY, stdin is consumed as one prompt.")
+    parser = argparse.ArgumentParser(description="运行 InsightForge agent 循环。")
+    parser.add_argument("--session", default="", help="运行开始前要激活的已有会话 ID。")
+    parser.add_argument("--new-session", action="store_true", help="运行开始前创建并激活一个新的空会话。")
+    parser.add_argument("--new-session-name", default="", help="新创建会话的显示名称。")
+    parser.add_argument("--jsonl", action="store_true", help="每行输出一个 JSON 事件。")
+    parser.add_argument("--once", default="", help="运行单个提示后退出。若省略且 stdin 不是 TTY，则将 stdin 作为单个提示消费。")
     parser.add_argument("--stdin-repl", action="store_true", help=argparse.SUPPRESS)
     return parser.parse_args(argv)
 
@@ -56,14 +56,14 @@ def print_event(event: dict[str, Any], *, jsonl: bool) -> None:
         print(event.get("delta", ""), end="", file=out, flush=True)
     elif event_type == "tool_start":
         tool = event.get("tool", {})
-        print(f"\n· tool: {tool.get('name')} started", file=out, flush=True)
+        print(f"\n· tool: {tool.get('name')} 已启动", file=out, flush=True)
     elif event_type == "tool_progress":
         progress = event.get("progress", {})
         tool = event.get("tool", {})
-        print(f"· tool: {tool.get('name')} {progress.get('stage', 'running')}: {progress.get('message', '')}", file=out, flush=True)
+        print(f"· tool: {tool.get('name')} {progress.get('stage', '运行中')}: {progress.get('message', '')}", file=out, flush=True)
     elif event_type == "tool_result":
         result = event["tool_result"]
-        status = "done" if result.get("ok") else "error"
+        status = "完成" if result.get("ok") else "错误"
         print(f"· tool: {result.get('name')} {status}", file=out, flush=True)
     elif event_type == "terminal":
         stream = event.get("stream", "stdout")
@@ -107,10 +107,10 @@ def prompt_inputs(args: argparse.Namespace) -> Iterable[str]:
 async def amain(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.session and args.new_session:
-        print("error: --session and --new-session cannot be used together", file=sys.stderr)
+        print("错误: --session 和 --new-session 不能同时使用", file=sys.stderr)
         return 2
     if args.new_session_name and not args.new_session:
-        print("error: --new-session-name requires --new-session", file=sys.stderr)
+        print("错误: --new-session-name 需要配合 --new-session", file=sys.stderr)
         return 2
     if args.session or args.new_session:
         try:
@@ -123,20 +123,20 @@ async def amain(argv: list[str] | None = None) -> int:
             else:
                 session_index.set_active(args.session)
         except KeyError:
-            print(f"error: unknown session id: {args.session}", file=sys.stderr)
+            print(f"错误: 未知的会话 ID: {args.session}", file=sys.stderr)
             return 2
         except ValueError as exc:
-            print(f"error: invalid session id: {exc}", file=sys.stderr)
+            print(f"错误: 无效的会话 ID: {exc}", file=sys.stderr)
             return 2
     runtime = load_runtime()
     interactive = sys.stdin.isatty() and not args.once
     if interactive and not args.jsonl:
-        print("InsightForge agent ready. Ctrl+C to exit.")
+        print("InsightForge agent 已就绪。按 Ctrl+C 退出。")
     for user_input in prompt_inputs(args):
         if user_input.strip() == "/compact":
             turn_id = f"turn-{uuid4().hex[:12]}"
             print_event({"type": "turn", "turn_id": turn_id, "turn": {"id": turn_id}}, jsonl=args.jsonl)
-            print_event({"type": "status", "turn_id": turn_id, "phase": "compact", "message": "Compacting context"}, jsonl=args.jsonl)
+            print_event({"type": "status", "turn_id": turn_id, "phase": "compact", "message": "压缩上下文"}, jsonl=args.jsonl)
             message = await runtime.compact_history(reason="manual")
             print_event({"type": "token", "turn_id": turn_id, "delta": message}, jsonl=args.jsonl)
             print_event({"type": "done", "turn_id": turn_id, "assistant": message, "tool_results": []}, jsonl=args.jsonl)
@@ -146,10 +146,10 @@ async def amain(argv: list[str] | None = None) -> int:
             async for event in runtime.stream_events(user_input):
                 print_event(event, jsonl=args.jsonl)
         except Exception as exc:
-            # Keep the REPL alive: one failed turn must not kill the process
-            # (and with it the TUI driving us over stdio).
+            # 保持 REPL 存活：一次失败的轮次不能杀掉进程
+            # （否则会连带杀掉通过 stdio 驱动我们的 TUI）。
             turn_id = f"turn-{uuid4().hex[:12]}"
-            print_event({"type": "error", "turn_id": turn_id, "message": f"turn failed: {exc}"}, jsonl=args.jsonl)
+            print_event({"type": "error", "turn_id": turn_id, "message": f"轮次失败: {exc}"}, jsonl=args.jsonl)
             print_event({"type": "done", "turn_id": turn_id, "assistant": "", "tool_results": []}, jsonl=args.jsonl)
     return 0
 

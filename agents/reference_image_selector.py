@@ -156,7 +156,7 @@ class ReferenceImageSelector:
     ):
         filtered_image_path_and_text_pairs = available_image_path_and_text_pairs
 
-        # 1. filter images using text-only model
+        # 1. 使用纯文本模型筛选图片
         if len(available_image_path_and_text_pairs) >= 8:
             human_content = []
             for idx, (_, text) in enumerate(available_image_path_and_text_pairs):
@@ -180,13 +180,13 @@ class ReferenceImageSelector:
             try:
                 ref = await chain.ainvoke(messages)
                 filtered_image_path_and_text_pairs = select_pairs_by_indices(available_image_path_and_text_pairs, ref.ref_image_indices)
-                logging.info(f"Filtered image idx:{ref.ref_image_indices}")
+                logging.info(f"已筛选图片 idx:{ref.ref_image_indices}")
                 
             except Exception as e:
-                logging.error(f"Error get image prompt: \n{e}")
+                logging.error(f"获取图片 prompt 出错: \n{e}")
                 raise e
 
-        # 2. filter images using multimodal model
+        # 2. 使用多模态模型筛选图片
         human_content = []
         for idx, (image_path, text) in enumerate(filtered_image_path_and_text_pairs):
             human_content.append({
@@ -220,18 +220,18 @@ class ReferenceImageSelector:
             }
 
         except Exception as e:
-            logging.error(f"Error get image prompt: \n{e}")
+            logging.error(f"获取图片 prompt 出错: \n{e}")
             raise e
 
 
 
 
 def select_pairs_by_indices(pairs, indices):
-    """Index into pairs with LLM-emitted indices, rejecting out-of-range values.
+    """使用 LLM 发射的索引访问配对，拒绝越界值。"""
 
     Negative indices would silently select the wrong image via Python indexing.
     """
     invalid = [i for i in indices if i < 0 or i >= len(pairs)]
     if invalid:
-        raise ValueError(f"ref_image_indices out of range: {invalid} (have {len(pairs)} images)")
+        raise ValueError(f"ref_image_indices 超出范围: {invalid}（共有 {len(pairs)} 张图片）")
     return [pairs[i] for i in indices]

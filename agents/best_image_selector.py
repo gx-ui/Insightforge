@@ -77,7 +77,7 @@ class BestImageSelector:
 
     @retry(
         stop=stop_after_attempt(3),
-        after=lambda retry_state: logging.warning(f"Retrying best image selection due to {retry_state.outcome.exception()}"),
+        after=lambda retry_state: logging.warning(f"因 {retry_state.outcome.exception()} 正在重试最佳图片选择"),
     )
     async def __call__(
         self,
@@ -98,10 +98,10 @@ class BestImageSelector:
         """
 
         if not candidate_image_paths:
-            logging.warning("No candidate images provided; skipping best image selection")
-            raise ValueError("No candidate images to select from")
+            logging.warning("未提供候选图片；跳过最佳图片选择")
+            raise ValueError("没有候选图片可供选择")
 
-        logging.info(f"Selecting the best image from candidates: {candidate_image_paths}")
+        logging.info(f"正在从候选图片中选择最佳图片: {candidate_image_paths}")
 
         human_content = []
         for idx, (ref_image_path, text) in enumerate(reference_image_path_and_text_pairs):
@@ -140,9 +140,9 @@ class BestImageSelector:
         response = await chain.ainvoke(messages)
         idx = response.best_image_index
         if not isinstance(idx, int) or idx < 0 or idx >= len(candidate_image_paths):
-            logging.warning(f"Received invalid best_image_index={idx}; defaulting to 0")
+            logging.warning(f"收到无效的 best_image_index={idx}；默认为 0")
             idx = 0
         best_image_path = candidate_image_paths[idx]
-        logging.info(f"Best image selected: {best_image_path}")
-        logging.info(f"Selection reason: {response.reason}")
+        logging.info(f"已选择最佳图片: {best_image_path}")
+        logging.info(f"选择原因: {response.reason}")
         return best_image_path

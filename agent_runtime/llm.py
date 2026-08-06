@@ -14,9 +14,9 @@ from .models import ToolCall
 from utils.provider_presets import resolve_chat_model_config
 
 
-# Preserved as module-level constants for backward compatibility with any
-# importer; the retry policy is now delegated to the langchain ChatModel
-# (max_retries below), and the timeout to its constructor.
+# 保留为模块级常量是为了与任何导入方保持向后兼容；
+# 重试策略现已委托给 langchain ChatModel
+#（即下方的 max_retries），超时则委托给其构造函数。
 LLM_MAX_ATTEMPTS = 3
 LLM_RETRY_BACKOFF_SECONDS = (1.0, 4.0)
 LLM_REQUEST_TIMEOUT_SECONDS = 300.0
@@ -34,11 +34,11 @@ class AssistantMessage:
 
 
 def _to_langchain_messages(messages: list[dict[str, Any]]) -> list:
-    """Convert OpenAI-format message dicts to langchain BaseMessage objects.
+    """将 OpenAI 格式的消息字典转换为 langchain BaseMessage 对象。
 
-    Handles system/user(str)/user(multimodal list)/assistant(with nested
-    OpenAI tool_calls)/tool roles -- the exact shapes AgentLoop builds in
-    runtime_messages.
+    处理 system/user(字符串)/user(多模态列表)/assistant(含嵌套
+    OpenAI tool_calls)/tool 角色——即 AgentLoop 在 runtime_messages 中
+    构建的精确结构。
     """
     result = []
     for msg in messages:
@@ -87,13 +87,12 @@ def _assistant_message_from_langchain(ai: AIMessage) -> AssistantMessage:
 
 
 class OpenAICompatibleLLM:
-    """Agent LLM client backed by a langchain ChatModel.
+    """由 langchain ChatModel 支撑的 Agent LLM 客户端。
 
-    Replaces the former hand-rolled AsyncOpenAI wrapper. The public surface
-    (constructor + ``complete``) is unchanged so AgentLoop is untouched; the
-    OpenAI-format message dicts are converted to langchain messages internally.
-    Defensive tool->plain fallback is preserved for providers/models that fail
-    on tool calls.
+    替代了原先手动实现的 AsyncOpenAI 封装。公共接口
+    （构造函数 + ``complete``）保持不变，因此 AgentLoop 无需改动；
+    OpenAI 格式的消息字典在内部被转换为 langchain 消息。
+    对于在工具调用上失败的供应商/模型，保留了防御性的 tool->plain 回退。
     """
 
     def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None) -> None:
@@ -101,7 +100,7 @@ class OpenAICompatibleLLM:
         self.base_url = base_url or llm_base_url()
         self.api_key = api_key or llm_api_key()
         if not self.api_key:
-            raise RuntimeError("INSIGHTFORGE_LLM_API_KEY is required for the agent LLM client")
+            raise RuntimeError("Agent LLM 客户端需要 INSIGHTFORGE_LLM_API_KEY")
         init_args = resolve_chat_model_config(
             {
                 "model": self.model,
@@ -122,9 +121,9 @@ class OpenAICompatibleLLM:
             try:
                 ai = await self._chat_model.bind_tools(tools).ainvoke(lc_messages)
             except Exception:
-                # Defensive fallback: some relays/models reject tool requests.
-                # Retry as plain chat so the turn degrades gracefully instead of
-                # aborting; if plain chat also fails the real error surfaces.
+                # 防御性回退：某些中转/模型会拒绝工具请求。
+                # 以普通对话重试，使该轮次优雅降级而非
+                # 中止；若普通对话也失败，则暴露真实错误。
                 ai = await self._chat_model.ainvoke(lc_messages)
         else:
             ai = await self._chat_model.ainvoke(lc_messages)

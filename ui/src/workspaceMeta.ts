@@ -23,10 +23,10 @@ export function compactionBar(used: number, target: number, width = 18): string 
 }
 
 export function compactionLabel(used: number, target: number): string {
-  if (target <= 0) return 'Compaction disabled';
+  if (target <= 0) return '压缩已禁用';
   const safeUsed = Math.max(0, Math.round(used));
   const percent = Math.min(999, Math.max(0, Math.round((safeUsed / target) * 100)));
-  return `Compaction [${compactionBar(safeUsed, target)}] ${safeUsed}/${target} (${percent}%)`;
+  return `压缩 [${compactionBar(safeUsed, target)}] ${safeUsed}/${target} (${percent}%)`;
 }
 
 export function resolveWorkspacePath(_repoRoot: string, workingDir?: string): string {

@@ -63,10 +63,10 @@ export function ArtifactsView({session, artifacts}: {session?: SessionSummary; a
   return (
     <section className="artifacts-view">
       <header>
-        <div><span>Generated files</span><h1>{session ? projectTitle(session) : 'Artifacts'}</h1></div>
-        <span className="artifact-file-count">{jsonArtifacts.length} documents · {mediaArtifacts.length} visuals</span>
+        <div><span>生成的文件</span><h1>{session ? projectTitle(session) : '产物'}</h1></div>
+        <span className="artifact-file-count">{jsonArtifacts.length} 个文档 · {mediaArtifacts.length} 个视觉素材</span>
       </header>
-      <div className="artifact-view-switcher" role="tablist" aria-label="Artifact type">
+      <div className="artifact-view-switcher" role="tablist" aria-label="产物类型">
         {(['all', 'documents', 'visuals'] as const).map((option) => (
           <button
             key={option}
@@ -75,23 +75,23 @@ export function ArtifactsView({session, artifacts}: {session?: SessionSummary; a
             className={view === option ? 'is-selected' : ''}
             onClick={() => setView(option)}
           >
-            {option === 'all' ? 'All' : option === 'documents' ? 'Documents' : 'Visuals'}
+            {option === 'all' ? '全部' : option === 'documents' ? '文档' : '视觉'}
           </button>
         ))}
       </div>
       {!session ? (
-        <ArtifactsEmpty title="Select a project" detail="Project files appear here after planning" />
+        <ArtifactsEmpty title="选择一个项目" detail="规划后项目文件将显示在此处" />
       ) : (
         <>
           {(view === 'all' || view === 'documents') && (
             <section className="artifact-content-section">
-              {view === 'all' && <SectionHeading title="Project artifacts" detail="Documents with related visuals" />}
+              {view === 'all' && <SectionHeading title="项目产物" detail="文档及相关视觉素材" />}
               {jsonArtifacts.length === 0 ? (
-                <ArtifactsEmpty title="No structured files yet" detail="JSON artifacts appear here after planning" />
+                <ArtifactsEmpty title="尚无结构化文件" detail="规划后 JSON 产物将显示在此处" />
               ) : (
                 <div className="artifact-browser">
-                  <nav className="artifact-document-list" aria-label="Generated JSON files">
-                    <div className="artifact-document-list-title"><span>Documents</span><span>{jsonArtifacts.length}</span></div>
+                  <nav className="artifact-document-list" aria-label="生成的 JSON 文件">
+                    <div className="artifact-document-list-title"><span>文档</span><span>{jsonArtifacts.length}</span></div>
                     {jsonArtifacts.map((artifact) => (
                       <button
                         key={artifact.path}
@@ -106,14 +106,14 @@ export function ArtifactsView({session, artifacts}: {session?: SessionSummary; a
                   <article className={`artifact-document ${view === 'all' ? 'has-related-visuals' : ''}`}>
                     {selected && (
                       <header>
-                        <div><span>Structured view</span><h2>{friendlyArtifactTitle(selected)}</h2></div>
+                        <div><span>结构化视图</span><h2>{friendlyArtifactTitle(selected)}</h2></div>
                         <small>{formatBytes(selected.size)}</small>
                       </header>
                     )}
                     <div className="artifact-document-layout">
                       <div className="artifact-structured-content">
                         {loading ? (
-                          <div className="artifact-document-state">Loading document…</div>
+                          <div className="artifact-document-state">正在加载文档…</div>
                         ) : error ? (
                           <div className="artifact-document-state is-error">{error}</div>
                         ) : document !== undefined && selected ? (
@@ -146,7 +146,7 @@ function VisualArtifacts({artifacts, onPreview}: {artifacts: Artifact[]; onPrevi
         <div className="render-grid">
           {artifacts.map((artifact) => (
             <article key={artifact.path} className="render-item">
-              <button className="render-media" onClick={() => onPreview(artifact)} aria-label={`Preview ${artifact.name}`}>
+              <button className="render-media" onClick={() => onPreview(artifact)} aria-label={`预览 ${artifact.name}`}>
                 {artifact.kind === 'image'
                   ? <img src={mediaUrl(artifact)} alt={artifact.name} />
                   : <video src={mediaUrl(artifact)} muted playsInline preload="metadata" />}
@@ -162,8 +162,8 @@ function VisualArtifacts({artifacts, onPreview}: {artifacts: Artifact[]; onPrevi
       ) : (
         <div className="renders-empty">
           <Film size={24} />
-          <strong>No visual artifacts yet</strong>
-          <span>Images and videos appear here during rendering</span>
+          <strong>暂无视觉产物</strong>
+          <span>渲染过程中图片和视频将显示在此处</span>
         </div>
       )}
     </section>
@@ -172,15 +172,15 @@ function VisualArtifacts({artifacts, onPreview}: {artifacts: Artifact[]; onPrevi
 
 function RelatedVisuals({artifacts, onPreview}: {artifacts: Artifact[]; onPreview: (artifact: Artifact) => void}) {
   return (
-    <aside className="artifact-related-visuals" aria-label="Related visuals">
+    <aside className="artifact-related-visuals" aria-label="相关视觉素材">
       <header>
-        <div><span>Related visuals</span><strong>{artifacts.length}</strong></div>
-        <small>{artifacts.length > 0 ? 'Select to preview' : 'Awaiting render'}</small>
+        <div><span>相关视觉素材</span><strong>{artifacts.length}</strong></div>
+        <small>{artifacts.length > 0 ? '选择以预览' : '等待渲染'}</small>
       </header>
       {artifacts.length > 0 ? (
         <div className="related-visual-grid">
           {artifacts.map((artifact) => (
-            <button key={artifact.path} onClick={() => onPreview(artifact)} aria-label={`Preview ${visualArtifactLabel(artifact)}`}>
+            <button key={artifact.path} onClick={() => onPreview(artifact)} aria-label={`预览 ${visualArtifactLabel(artifact)}`}>
               <span>
                 {artifact.kind === 'image'
                   ? <img src={mediaUrl(artifact)} alt={visualArtifactLabel(artifact)} />
@@ -195,7 +195,7 @@ function RelatedVisuals({artifacts, onPreview}: {artifacts: Artifact[]; onPrevie
       ) : (
         <div className="related-visual-empty">
           <ImageIcon size={19} />
-          <span>Matching images and clips will appear alongside this document.</span>
+          <span>匹配的图片和视频片段将显示在此文档旁</span>
         </div>
       )}
     </aside>
@@ -213,10 +213,10 @@ function MediaPreviewDialog({artifact, onClose}: {artifact: Artifact; onClose: (
 
   return (
     <div className="media-preview-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className="media-preview-dialog" role="dialog" aria-modal="true" aria-label={`Preview ${visualArtifactLabel(artifact)}`}>
+      <section className="media-preview-dialog" role="dialog" aria-modal="true" aria-label={`预览 ${visualArtifactLabel(artifact)}`}>
         <header>
           <div><strong>{visualArtifactLabel(artifact)}</strong><span>{formatBytes(artifact.size)}</span></div>
-          <button className="icon-button" onClick={onClose} aria-label="Close preview"><X size={18} /></button>
+          <button className="icon-button" onClick={onClose} aria-label="关闭预览"><X size={18} /></button>
         </header>
         <div className="media-preview-stage">
           {artifact.kind === 'image'
@@ -270,7 +270,7 @@ export function StoryboardPanel({open, artifacts, activeRenderStage, onClose, on
       setPreviews(loaded);
       onCountChange(loaded.length);
       if (loaded.length === 0 && results.some((result) => result.status === 'rejected')) {
-        setError('Storyboard descriptions could not be loaded');
+        setError('分镜描述无法加载');
       }
     }).finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
@@ -295,64 +295,64 @@ export function StoryboardPanel({open, artifacts, activeRenderStage, onClose, on
   return (
     <aside className={`storyboard-panel ${open ? 'is-open' : ''}`}>
       <header>
-        <div><strong>Storyboard</strong><span>{previews.length > 0 ? `${index + 1} of ${previews.length}` : 'Preview'}</span></div>
-        <button className="icon-button" onClick={onClose} aria-label="Close storyboard preview"><X size={18} /></button>
+        <div><strong>分镜</strong><span>{previews.length > 0 ? `${index + 1} / ${previews.length}` : '预览'}</span></div>
+        <button className="icon-button" onClick={onClose} aria-label="关闭分镜预览"><X size={18} /></button>
       </header>
-      <section className="render-readiness" aria-label="Render readiness">
+      <section className="render-readiness" aria-label="渲染就绪状态">
         <div className="render-readiness-summary">
-          <strong>{readiness.readyToRender ? 'Ready to render' : 'Planning incomplete'}</strong>
+          <strong>{readiness.readyToRender ? '就绪可渲染' : '规划未完成'}</strong>
         </div>
         <div className="render-checkpoints">
           <ReadinessCheckpoint
-            label="Storyboards"
-            detail={readiness.storyboards.count === 1 ? '1 shot' : `${readiness.storyboards.count} shots`}
+            label="分镜"
+            detail={readiness.storyboards.count === 1 ? '1 个镜头' : `${readiness.storyboards.count} 个镜头`}
             status={readiness.storyboards.status}
           />
           <ReadinessCheckpoint
-            label="Shot descriptions"
+            label="镜头描述"
             detail={`${readiness.shotDescriptions.count}/${readiness.shotDescriptions.expected || 0}`}
             status={readiness.shotDescriptions.status}
           />
           <ReadinessCheckpoint
-            label="Camera plans"
+            label="镜头规划"
             detail={`${readiness.cameraPlans.count}/${readiness.cameraPlans.expected || 0}`}
             status={readiness.cameraPlans.status}
           />
         </div>
         <div className="render-stage-heading">
-          <span>Render</span>
-          <small>{activeRenderStage ? 'Generating' : readiness.render.finalVideo.status === 'ready' ? 'Complete' : readiness.render.started ? 'Partial' : 'Not started'}</small>
+          <span>渲染</span>
+          <small>{activeRenderStage ? '生成中' : readiness.render.finalVideo.status === 'ready' ? '完成' : readiness.render.started ? '部分完成' : '未开始'}</small>
         </div>
         <div className="render-checkpoints">
           <ReadinessCheckpoint
-            label="Keyframes"
+            label="关键帧"
             detail={`${readiness.render.frames.count}/${readiness.render.frames.expected || 0}`}
             status={readiness.render.frames.status}
             generating={activeCheckpoint === 'frames'}
           />
           <ReadinessCheckpoint
-            label="Video clips"
+            label="视频片段"
             detail={`${readiness.render.clips.count}/${readiness.render.clips.expected || 0}`}
             status={readiness.render.clips.status}
             generating={activeCheckpoint === 'clips'}
           />
           <ReadinessCheckpoint
-            label="Final video"
-            detail={readiness.render.finalVideo.status === 'ready' ? 'Ready' : 'Pending'}
+            label="最终视频"
+            detail={readiness.render.finalVideo.status === 'ready' ? '就绪' : '等待中'}
             status={readiness.render.finalVideo.status}
             generating={activeCheckpoint === 'finalVideo'}
           />
         </div>
       </section>
       <div className="storyboard-description" aria-live="polite">
-        {loading ? <span>Loading storyboard…</span> : error ? <span className="is-error">{error}</span> : current ? <p>{current.description}</p> : <span>No storyboard descriptions yet</span>}
+        {loading ? <span>正在加载分镜…</span> : error ? <span className="is-error">{error}</span> : current ? <p>{current.description}</p> : <span>暂无分镜描述</span>}
       </div>
       <footer>
-        <button onClick={() => setIndex((currentIndex) => Math.max(0, currentIndex - 1))} disabled={index === 0 || previews.length === 0} aria-label="Previous storyboard">
-          <ChevronUp size={17} /><span>Previous</span>
+        <button onClick={() => setIndex((currentIndex) => Math.max(0, currentIndex - 1))} disabled={index === 0 || previews.length === 0} aria-label="上一个分镜">
+          <ChevronUp size={17} /><span>上一个</span>
         </button>
-        <button onClick={() => setIndex((currentIndex) => Math.min(previews.length - 1, currentIndex + 1))} disabled={index >= previews.length - 1 || previews.length === 0} aria-label="Next storyboard">
-          <ChevronDown size={17} /><span>Next</span>
+        <button onClick={() => setIndex((currentIndex) => Math.min(previews.length - 1, currentIndex + 1))} disabled={index >= previews.length - 1 || previews.length === 0} aria-label="下一个分镜">
+          <ChevronDown size={17} /><span>下一个</span>
         </button>
       </footer>
     </aside>
@@ -375,8 +375,8 @@ function StatusLight({status, generating = false}: {status: ReadinessStatus; gen
 
 function StructuredDocument({value, artifact}: {value: JsonValue; artifact: Artifact}) {
   if (Array.isArray(value)) {
-    if (value.length === 0) return <div className="structured-empty">This document is empty</div>;
-    if (value.every(isJsonPrimitive)) return <StructuredField label="Contents" value={formatStructuredValue(value)} />;
+    if (value.length === 0) return <div className="structured-empty">此文档为空</div>;
+    if (value.every(isJsonPrimitive)) return <StructuredField label="内容" value={formatStructuredValue(value)} />;
     return (
       <div className="structured-records">
         {value.map((record, index) => (
@@ -385,8 +385,8 @@ function StructuredDocument({value, artifact}: {value: JsonValue; artifact: Arti
       </div>
     );
   }
-  if (isJsonObject(value)) return <StructuredRecord title="Overview" value={value} depth={0} />;
-  return <StructuredField label="Contents" value={formatStructuredValue(value)} />;
+  if (isJsonObject(value)) return <StructuredRecord title="概览" value={value} depth={0} />;
+  return <StructuredField label="内容" value={formatStructuredValue(value)} />;
 }
 
 function StructuredRecord({title, value, depth}: {title: string; value: JsonValue; depth: number}) {
@@ -412,9 +412,9 @@ function StructuredRecord({title, value, depth}: {title: string; value: JsonValu
 }
 
 function StructuredNested({label, value, depth}: {label: string; value: JsonValue; depth: number}) {
-  if (depth > 5) return <StructuredField label={label} value="Additional structured details" />;
+  if (depth > 5) return <StructuredField label={label} value="其他结构化详情" />;
   if (Array.isArray(value)) {
-    if (value.length === 0) return <StructuredField label={label} value="None" />;
+    if (value.length === 0) return <StructuredField label={label} value="无" />;
     return (
       <section className="structured-nested">
         <h4>{label}</h4>
@@ -449,7 +449,7 @@ function isPrimitiveArray(value: JsonValue): value is Array<string | number | bo
 }
 
 function projectTitle(session: SessionSummary): string {
-  return session.projectName || session.idea || session.summary || 'Untitled video';
+  return session.projectName || session.idea || session.summary || '未命名视频';
 }
 
 function formatBytes(bytes: number) {

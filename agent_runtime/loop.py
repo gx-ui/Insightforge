@@ -30,7 +30,7 @@ class AgentLoopLegacy:
 
     async def compact_history(self, *, reason: str = "manual") -> str:
         if not self.history:
-            return "No conversation history to compact."
+            return "没有可压缩的对话历史。"
         session = self.session_index.active() or self.session_index.create()
         result = await self.context_compactor.compact(
             self.history,
@@ -39,7 +39,7 @@ class AgentLoopLegacy:
         )
         self.history = [self.context_compactor.synthetic_summary_message(result.summary), *result.preserved_messages]
         self.session_index.update_compaction(session["session_id"], _compaction_record(result))
-        return f"Compacted context {result.estimated_tokens_before} -> {result.estimated_tokens_after} ({result.mode})."
+        return f"已压缩上下文 {result.estimated_tokens_before} -> {result.estimated_tokens_after} ({result.mode})。"
 
     async def stream_events(self, user_input: str) -> AsyncIterator[dict[str, Any]]:
         control = TurnControl()
@@ -52,7 +52,7 @@ class AgentLoopLegacy:
             system_tokens=_prompt_tokens(parts),
             tools_tokens=_tool_schema_tokens(tool_schemas),
         ):
-            yield {"type": "status", "turn_id": control.turn_id, "phase": "compact", "message": "Compacting context before sampling"}
+            yield {"type": "status", "turn_id": control.turn_id, "phase": "compact", "message": "采样前压缩上下文"}
             await self.compact_history(reason="token-pressure")
             parts = self.prompt_builder.build_parts(user_input)
             system = "\n\n".join(f"## {part.title}\n{part.body}" for part in parts if part.id != "request.user")
@@ -67,12 +67,12 @@ class AgentLoopLegacy:
         tool_round = 0
 
         while True:
-            yield {"type": "status", "turn_id": control.turn_id, "phase": "sampling_assistant", "message": "Sampling assistant"}
+            yield {"type": "status", "turn_id": control.turn_id, "phase": "sampling_assistant", "message": "正在采样助手"}
             try:
                 assistant = await self.llm.complete(runtime_messages, tools=tool_schemas)
             except Exception as exc:
                 status = "failed"
-                final_text = f"Agent LLM request failed: {exc}"
+                final_text = f"Agent LLM 请求失败: {exc}"
                 transitions.append(_transition("sampling_assistant", "finalizing_answer", "llm_sampling_failed"))
                 yield {"type": "error", "turn_id": control.turn_id, "message": final_text, "metadata": {"error_type": "llm_sampling_failed"}}
                 break
@@ -86,12 +86,12 @@ class AgentLoopLegacy:
             transitions.append(_transition("sampling_assistant", "executing_tools", "assistant_requested_tools"))
             if tool_round >= MAX_TOOL_PASSES:
                 status = "halted"
-                final_text = "Tool loop halted after max tool passes."
+                final_text = "工具循环在达到最大工具调用轮次后停止。"
                 transitions.append(_transition("executing_tools", "finalizing_answer", "max_tool_passes_reached"))
                 yield {"type": "error", "turn_id": control.turn_id, "message": final_text, "metadata": {"max_tool_passes": MAX_TOOL_PASSES}}
                 break
             tool_round += 1
-            yield {"type": "status", "turn_id": control.turn_id, "phase": "executing_tools", "message": f"Running tools (round {tool_round})"}
+            yield {"type": "status", "turn_id": control.turn_id, "phase": "executing_tools", "message": f"正在运行工具（第 {tool_round} 轮）"}
             runtime_messages.append({"role": "assistant", "content": assistant.text or "", "tool_calls": [_openai_tool_call(call) for call in assistant.tool_calls]})
             round_results: list[ToolResult] = []
             round_model_content: list[dict[str, Any]] = []
