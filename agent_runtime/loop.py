@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import asyncio
@@ -17,7 +17,7 @@ from .tools import ToolRegistry, build_builtin_registry
 MAX_TOOL_PASSES = 50
 
 
-class AgentLoop:
+class AgentLoopLegacy:
     def __init__(self, session_index: SessionIndex, prompt_builder: PromptBuilder, tool_registry: ToolRegistry, tool_executor: ToolExecutor, llm: Any, context_compactor: ContextCompactor | None = None) -> None:
         self.session_index = session_index
         self.prompt_builder = prompt_builder
@@ -185,3 +185,5 @@ def build_runtime(workspace_root: str | Path = ".", llm: Any | None = None, adap
     prompt_builder = PromptBuilder(root / "prompts", session_index, registry)
     resolved_llm = llm or OpenAICompatibleLLM()
     return AgentLoop(session_index, prompt_builder, registry, executor, resolved_llm, ContextCompactor(resolved_llm))
+
+from .agent_graph import AgentLoop  # graph-backed loop (Phase 3)

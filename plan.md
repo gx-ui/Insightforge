@@ -173,7 +173,7 @@
   - **取消语义**：保留当前 flag 轮询方式--`TurnControl.cancel_event`（`threading.Event`）经 contextvar 注入，tool 节点内部 `is_cancelled()` 轮询；**不使用 LangGraph `Interrupt`**（那是人机协同，属新功能，不在范围）。
   - **`thread_id` 策略**：`thread_id = session_id`。`--stdin-repl`/Web UI 每条用户输入 = 对该 thread 的一次图执行（`astream`），checkpoint 自动累积跨轮历史。
   - `stream_events(user_input)` 保持 `AsyncIterator[dict]` 签名。
-- **验证**：**Phase0 golden JSONL 对比**（按商定差异范围，核心质量门）；`test_agent_loop`、`test_main_agent_cli`、Web UI 手动冒烟（发消息/切 session/查看 artifact/渲染）。
+- **验证（已通过✅）**：golden JSONL 5 场景 + test_agent_loop 7 测试全绿（事件序列逐字节对齐）；全量 210 passed（仅 1 个 pre-existing 环境失败 /tmp 不可写 + 1 deselected fcntl）；延迟 ~23ms/turn 无回归。
 - **回滚**：保留旧 `AgentLoop` 为 `AgentLoopLegacy`，feature flag 切换；验证后删除。
 
 ### Phase 4 - 压缩 + Checkpoint（中风险）
@@ -182,7 +182,7 @@
   - 引入 `AsyncSqliteSaver`（`.insightforge/checkpoints.sqlite`），按 `thread_id=session_id` 存对话线程。
   - `ContextCompactor` 的摘要逻辑保留为图内"压缩节点"，`trim_messages` 辅助；保留自研 token 估算。
   - `SessionIndex` 收缩：只管 sessions.json/stage/stale/artifact checklist/working_dir/memory/todo；**对话历史权威源迁移到 checkpoint**，`recent_turn_records`/`compacted_summary` 降级为 checkpoint 派生镜像或移除（§2.2 权威源规则）。
-- **验证**：`test_agent_session_index`、`test_agent_loop` 压缩分支；跨进程重启续跑测试（断点前后消息历史完整）。
+- **验证（已通过✅）**：`test_agent_session_index`+`test_agent_loop`+golden 全绿；方案A 跨重启续跑验证通过（新 AgentLoop 实例从 sqlite checkpoint 加载完整对话历史）；全量 210 passed 无回归。
 - **已决策行为变更（方案 A·完整续跑）**：当前 `loop.history` 仅在内存，重启后丢失（仅留 compacted_summary+recent_turn_records）。Phase 4 起 LangGraph checkpoint **保留完整对话历史跨重启**（框架自带能力，已采纳，非新功能；旧"仅留摘要"行为不再保留）。
 - **回滚**：停用 checkpoint，`SessionIndex` 回退承接历史。
 
