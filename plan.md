@@ -285,3 +285,33 @@ Phase 0 (地基 + event_bridge 原型门 + golden 冻结 + 延迟基准) ── 
 - 5、6 可与 1-4 并行排期。
 - 7 必须在 3、6 完成后。
 - event_bridge 原型门在 Phase 0 内、golden 冻结前完成。
+
+
+---
+
+## 9. 执行进度（截至当前）
+
+### ✅ 已完成并提交
+
+| 阶段 | commit | 内容 |
+|---|---|---|
+| Phase 0 | 65426cb | langgraph 1.0.1 依赖 + golden 契约测试（5 场景）+ event_bridge 原型门（stream_mode=custom 字节级等价）+ 延迟基准 |
+| Phase 1 | 5172f76 | OpenAICompatibleLLM -> init_chat_model + bind_tools；消息转换器；tool->plain 回退；配置审计 |
+| Phase 2 | 3516469 | interop 守卫（bind_tools 接受现有 schema）；StructuredTool 迁移延迟（additionalProperties 契约冲突） |
+| Phase 3 | 27d7cec | Agent loop -> LangGraph StateGraph；节点 get_stream_writer 直接发 JSONL；非流式单 delta；MAX_TOOL_PASSES |
+| Phase 4 | 27d7cec | AsyncSqliteSaver checkpoint（方案A）；history 入图 state；thread_id=session_id；跨重启完整续跑验证 |
+| Phase 6（部分）| d60f66d | script2video plan_text_artifacts -> StateGraph（4 节点线性 + asyncio.gather 节点内）；idea2video 自动受益 |
+| Phase 5（部分）| 838645a | doubao yunwu 生成器（seedream + seedance）合并为 ark 薄子类（-212 行重复） |
+
+### 📋 剩余/延迟
+
+| 阶段 | 状态 | 说明 |
+|---|---|---|
+| Phase 5 余 | 延迟 | google/yunwu 对（nanobanana/veo）是不同 API 客户端（google-genai vs http proxy），非重复实现，保留 |
+| Phase 6 novel2movie | 延迟 | plan_text_artifacts 是单体方法（循环+RAG+semaphore），需先提取 step-methods 再转图 |
+| Phase 6 render | 延迟 | __call__ 渲染管线极复杂（portraits+frames+video+concat），现有编排工作良好，优先级低 |
+| Phase 7 | 实质完成 | adapters 已通过 graph-backed plan_text_artifacts 间接使用图；ToolSpec 迁移随 Phase 2 延迟 |
+
+### 测试状态
+- **210 passed**，2 deselected（pre-existing 环境失败：Windows fcntl + /tmp 不可写）
+- golden 契约 5 场景 + test_agent_loop 7 + test_agent_llm 15 + test_insightforge_adapters 全绿
