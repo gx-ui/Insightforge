@@ -36,3 +36,4 @@ doc/
 
 # Font source files (subsetting pipeline inputs; regenerable, archived locally)
 web/fonts-src/
+tests/
