@@ -63,7 +63,6 @@ export default function SettingsView() {
     <div className="mx-auto w-full max-w-3xl px-6 py-8">
       <header className="mb-6">
         <h1 className="text-xl font-semibold text-ink-primary">设置</h1>
-        <p className="mt-1 text-sm text-ink-secondary">configs/agent.local.yaml</p>
       </header>
 
       <div className="space-y-4">

@@ -12,12 +12,6 @@ ROOT="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 usage() {
   cat <<EOF
 Usage:
-  insightforge tui                         Resume the current active session
-  insightforge tui new                     Create and activate a new empty session
-  insightforge tui resume                  Resume the current active session
-  insightforge tui resume <session_id>     Resume a specific existing session
-  insightforge tui --new-session           Same as: insightforge tui new
-  insightforge tui --session <session_id>  Same as: insightforge tui resume <session_id>
   insightforge web                         Start the InsightForge Web development server
   insightforge web start                   Serve a built InsightForge Web app
 EOF
@@ -53,53 +47,6 @@ case "$command" in
       exec npm --prefix "$ROOT/web" run start
     fi
     exec npm --prefix "$ROOT/web" run dev
-    ;;
-  tui)
-    tui_args=()
-    case "${1:-}" in
-      new)
-        tui_args+=("--new-session")
-        shift
-        ;;
-      resume|old)
-        shift
-        if [[ -n "${1:-}" && "${1:-}" != --* ]]; then
-          tui_args+=("--session" "$1")
-          shift
-        fi
-        ;;
-      --new-session)
-        tui_args+=("--new-session")
-        shift
-        ;;
-      --session)
-        if [[ -z "${2:-}" ]]; then
-          echo "error: --session requires a session id" >&2
-          exit 2
-        fi
-        tui_args+=("--session" "$2")
-        shift 2
-        ;;
-      "")
-        ;;
-      --help|-h|help)
-        usage
-        exit 0
-        ;;
-      *)
-        echo "error: unknown tui mode: $1" >&2
-        usage >&2
-        exit 2
-        ;;
-    esac
-    if [[ $# -gt 0 ]]; then
-      tui_args+=("$@")
-    fi
-    if [[ ! -x "$ROOT/ui/node_modules/.bin/tsx" ]]; then
-      echo "error: ui dependencies are missing. Run: cd $ROOT/ui && npm install" >&2
-      exit 2
-    fi
-    exec "$ROOT/ui/node_modules/.bin/tsx" "$ROOT/ui/src/cli.tsx" ${tui_args[@]+"${tui_args[@]}"}
     ;;
   --help|-h|help)
     usage

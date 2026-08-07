@@ -65,14 +65,14 @@ class ToolRegistryTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(written.result.ok)
             todo_path = Path(tmp) / ".insightforge" / "todo.json"
             self.assertTrue(todo_path.exists())
-            payload = json.loads(todo_path.read_text())
+            payload = json.loads(todo_path.read_text(encoding="utf-8"))
             self.assertEqual(payload["items"][0]["content"], "实现 TUI")
             self.assertEqual(payload["items"][1]["status"], "pending")
 
             read = await executor.execute(ToolCall(name="todo_read", arguments={}), TurnControl())
             self.assertTrue(read.result.ok)
             self.assertEqual(json.loads(read.result.content)["items"], payload["items"])
-            logs = (Path(tmp) / ".insightforge" / "logs" / "tool_calls.jsonl").read_text()
+            logs = (Path(tmp) / ".insightforge" / "logs" / "tool_calls.jsonl").read_text(encoding="utf-8")
             self.assertIn('"tool": "todo_write"', logs)
 
     async def test_todo_write_rejects_invalid_payload(self):
