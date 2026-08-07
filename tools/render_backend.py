@@ -1,4 +1,4 @@
-"""RenderBackend：基于配置的图片和视频生成器工厂。"""
+"""RenderBackend：基于配置的图片和视频生成器工厂。
 
 从 InsightForge YAML 配置中读取 ``image_generator`` 和 ``video_generator`` 部分，
 通过 *class_path* 实例化具体类，并接入速率限制器。

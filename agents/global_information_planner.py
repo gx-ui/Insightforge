@@ -13,39 +13,39 @@ from tenacity import retry, stop_after_attempt
 
 system_prompt_template_merge_characters_across_scenes_in_event = \
 """
-You are an expert script analysis and character fusion specialist. Your role is to intelligently analyze multiple script scenes, identify characters that represent the same entity across different scenes, and merge them into a unified character list with consistent identifiers.
+你是一名专业的剧本分析和角色融合专家。你的角色是智能分析多个剧本场景，识别不同场景中代表同一实体的角色，并将它们合并为具有一致标识符的统一角色列表。
 
-**TASK**
-Process the input scenes, each containing a script and characters with their names and features. Identify and merge characters that are logically the same across scenes, even if they have different names or slight variations in description. Output a consolidated list of characters for the entire event. Each character in the list must have a unique identifier, along with the scene numbers where they appear and the name used in each scene. You also need to aggregate the static features of the same characters together.
+**任务**
+处理输入的场景，每个场景包含一个剧本和角色及其名称和特征。识别并合并不同场景中逻辑上相同的角色，即使它们有不同的名称或描述上的细微差异。输出整个事件的合并角色列表。列表中的每个角色必须有唯一的标识符，以及他们出现的场景编号和每个场景中使用的名称。你还需要将相同角色的静态特征聚合在一起。
 
-**INPUT**
-A sequence of scenes. Each scene is enclosed within <SCENE_N_START> and <SCENE_N_END> tags, where N is the scene number(starting from 0). 
-Each scene includes a screnplay script and a sequence of character names.
-The screenplay script is enclosed within <SCRIPT_START> and <SCRIPT_END> tags.
-The sequence of character is enclosed within <CHARACTERS_START> and <CHARACTERS_END> tags. Each character in the list is enclosed within <CHARACTER_M_START> and <CHARACTER_M_END> tags, where M is the character number(starting from 0).
+**输入**
+一系列场景。每个场景被包裹在 <SCENE_N_START> 和 <SCENE_N_END> 标签之间，其中 N 是场景编号（从 0 开始）。
+每个场景包含一个剧本脚本和一个角色名称序列。
+剧本脚本被包裹在 <SCRIPT_START> 和 <SCRIPT_END> 标签之间。
+角色序列被包裹在 <CHARACTERS_START> 和 <CHARACTERS_END> 标签之间。列表中的每个角色被包裹在 <CHARACTER_M_START> 和 <CHARACTER_M_END> 标签之间，其中 M 是角色编号（从 0 开始）。
 
-Below is an example of one scene:
+以下是一个场景的示例：
 
 <SCENE_0_START>
 
 <SCRIPT_START>
-John enters the room and sees Mary.
-John: Hi Mary, how are you?
-Mary: I'm good, John. Thanks for asking!
+John 进入房间，看到了 Mary。
+John：嗨 Mary，你好吗？
+Mary：我很好，John。谢谢关心！
 <SCRIPT_END>
 
 <CHARACTERS_START>
 
 <CHARACTER_0_START>
 John [visible]
-static features: John is a tall man with short black hair and brown eyes.
-dynamic features: Wearing a blue shirt and black pants.
+static features: John 是一个高个子男人，黑色短发，棕色眼睛。
+dynamic features: 穿着蓝色衬衫和黑色裤子。
 <CHARACTER_0_END>
 
 <CHARACTER_1_START>
 Mary [visible]
-static features: Mary is a young woman with long brown hair and green eyes.
-dynamic features: Wearing a floral dress and a denim jacket.
+static features: Mary 是一个年轻女性，棕色长发，绿色眼睛。
+dynamic features: 穿着花卉连衣裙和牛仔夹克。
 <CHARACTER_1_END>
 
 <CHARACTERS_END>
@@ -54,16 +54,16 @@ dynamic features: Wearing a floral dress and a denim jacket.
 
 
 
-**OUTPUT**
+**输出**
 {format_instructions}
 
-**GUIDELINES**
-1. Character Fusion: Analyze contextual clues (e.g., dialogue style, role in plot, relationships, descriptions) to determine if characters from different scenes are the same person, even if names vary.
-2. Unique Identifier: Assign a consistent, unique ID (e.g., primary/canonical name) to each merged character. Use the most frequent or contextually appropriate name as the identifier, if possible.
-3. Scene Mapping: For each character, list all scenes they appear in and the exact name used in each scene.
-4. Completeness: Ensure all characters from all scenes are included in the final list. No duplicate, omitted, or extraneous characters.
-5. If a character undergoes significant changes across different scenes, it is necessary to split them into separate roles. For example, if Character A is a child in Scene 0 but an adult in Scene 1, they should be divided into two distinct characters (meaning two different actors are required to portray them).
-6. The language of outputs in values should be same as the input text.
+**指导原则**
+1. 角色融合：分析上下文线索（如对话风格、角色在情节中的作用、关系、描述）来判断不同场景中的角色是否为同一个人，即使名称不同。
+2. 唯一标识符：为每个合并后的角色分配一个一致的唯一 ID（例如主要/规范名称）。如果可能，使用最频繁或上下文最合适的名称作为标识符。
+3. 场景映射：对于每个角色，列出他们出现的所有场景以及每个场景中使用的确切名称。
+4. 完整性：确保所有场景中的所有角色都包含在最终列表中。没有重复、遗漏或多出的角色。
+5. 如果某个角色在不同场景中发生显著变化，则需要将其拆分为不同的角色。例如，如果角色 A 在场景 0 中是儿童，但在场景 1 中是成人，则应将他们分为两个不同的角色（意味着需要两个不同的演员来扮演他们）。
+6. 输出值中的语言应与输入文本一致。
 """
 
 
@@ -74,7 +74,7 @@ human_prompt_template_merge_characters_across_scenes_in_event = \
 
 class MergeCharactersAcrossScenesInEventResponse(BaseModel):
     characters: List[CharacterInEvent] = Field(
-        description="List of merged characters with their identifiers",
+        description="合并后的角色列表，包含其标识符",
     )
 
 
@@ -82,23 +82,23 @@ class MergeCharactersAcrossScenesInEventResponse(BaseModel):
 
 system_prompt_template_merge_characters_to_existing_characters_in_novel = \
 """
-You are an information integration expert skilled in accurately identifying, matching, and merging character information. Your responsibility is to ensure consistency in character attributes and efficiently maintain and update the global character list.
+你是一名信息整合专家，擅长准确识别、匹配和合并角色信息。你的职责是确保角色属性的一致性，并高效维护和更新全局角色列表。
 
-**TASK**
-Merge the character list extracted from the current event (which may include new or existing characters) into the global character list. For existing characters, ensure their feature descriptions remain consistent; for new characters, add them to the global list.
+**任务**
+将当前事件中提取的角色列表（可能包含新角色或现有角色）合并到全局角色列表中。对于现有角色，确保其特征描述保持一致；对于新角色，将其添加到全局列表中。
 
-**INPUT**
-1. Existing Characters in the Novel: A list of characters already present in the novel, each with a unique index, identifier, and static features. The list is enclosed within <EXISTING_CHARACTERS_START> and <EXISTING_CHARACTERS_END> tags. Each character in the list is enclosed within <CHARACTER_P_START> and <CHARACTER_P_END> tags, where P is the character number(starting from 0).
-2. Characters in the Current Event: A list of characters identified in the current event, each with an index, identifier, active scenes, and static features. The list is enclosed within <EVENT_CHARACTERS_START> and <EVENT_CHARACTERS_END> tags. Each character in the list is enclosed within <CHARACTER_Q_START> and <CHARACTER_Q_END> tags, where Q is the character number(starting from 0).
+**输入**
+1. 小说中的现有角色：小说中已存在的角色列表，每个角色有唯一的索引、标识符和静态特征。列表被包裹在 <EXISTING_CHARACTERS_START> 和 <EXISTING_CHARACTERS_END> 标签之间。列表中的每个角色被包裹在 <CHARACTER_P_START> 和 <CHARACTER_P_END> 标签之间，其中 P 是角色编号（从 0 开始）。
+2. 当前事件中的角色：当前事件中识别的角色列表，每个角色有索引、标识符、活跃场景和静态特征。列表被包裹在 <EVENT_CHARACTERS_START> 和 <EVENT_CHARACTERS_END> 标签之间。列表中的每个角色被包裹在 <CHARACTER_Q_START> 和 <CHARACTER_Q_END> 标签之间，其中 Q 是角色编号（从 0 开始）。
 
 
-**OUTPUT**
+**输出**
 {format_instructions}
 
-**GUIDELINES**
-1. Feature Consistency: Strictly compare the features of the current event characters with those of existing characters. Some character's identifier may be the same as existing role identifier, but their features differ, such as youth and old age. You need to distinguish them as two separate characters.
-2. Efficient Merging: Avoid duplicate characters to ensure the list remains concise.
-3. Feature Update: If an existing character's features are expanded or modified based on new information from the current event, update their description accordingly.
+**指导原则**
+1. 特征一致性：严格比较当前事件角色与现有角色的特征。有些角色的标识符可能与现有角色标识符相同，但特征不同，例如年轻和年老。你需要将它们区分为两个独立的角色。
+2. 高效合并：避免重复角色，确保列表保持简洁。
+3. 特征更新：如果基于当前事件的新信息，现有角色的特征被扩展或修改，则相应地更新其描述。
 """
 
 human_prompt_template_merge_characters_to_existing_characters_in_novel = \
@@ -115,24 +115,24 @@ human_prompt_template_merge_characters_to_existing_characters_in_novel = \
 
 class CharacterForMergingToNovel(BaseModel):
     index_in_event: int = Field(
-        description="The index of the character in the list of characters in the current event.",
+        description="当前事件角色列表中角色的索引。",
         examples=[0, 1, 2],
     )
     index_in_novel: int = Field(
-        description="The index of the character in the list of existing characters in the novel. If this is a new character, set it to -1.",
+        description="小说现有角色列表中角色的索引。如果是新角色，则设为 -1。",
         examples=[0, 7, -1],
     )
     identifier_in_novel: str = Field(
-        description="The unique identifier for the character in the novel. If this is a new character, ensure the name does not conflict with existing characters. If this is not a new character, this should match the identifier in the existing characters list.",
+        description="该角色在小说中的唯一标识符。如果是新角色，确保名称不与现有角色冲突。如果不是新角色，则应与现有角色列表中的标识符匹配。",
         examples=["Alice", "Bob the Builder"],
     )
     modified_features: str = Field(
-        description="The modified static features of the character after merging. If the character is new, this should be the full static features. If the character is existing and their features are expanded or modified, this should be filled in the complete modified features. If the character is existing and their features remain unchanged, this should be the same as the existing character's static features.",
+        description="合并后角色的修改静态特征。如果是新角色，则为完整的静态特征。如果是现有角色且其特征被扩展或修改，则填写完整的修改后特征。如果是现有角色且其特征保持不变，则与现有角色的静态特征相同。",
     )
 
 class MergeCharactersToExistingCharactersInNovelResponse(BaseModel):
     characters: List[CharacterForMergingToNovel] = Field(
-        description="List of characters in the event with their corresponding index in the existing characters in the novel. If the character is new, the index_in_novel should be -1. The number of characters in this list should be the same as the number of characters in the event.",
+        description="事件中角色及其对应小说现有角色索引的列表。如果是新角色，index_in_novel 应为 -1。此列表中的角色数量应与事件中的角色数量相同。",
     )
 
 
@@ -150,7 +150,7 @@ class GlobalInformationPlanner:
             api_key=api_key,
             base_url=base_url,
         )
-    
+
     @retry(
         stop=stop_after_attempt(3),
         after=lambda retry_state: logging.warning(f"因 {retry_state.outcome.exception()} 正在重试"),
@@ -270,99 +270,3 @@ class GlobalInformationPlanner:
                 existing_characters_in_novel[character.index_in_novel].active_events.update({event_idx: characters_in_event[character.index_in_event].identifier_in_event})
 
         return existing_characters_in_novel
-
-
-    # # TODO: 如果是长篇小说，事件太多，很容易报错，出场的角色会分不清在哪个事件里，也很容易漏，需要想办法解决
-    # @retry(
-    #     stop=stop_after_attempt(3),
-    #     after=lambda retry_state: logging.warning(f"因 {retry_state.outcome.exception()} 正在重试"),
-    # )
-    # def merge_characters_across_events_in_novel(
-    #     self,
-    #     events: List[Event],
-    #     characters_in_event: List[List[CharacterInEvent]],
-    # ) -> List[CharacterInNovelWithoutStaticFeatures]:
-    #     events_sequence_str = ""
-    #     for event, characters in zip(events, characters_in_event):
-    #         event_str = f"<EVENT_{event.index}_START>\n\n"
-    #         event_str += "<DESCRIPTION_START>\n"
-    #         event_str += event.description + "\n"
-    #         event_str += "<DESCRIPTION_END>\n\n"
-    #         event_str += "<PROCESS_CHAIN_START>\n"
-    #         for process in event.process_chain:
-    #             event_str += process + "\n"
-    #         event_str += "<PROCESS_CHAIN_END>\n\n"
-    #         event_str += "<CHARACTERS_START>\n"
-    #         for i, character in enumerate(characters):
-    #             event_str += f"<CHARACTER_{i}_START>{character.identifier_in_event}<CHARACTER_{i}_END>\n"
-    #         event_str += "<CHARACTERS_END>\n\n"
-    #         event_str += f"<EVENT_{event.index}_END>\n\n"
-    #         events_sequence_str += event_str
-
-    #     parser = PydanticOutputParser(pydantic_object=MergeCharactersAcrossEventsInNovelResponse)
-
-    #     messages = [
-    #         SystemMessage(
-    #             content=system_prompt_template_merge_characters_across_events.format(
-    #                 format_instructions=parser.get_format_instructions(),
-    #             ),
-    #         ),
-    #         HumanMessage(
-    #             content=human_prompt_template_merge_characters_across_events.format(
-    #                 events_sequence=events_sequence_str,
-    #             )
-    #         )
-    #     ]
-
-    #     chain = self.chat_model | parser
-    #     response: MergeCharactersAcrossEventsInNovelResponse = chain.invoke(messages)
-    #     characters_in_novel = response.characters
-
-    #     # 检查输出是否有效
-    #     flags = [{c.identifier_in_event: False for c in characters} for characters in characters_in_event]
-
-    #     # 检查所有角色标识符是否都能在事件中找到
-    #     for character in characters_in_novel:
-    #         for event_idx, identifier_in_event in character.active_events.items():
-    #             if identifier_in_event not in [c.identifier_in_event for c in characters_in_event[event_idx]]:
-    #                 raise ValueError(f"角色 {identifier_in_event} 在事件 {event_idx} 中未找到")
-    #             else:
-    #                 flags[event_idx][identifier_in_event] = True
-
-    #     # 检查是否包含所有角色
-    #     # for event_idx, flag in enumerate(flags):
-    #     #     for identifier_in_event, included in flag.items():
-    #     #         if not included:
-    #     #             raise ValueError(f"事件 {event_idx} 中的角色 {identifier_in_event} 未包含在合并后的角色列表中")
-
-    #     return characters_in_novel
-
-
-
-    # async def extract_static_feature_for_character_in_novel(
-    #     self,
-    #     relevant_chunks: List[str],
-    #     character: CharacterInNovelWithoutStaticFeatures,
-    # ) -> str:
-    #     context_fragments_str = ""
-    #     for i, chunk in enumerate(relevant_chunks):
-    #         context_fragments_str += f"<CONTEXT_FRAGMENT_{i}_START>\n"
-    #         context_fragments_str += chunk + "\n"
-    #         context_fragments_str += f"<CONTEXT_FRAGMENT_{i}_END>\n"
-
-    #     parser = None  # 无需解析输出，直接返回文本
-
-    #     messages = [
-    #         SystemMessage(
-    #             content=system_prompt_template_extract_static_feature_for_character_in_novel,
-    #         ),
-    #         HumanMessage(
-    #             content=human_prompt_template_extract_static_feature_for_character_in_novel.format(
-    #                 character_name=character.identifier_in_novel,
-    #                 context_fragments=context_fragments_str,
-    #             )
-    #         )
-    #     ]
-
-    #     base_features = await self.chat_model.ainvoke(messages)
-    #     return base_features.content

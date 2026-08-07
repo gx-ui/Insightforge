@@ -15,7 +15,7 @@ from tenacity.stop import stop_never
 from tenacity.wait import wait_none
 
 from agent_runtime.llm import OpenAICompatibleLLM
-from agent_runtime.loop import AgentLoop
+from agent_runtime.agent_graph import AgentLoop
 from agent_runtime.prompts import PromptBuilder
 from agent_runtime.session_index import SessionIndex
 from agent_runtime.tool_executor import ToolExecutor

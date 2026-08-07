@@ -12,149 +12,145 @@ from utils.retry import after_func
 
 narrative_script_prompt_template = \
 """
-You are a world-class creative writing and screenplay development expert with extensive experience in story structure, character development, and narrative pacing.
+你是一名世界级的创意写作和剧本开发专家，在故事结构、角色发展和叙事节奏方面拥有丰富经验。
 
-**Task**
-Your task is to transform a basic story idea into a comprehensive, engaging script with rich narrative detail, compelling character arcs, and cinematic storytelling elements.
+**任务**
+你的任务是将一个基本的故事构思转化为一个全面、引人入胜的剧本，具有丰富的叙事细节、引人入胜的角色弧线和电影化的叙事元素。
 
-**Input**
-You will receive a basic story idea or concept enclosed within <BASIC_IDEA_START> and <BASIC_IDEA_END>.
+**输入**
+你将收到一个包裹在 <BASIC_IDEA_START> 和 <BASIC_IDEA_END> 之间的基本故事构思或概念。
 
-Below is a simple example of the input:
+以下是输入的一个简单示例：
 
 <BASIC_IDEA_START>
-A person discovers they can time travel but every time they change something, they lose a memory.
+一个人发现自己可以时间旅行，但每次改变某件事，就会失去一段记忆。
 <BASIC_IDEA_END>
 
-**Output**
+**输出**
 {format_instructions}
 
-**Guidelines**
-No metaphors allowed!!! (eg. A gust of wind rustled through it, a ghostly touch. ; an F1 car that looks less like a vehicle and more like a fighter jet stripped of its wings)
+**指导原则**
+禁止使用隐喻！！！（例如：一阵风沙沙作响地穿过它，如幽灵般的触摸；一辆看起来不像车而更像卸了翅膀的战斗机的 F1 赛车）
 
-1. **Story Structure**: Develop a clear three-act structure with proper setup, confrontation, and resolution. Include compelling plot points, rising action, climax, develop the content according to the plot timeline, maintain a clear main plotline, and maintain coherent narrative connections. Keep the plot moving forward. Avoid summarizing events and characters, and use dialogue between key characters appropriately.
+1. **故事结构**：开发清晰的三幕结构，包含恰当的开端、发展和结局。包括引人入胜的情节点、上升动作、高潮，根据情节时间线展开内容，保持清晰的主线情节，并保持连贯的叙事联系。保持情节向前推进。避免总结事件和角色，适当使用关键角色之间的对话。
 
-2. **Character Development**: Create well-rounded characters with clear motivations, flaws, and character arcs. Ensure protagonists have relatable goals and face meaningful obstacles.
+2. **角色发展**：创造丰满的角色，具有清晰的动机、缺陷和角色弧线。确保主角有可关联的目标，并面临有意义的障碍。
 
-3. **Visual Storytelling**: Write with cinematic language that emphasizes visual elements, actions, and atmospheric details rather than exposition-heavy dialogue.
+3. **视觉叙事**：使用强调视觉元素、动作和氛围细节的电影化语言写作，而非充满解释的对话。
 
-4. **Emotional Depth**: Incorporate emotional beats, internal conflicts, and character relationships that resonate with audiences.
+4. **情感深度**：融入能与观众共鸣的情感节拍、内心冲突和角色关系。
 
-5. **Pacing and Tension**: Build suspense and maintain engagement through proper scene transitions, conflict escalation, and strategic revelation of information.
+5. **节奏与张力**：通过适当的场景过渡、冲突升级和策略性信息揭示来建立悬念并保持参与度。
 
-6. **Genre Consistency**: Maintain appropriate tone, style, and conventions for the story's genre while adding unique creative elements.
+6. **体裁一致性**：保持与故事体裁相符的语气、风格和惯例，同时添加独特的创意元素。
 
-7. **Dialogue Quality**: When you writing some dialogue, you should use the:" " symbols (eg. Peter says: "Everything is looking good. All systems are green, Elon. We’re ready for takeoff."). Do not use voiceover format. Create natural, character-specific dialogue that advances plot and reveals personality without being overly expository. 
+7. **对话质量**：编写对话时，应使用：" "符号（例如 彼得说："一切看起来都不错。所有系统都是绿灯，Elon。我们准备好起飞了。"）。不要使用画外音格式。创建自然、符合角色特点的对话，推动情节并揭示个性，但不要过于直白。
 
-8. **Thematic Elements**: Weave in meaningful themes and subtext that give the story depth and universal appeal.
+8. **主题元素**：融入有意义的主题和潜台词，为故事赋予深度和普遍吸引力。
 
-9. **Conflict and Stakes**: Establish clear external and internal conflicts with high stakes that matter to both characters and audience.
+9. **冲突与 stakes**：建立清晰的外部与内部冲突，具有对角色和观众都重要的高风险。
 
-10. **Satisfying Resolution**: Ensure all major plot threads are resolved and character arcs reach meaningful conclusions.
+10. **令人满意的结局**：确保所有主要情节线得到解决，角色弧线达到有意义的结论。
 
-11. **Each dialogue should not too short or too long, (eg."Everything is looking good. All systems are green, Elon. We’re ready for takeoff." )
-
-
-**Warnings**
-
-Don't write any camera movement in the script (eg. cut to), you should write the script by using storyboard description, not camera view.
-No metaphors allowed!!! (eg. A gust of wind rustled through it, a ghostly touch. ; an F1 car that looks less like a vehicle and more like a fighter jet stripped of its wings)
+11. **每段对话不应过短或过长**（例如："一切看起来都不错。所有系统都是绿灯，Elon。我们准备好起飞了。"）
 
 
-**Examples of narrative scripts**
+**警告**
 
-The starry sky is vast, the Milky Way glittering.
-On the beach, there's a fire, a portable dining table and chairs (three balloons tied to one corner, swaying in the wind), an SUV, and a camping tent. Next to the tent is an astronomical telescope. A man (Liu Peiqiang, 35, reserved) operates the telescope, while a little boy (Liu Qi, 4, Liu Peiqiang's son) observes under his father's guidance.
-Liu Peiqiang (somewhat excitedly) Quick, quick, quick... Look, it's Jupiter... the largest planet in the solar system.
-Adjusting the telescope's eyepiece's focus and position, Jupiter gradually comes into focus. Liu Qi: Dad, there's an eye on Jupiter.
-Liu Peiqiang: That's not an eye, it's a massive storm on Jupiter's surface. Liu Qi: Why...?
-Liu Peiqiang: (touching the boy's head, pointing to the balloons on the table) Jupiter is just a giant balloon, 90% hydrogen. Liu Qi: What is hydrogen?
-An old man (Han Ziang, 59, Liu Peiqiang's father-in-law and Liu Qi's grandfather) walked out of the tent and stood silently beside Liu Peiqiang and his son.
-Liu Peiqiang: Hydrogen... Hydrogen is the fuel for Dad's big rocket. The campfire flickered, and Han Ziang turned to look at Liu Peiqiang. Liu Qi: Why? Liu Peiqiang smiled and patted his son's head.
-Liu Peiqiang (O.S.): When the day comes when you can see Jupiter without a telescope, Dad will be back.
+不要在剧本中写任何摄影机运动（例如 cut to），你应该使用故事板描述来编写剧本，而不是摄影机视角。
+禁止使用隐喻！！！（例如：一阵风沙沙作响地穿过它，如幽灵般的触摸；一辆看起来不像车而更像卸了翅膀的战斗机的 F1 赛车）
 
 
+**叙事剧本示例**
 
-**Scriptwriting Guidelines End**
+星空辽阔，银河闪烁。
+沙滩上，有一堆篝火，一张便携式餐桌和椅子（一个角落系着三个气球，在风中摇曳），一辆 SUV，和一个露营帐篷。帐篷旁边是一台天文望远镜。一个男人（刘培强，35岁，内敛）操作着望远镜，而一个小男孩（刘启，4岁，刘培强的儿子）在父亲的指导下观察。
+刘培强（略带兴奋地）快快快……看，那是木星……太阳系最大的行星。
+调整望远镜目镜的焦点和位置，木星逐渐清晰。刘启：爸爸，木星上有只眼睛。
+刘培强：那不是眼睛，是木星表面的一场巨大风暴。刘启：为什么……？
+刘培强：（摸了摸男孩的头，指着桌子上的气球）木星只是一个巨大的气球，90%是氢气。刘启：什么是氢气？
+一位老人（韩子昂，59岁，刘培强的岳父，刘启的祖父）从帐篷里走出来，默默地站在刘培强和他儿子旁边。
+刘培强：氢气……氢气是爸爸大火箭的燃料。篝火闪烁，韩子昂转头看向刘培强。刘启：为什么？刘培强笑着拍了拍儿子的头。
+刘培强（画外音）：当有一天你不用望远镜就能看到木星的时候，爸爸就回来了。
+
+
+
+**剧本编写指导结束**
 
 
 """
 
 motion_script_prompt_template = \
 """
-You are a top-tier action and motion-sequence script designer with deep visual expertise in conveying speed, force, choreography, and technical precision. Your specialty is writing kinetic, technically accurate scripts that immerse the audience in movement.
+你是一名顶级的动作和运动序列剧本设计师，在传达速度、力量、编排和技术精确性方面具有深厚的视觉专业能力。你的专长是编写动态的、技术上精确的剧本，让观众沉浸在运动中。
 
-**Task**
-Transform a basic idea into a motion-driven script that emphasizes precise action description, clear spatial orientation, and unambiguous, technically accurate details. 
+**任务**
+将一个基本构思转化为以动作为驱动的剧本，强调精确的动作描述、清晰的空间定位和明确的技术细节。
 
-**Input**
-You will receive a basic idea enclosed within <BASIC_IDEA_START> and <BASIC_IDEA_END>.
+**输入**
+你将收到一个包裹在 <BASIC_IDEA_START> 和 <BASIC_IDEA_END> 之间的基本构思。
 
-**Output**
+**输出**
 {format_instructions}
 
-**Global Rules**
-No metaphors allowed. Less conversation
+**全局规则**
+禁止使用隐喻。少对话。
 
-**Motion Style Guidelines**
-1. Technical Explicitness: Prefer precise nouns and qualifiers over poetic language. Name specific vehicle types, equipment, environment features, and body mechanics. If vehicles are implied, specify make/class if reasonable. If combat, specify stance, guard, strike type, target, and contact result.
-2. Kinetic Clarity: Make trajectories, vectors, speed/acceleration sensations, and force outcomes explicit. Describe distances and orientations when helpful (e.g., left/right, fore/aft).
-3. Spatial Cohesion: Maintain a consistent mental map of positions. Keep continuity of who/what is where. When positions change, describe how and by what path.
-4. Sequenced Action Beats: Write step-by-step beats that can be storyboarded. Each beat should be actionable and unambiguous.
-5. Dialogue Minimalism: Use dialogue sparingly and only when it coordinates action, status, or timing. Use :"dialogue" quotes for spoken lines.
-6. Keep the script length similar to the following examples.
-7. If the user does not specify, only one character can appear at most.
-8. Less character's actions close-ups, more exterior shots
-9. Don't describe the character's physical state (e.g. jowls and the loose skin around its neck to press back).
+**运动风格指导原则**
+1. 技术明确性：优先使用精确的名词和限定词，而非诗意的语言。指定具体的车辆类型、设备、环境特征和身体力学。如果隐含车辆，在合理范围内明确其型号/级别。如果是战斗，指定姿势、防守、攻击类型、目标和接触结果。
+2. 动态清晰性：明确轨迹、向量、速度/加速度感和力量结果。在有助于理解时描述距离和方向（例如左/右、前/后）。
+3. 空间连贯性：保持位置的一致心理地图。保持谁/在哪里的连续性。当位置改变时，描述如何改变及通过什么路径。
+4. 序列化动作节拍：编写可以制作成故事板的逐步节拍。每个节拍应可操作且无歧义。
+5. 对话极简主义：少用对话，仅在协调动作、状态或时机时使用。使用："对话"引号表示台词。
+6. 保持剧本长度与以下示例相似。
+7. 如果用户未指定，最多只能出现一个角色。
+8. 少用角色动作特写，多用外景镜头。
+9. 不要描述角色的身体状态（例如下垂的下巴和颈部松弛的皮肤）。
 
-**Examples of motion & speed immersion fighter scripts** (should be accurate, technical, and explicit, Technical Explicitness: Consistently repeats “two seats F‑18” in each stage direction. Prioritizes precision in identifying the aircraft type and location (front seat / rear seat). Reads almost like a technical report or aviation manual, ensuring no ambiguity.)
-The immense gray flight deck of a nuclear aircraft carrier cuts through a deep blue ocean. The horizon is a clean, sharp line. Steam billows from the catapult tracks, partially obscuring the chaos of deck crews in brightly colored jerseys. The air is thick with the smell of salt and jet fuel, and the constant roar of engines creates a wall of sound.
+**运动与速度沉浸式战斗机剧本示例**（应准确、技术化且明确。技术明确性：在每个舞台指示中一致重复"双座 F-18"。优先精确识别飞机类型和位置（前座/后座）。读起来几乎像技术报告或航空手册，确保无歧义。）
+一艘核动力航空母舰的庞大灰色飞行甲板划破深蓝的海洋。地平线是一条干净锐利的线条。蒸汽从弹射轨道上滚滚升起，部分遮挡了穿着鲜艳彩色工作服的甲板人员的忙碌景象。空气中弥漫着盐和喷气燃料的味道，引擎的持续轰鸣声形成了一堵声墙。
 
-An F-18, is positioned on the steam-powered catapult. Its twin engines blast waves of heat that distort the air behind it. The plane strains against the holdback bar, a machine built for speed, forced into a moment of absolute stillness.
+一架 F-18 停在蒸汽弹射器上。其双引擎喷出热浪，扭曲了身后的空气。飞机在牵制杆的约束下绷紧，这是一台为速度而生的机器，被迫进入绝对静止的时刻。
 
-Epic cinematic style with dramatic wide shots, dynamic camera movements, rich color grading, and theatrical lighting reminiscent of major Hollywood productions. Camera gradually moves forward to pilot Elon Musk (50s, sharp eyes and unwavering focus) sits in the cockpit of a F-18. His gloved hands move over the controls, flipping switches and checking gauges. 
- 
-In the F-18 cockpit Elon Musk: "Understood, Sling. Let’s get this show on the road."
+史诗电影风格，具有戏剧性的广角镜头、动态摄影机运动、丰富的色彩分级和戏剧性灯光，让人联想到好莱坞大片。摄影机逐渐向前推进到飞行员埃隆·马斯克（50多岁，目光锐利，专注不移）坐在 F-18 的驾驶舱中。他戴着手套的手在控制器上移动，拨动开关，检查仪表。
 
-In the F-18 cockpit Elon Musk's left hand push on the F-18 throttle, his right grips the control stick. 
+在 F-18 驾驶舱中 埃隆·马斯克："收到，Sling。让我们开始吧。"
 
-A side view. The Shooter drops to one knee, pointing down the deck. The world seems to hold its breath. The engine whine escalates to a deafening roar that vibrates through the entire carrier. The F-18's twin vertical stabilizers shudder with contained power.
+在 F-18 驾驶舱中 埃隆·马斯克的左手推上 F-18 油门，右手握住操纵杆。
 
-First-person POV from inside the cockpit of F18. With a violent jolt, the catapult fires. The F-18 lunges forward, accelerating from zero to over 160 miles per hour in just two seconds. The deck becomes a blur of motion. Creating a strong sense of speed and perspective depth with dynamic motion blur. 
+侧视图。弹射操作员单膝跪下，指向甲板。世界似乎屏住了呼吸。引擎的尖啸升级为震耳欲聋的轰鸣，震动整个航母。F-18 的双垂直尾翼因蕴藏的力量而颤抖。
 
-A side camera view. Then, with a surge of raw power from the afterburners igniting. The F-18 climbs, asserting its dominance over gravity. The landing gear retracts into the fuselage with a solid thud. Creating a strong sense of speed and perspective depth with dynamic motion blur. 
+F18 驾驶舱内的第一人称视角。随着剧烈的震动，弹射器发射。F-18 向前冲出，在两秒内从零加速到超过 160 英里每小时。甲板变成一片模糊的动感。创造出强烈的速度感和景深透视感，并带有动态运动模糊。
 
-Elon Musk levels the F-18 wings, the sun glinting off his visor as he scans the empty sky ahead.
+侧方摄影机视角。然后，随着加力燃烧室点燃的原始力量涌动。F-18 爬升，宣告对重力的统治。起落架以沉闷的撞击声收入机身。创造出强烈的速度感和景深透视感，并带有动态运动模糊。
 
-The F-18, a sleek instrument of combat, roars to life as it pushes, slicing through the air with an elegant grace. The jet's fuselage glistens under the sunlight, its sharp lines and aerodynamic curves reflecting hues of deep blue and silver. As it accelerates, the engines emit a powerful, throaty growl, reverberating like thunder across the open sky. Creating a strong sense of speed and perspective depth with dynamic motion blur. 
+埃隆·马斯克将 F-18 的机翼拉平，阳光在他的面罩上闪烁，他扫视着前方空旷的天空。
 
-**Examples of motion & speed immersion F1 racing scripts**
-Epic cinematic style with dramatic wide shots, dynamic camera movements, rich color grading, and theatrical lighting reminiscent of major Hollywood productions. In the black and gold Formula One cockpit, Camera gradually moves forward to F1 driver Elon Musk (playing the driver, a man in his 40s, with a steely gaze and utter concentration) buckling his harness, his helmet visor which reflects the fluttering checkered flags and a blur of cheering spectators in the stands. He drives a sleek black and gold F1 car.
+F-18，一件 sleek 的战斗工具，在推进中轰鸣着苏醒，以优雅的姿态划破空气。机身反射着阳光，其锐利的线条和空气动力学曲线映照着深蓝和银色的色调。随着加速，引擎发出强大而低沉的咆哮，如雷鸣般在开阔的天空中回荡。创造出强烈的速度感和景深透视感，并带有动态运动模糊。
 
-The starting lights on the track go out, and First-person POV from inside the cockpit of a black and gold F1 car which starts and speeding through the Arena. You grip the wheel — full throttle. The engine roars, gear shifts snap. The blur of the cheering spectators in the stands flashes on your left. creating a strong sense of speed and perspective depth with dynamic motion blur. are engaged in a frenetic, no-holds-barred race. The camera tracks closely behind, capturing the car's wings slicing through the air, sparks flying from the undercarriage on tight corners, and the world blurring into streaks of color—vibrant track barriers, green infields, and distant mountains under harsh sunlight.
+**运动与速度沉浸式 F1 赛车剧本示例**
+史诗电影风格，具有戏剧性的广角镜头、动态摄影机运动、丰富的色彩分级和戏剧性灯光，让人联想到好莱坞大片。在黑金色的 F1 驾驶舱中，摄影机逐渐向前推进到 F1 车手埃隆·马斯克（扮演车手，40多岁，目光钢铁般坚定，全神贯注）系紧安全带，他的头盔面罩反射着飘扬的方格旗和看台上模糊的欢呼人群。他驾驶着一辆 sleek 的黑金色 F1 赛车。
 
-The camera closely tracks the side with dynamic chasing shots., hugging the ground to capture Elon Musk's sleek black and gold F1 car slicing through the air, its APX tail wing flexing under the wind, sparks erupting from the chassis like fireworks as it powers through tight turns and begins overtaking rivals—dodging a pursuing Formula One car , nearly clipping in a heart-pounding near-miss. Cutting to another close-up on Elon Musk, his gloved hands gripping the  F1 steering wheel tightly, while the background track barriers streak by in accelerated motion. Creating a strong sense of speed and perspective depth with dynamic motion blur. 
+赛道上的发车灯熄灭，黑金色 F1 赛车驾驶舱内的第一人称视角，赛车启动并飞速穿过竞技场。你紧握方向盘——全油门。引擎轰鸣，换挡急促。左侧看台上欢呼的人群模糊一片。创造出强烈的速度感和景深透视感，并带有动态运动模糊。展开一场疯狂、不择手段的竞争。摄影机紧随其后，捕捉赛车尾翼划破空气、底盘在急弯处迸出火花、以及世界模糊成彩色条纹——鲜艳的赛道护栏、绿色的内场和远处烈日下的山脉。
 
-An aerial view for a wide chase perspective, showing Elon Musk's APX Formula One car boldly overtaking another rival in a daring maneuver, debris scattering across the asphalt as it pulls ahead, the pulsating to a crescendo amidst the intensified roar of engines, whistling wind, and the stronger surge of acceleration that makes the entire frame vibrate with raw power. Creating a strong sense of speed and perspective depth with dynamic motion blur. are engaged in a frenetic, no-holds-barred race.
+摄影机以动态追逐镜头贴地侧拍，捕捉埃隆·马斯克的 sleek 黑金色 F1 赛车划破空气，其 APX 尾翼在风中弯曲，底盘像烟花一样迸射火花，在强力过弯和开始超越对手时——躲避一辆追赶的 F1 赛车，在惊心动魄的擦肩而过中险些相撞。切换到埃隆·马斯克的特写，他戴着手套的手紧握 F1 方向盘，背景的赛道护栏飞速掠过。创造出强烈的速度感和景深透视感，并带有动态运动模糊。
 
-A front-mounted chase shot follows, emphasizing the APX tail wing's metallic sheen as the black and gold F1 car banks into a hairpin turn, other Formula One rivals closing in from both sides in a tense three-way battle, the movement acceleration pushing the limits as Elon Musk's black and gold F1 car breaks free, leaving F1 competitors in a cloud of dust. 
+广角追逐视角的航拍图，展示埃隆·马斯的 APX F1 赛车在一次大胆的机动中果断超越另一对手，碎片散落在沥青路面上，它领先冲出，引擎声浪在 intensified 中达到高潮，伴随着呼啸的风声和更强的加速冲击，使整个画面充满原始力量感。创造出强烈的速度感和景深透视感，并带有动态运动模糊。
 
-The camera jolts into a raw handheld shot as Elon Musk’s APX black and gold F1 car rockets down a blistering straightaway, creating a strong sense of speed and perspective depth with dynamic motion blur, are engaged in a frenetic, no-holds-barred race. Rivals' red-white Formula one car closing in tight on both flanks. One competitor edges too close—carbon fiber grinding against carbon fiber. Sparks erupt in a spray of gold as Elon Musk wrenches the wheel, but the rival's red-white Formula one car fishtails, spinning out of control before slamming violently into the barrier. The collision detonates in a shower of splintered red F1 bodywork and shredded tires, fragments cartwheeling across the asphalt in balletic slow motion. 
+前装追逐镜头跟随，强调 APX 尾翼的金属光泽，黑金色 F1 赛车切入发夹弯，其他 F1 对手从两侧逼近，形成紧张的三方争夺，加速动感发挥到极致，埃隆·马斯克的黑金色 F1 赛车突破重围，将 F1 竞争对手甩在滚滚烟尘中。
 
-Wide aerial shots capture the chaos as smoke and dust mushroom upward, the track swallowed in a haze of flame-orange light. Then—an explosive cut back to full speed—Elon Musk’s sleek black and gold F1 APX car bursts through the choking smoke cloud, unbroken, streaking down the straight. Creating a strong sense of speed and perspective depth with dynamic motion blur. are engaged in a frenetic, no-holds-barred race.
+摄影机猛切为手持镜头，埃隆·马斯克的 APX 黑金色 F1 赛车在笔直的大直道上火箭般飞驰，创造出强烈的速度感和景深透视感，并带有动态运动模糊。对手的红白 F1 赛车从两侧紧逼。一名竞争者靠得太近——碳纤维摩擦碳纤维。火花四溅，埃隆·马斯克猛打方向盘，但对手的红白 F1 赛车甩尾，失控旋转，然后猛烈撞上护栏。撞击在飞溅的红色 F1 车体碎片和破碎轮胎中爆炸，碎片如芭蕾般缓慢翻滚着飞过沥青路面。
 
-Another extreme close-up zooms in on F1 driver Elon Musk's visor, the lens focus pronouncing the reflection of the track rushing by, capturing the intensity of his focus amid the chaos. creating a strong sense of speed and perspective depth with dynamic motion blur. 
+广角航拍捕捉住混乱，烟雾和尘土如蘑菇云般升腾，赛道被吞没在火焰般的橙色光雾中。然后——爆发式切回全速——埃隆·马斯克的 sleek 黑金色 F1 APX 赛车冲破呛人的烟雾，毫发无损，沿着直道飞驰而去。创造出强烈的速度感和景深透视感，并带有动态运动模糊。
 
-The sequence escalates with a low-angle chase shot from behind, creating a strong sense of speed and perspective depth with dynamic motion blur. Showcasing the APX tail wing slicing the air like a blade as the Formula One car accelerates through a straight, overtaking yet another rival, The car hurtles toward the finish line, its APX tail wing cutting the air like a blade, crossing the checkered flag at breakneck speed. debris flying and engines howling in protest, the stronger movement acceleration making the frame pulse with energy. 
+另一个极端特写推进到 F1 车手埃隆·马斯克的面罩上，镜头焦点强调着赛道飞驰而过的倒影，捕捉他在混乱中专注的 intensity。创造出强烈的速度感和景深透视感，并带有动态运动模糊。
 
-**Warnings**
-- Do not use metaphors.
+序列以低角度追逐镜头从后方升级，创造出强烈的速度感和景深透视感，并带有动态运动模糊。展示 APX 尾翼如刀锋般划破空气，F1 赛车在直道上加速，超越又一个对手，赛车冲向终点线，其 APX 尾翼如刀锋般划破空气，以惊人速度冲过方格旗，碎片飞舞，引擎轰鸣抗议，更强的加速动感使画面脉动能量。
+
+**警告**
+- 不要使用隐喻。
 
 """
-
-
-
-
 
 
 
@@ -165,139 +161,139 @@ The sequence escalates with a low-angle chase shot from behind, creating a stron
 
 montage_script_prompt_template = \
 """
-You are a top-tier montage script designer with deep expertise in compressing time, juxtaposing images, and shaping emotional arcs through shot selection and rhythm. Your specialty is writing emotionally precise montage scripts that convey internal states via shot-driven beats, pacing, and visual contrasts.
+你是一名顶级的蒙太奇剧本设计师，在压缩时间、并置图像以及通过镜头选择和节奏塑造情感弧线方面具有深厚专业能力。你的专长是编写情感精确的蒙太奇剧本，通过镜头驱动的节拍、节奏和视觉对比传达内心状态。
 
-Task
-Transform a basic idea into an emotion-driven montage script that emphasizes internal experience through visual sequencing, clear emotional expression per shot/beat, and unambiguous psychological details.
+任务
+将一个基本构思转化为以情感驱动的蒙太奇剧本，强调通过视觉序列、每个镜头/节拍的清晰情感表达以及明确的心理细节来传达内心体验。
 
-Input
-You will receive a basic idea enclosed within <BASIC_IDEA_START> and <BASIC_IDEA_END>.
+输入
+你将收到一个包裹在 <BASIC_IDEA_START> 和 <BASIC_IDEA_END> 之间的基本构思。
 
-Output
+输出
 {format_instructions}
 
-**Global Rules**
-No metaphors allowed.
-Keep dialogue minimal.
-Use pure paragraph.
-Convey meaning primarily through shot progression, rhythm, and visual juxtaposition.
-Montage Style Guidelines
-Use plain sentence/paragraph
-For each secene, you should write multiple shots to enhance montage effect.
-Total no less than 500 words, each paragraph no more than 50 words.
-Escalation or Resolution: Build an emotional arc across beats. Show explicit changes in emotional state and the cause for each change.
-Sound Design Minimalism: Use sparse, precise notes for sound/music that influence emotion (tempo rise, percussive cuts, breath presence). Avoid lyrical description.
-Dialogue Minimalism: Include dialogue only if it marks a clear emotional shift. Use :"dialogue" quotes.
-Visual Clarity Over Action: Limit complex external action. Focus on expressive visuals, reactions, and transitions that communicate internal states.
-No extraneous physical traits. Only describe details that influence or reveal emotion.
-**Warnings**
-Do not use metaphors.
-Avoid poetic language; prefer precise, observable details.
+**全局规则**
+禁止使用隐喻。
+保持对话最少。
+使用纯段落。
+主要通过镜头推进、节奏和视觉并置来传达意义。
+蒙太奇风格指导原则
+使用简单句子/段落。
+对于每个场景，你应该编写多个镜头以增强蒙太奇效果。
+总计不少于 500 字，每段不超过 50 字。
+升级或解决：在节拍间构建情感弧线。展示情感状态的明确变化以及每次变化的原因。
+声音设计极简主义：使用稀疏、精确的声音/音乐笔记来影响情绪（节奏加快、打击乐剪切、呼吸存在）。避免抒情描述。
+对话极简主义：仅当对话标志着明确的情感转变时包含。使用："对话"引号。
+视觉清晰优先于动作：限制复杂的外部动作。聚焦于表达性视觉、反应和传达内心状态的过渡。
+不描述无关身体特征。仅描述影响或揭示情感的细节。
+**警告**
+不要使用隐喻。
+避免诗意的语言；优先使用精确、可观察的细节。
 
-**Examples of scripts**
-Morning light across a small practice room. A girl (Lisa) around seven lifts a violin from its case. Bow slips on the first note.
+**剧本示例**
+晨光照进一间小练习室。一个大约七岁的女孩（Lisa）从琴盒中举起小提琴。弓在第一个音符上滑落。
 
 
-She (Lisa) winces, then tries again. Shoulders ease. Relief. Quiet room, a single chair creak.
+她（Lisa）皱了下眉，然后再次尝试。肩膀放松了。如释重负。安静的房间里，一把椅子吱嘎作响。
 
 
-She (Lisa) rests her cheek on the chinrest. The string hum stabilizes.
+她（Lisa）将脸颊靠在腮托上。琴弦的嗡鸣稳定下来。
 
 
-A small smile shows on Lisa.
+Lisa 脸上露出浅浅的微笑。
 
 
-Front hall. School shoes near a folded music stand.
+门厅。校鞋靠近折叠的谱架。
 
 
-She (Lisa) struggles with the latch. The stand clicks open. Light metal tap on tile.
+她（Lisa）费力地打开锁扣。谱架咔嗒一声打开。金属轻碰瓷砖。
 
 
-Afternoon window. She (Lisa) traces notes with a finger. Her mother taps a rhythm on the table.
+下午的窗户。她（Lisa）用手指描着音符。她的母亲在桌上敲着节奏。
 
 
-She (Lisa) frowns, then raises her elbow. Concentration holds. The bow settles. Shared stillness. Page flip, steady breath.
+她（Lisa）皱起眉头，然后抬起手肘。专注保持住。弓平稳下来。共同的宁静。翻页，平稳的呼吸。
 
 
-Bathroom. She (Lisa) wipes rosin dust off the instrument, coughing once.
+浴室。她（Lisa）擦掉乐器上的松香粉尘，轻咳了一声。
 
 
-Bedroom floor. Sheet music spread. She (Lisa) circles three notes with a red pencil.
+卧室地板。乐谱散落。她（Lisa）用红笔圈出三个音符。
 
 
-She (Lisa) plays them alone, slow, then again faster. Frustration dips, control returns. Pencil tap stops.
+她（Lisa）独自演奏它们，慢速，然后再快一些。挫败感下降，控制感回归。铅笔敲击停止。
 
 
-Kitchen doorway. A metronome ticks beside a bowl of fruit. She (Lisa) dials it down two clicks. Shoulders drop. She follows the pulse, bow hand steadier with each measure.
+厨房门口。节拍器在水果碗旁边滴答作响。她（Lisa）将其调低两格。肩膀垂下。她跟随节拍，弓手随着每个小节更加稳定。
 
 
-Living room. A TV murmurs. She (Lisa) crosses, lowers the volume, returns to her stand. Boundary set without words. The room holds for practice.
+客厅。电视低语。她（Lisa）穿过，调低音量，回到谱架。无言地设定了边界。房间为练习留出空间。
 
 
-Front steps. Case open to the sun. A neighbor waves. She (Lisa) shields the strings with her palm, smiles, and closes the lid. Protection learned.
+前阶。琴盒对着阳光打开。一位邻居挥手。她（Lisa）用手掌遮住琴弦，微笑，然后合上盖子。学会了保护。
 
 
-Music store aisle. Shoulder rests in a row. She (Lisa) tries one that squeaks, then another that fits. Jaw unclenches. She nods, decision made.
+乐器店过道。肩托排成一排。她（Lisa）试了一个会吱吱响的，然后另一个合适的。下巴放松。她点头，做了决定。
 
 
-Rain on the window. She (Lisa) misses a shift three times. Eyes shine, but she resets her feet, counts to four, and lands the note on the fourth try. Relief, not triumph. Bow lifts, still.
+雨打在窗户上。她（Lisa）一个换把失误了三次。眼睛发亮，但她重新调整脚步，数到四，在第四次尝试时准确落在音符上。如释重负，而非胜利。弓抬起，静止。
 
 
-Mirror practice. Thin tape marks on the fingerboard. She (Lisa) glances once, places a finger true, then plays without looking. Confidence grows around the guide.
+镜子练习。指板上的细胶带标记。她（Lisa）瞥了一眼，将手指准确放置，然后不看琴颈演奏。自信在引导中增长。
 
 
-School hallway before recital. Cold hands under a dryer. She (Lisa) shakes out wrists. Fear thins to focus. She walks toward the stage door, steps even.
+演奏会前的学校走廊。干手器下冰冷的手。她（Lisa）抖动手腕。恐惧化为专注。她走向舞台门，脚步平稳。
 
 
-Curtain edge. Small tremor at the frog. She (Lisa) loosens grip, breathes, and steps into light. 
+幕布边缘。弓根处轻微的颤抖。她（Lisa）放松握持，呼吸，然后步入灯光。
 
 
-Two clean phrases. One fuzzy entrance. She (Lisa) holds tempo, corrects on the next measure. Recovery without apology.
+两个清晰的乐句。一次模糊的进入。她（Lisa）保持节奏，在下一个小节纠正。无需道歉的恢复。
 
 
-Exit corridor. Water bottle cap clicks. She (Lisa) writes in a pocket notebook: “Entrance softer, elbow high.” Emotion measured by action.
+出口走廊。水瓶盖咔嗒作响。她（Lisa）在口袋笔记本上写下："进入更柔和，手肘抬高。"情感由行动衡量。
 
 
-Saturday morning. An online tutorial freezes mid-vibrato. She (Lisa) mimics the motion without sound. Adds bow. Wobble uneven. She smiles anyway. Incremental progress accepted.
+周六早上。一个在线教程在颤音中途卡住。她（Lisa）在无声中模仿动作。加入弓。抖动不均匀。她仍然微笑。渐进式进步被接受。
 
 
-Park bench. Practice mute on the bridge. Joggers pass without looking. She (Lisa) finishes a scale, closes her eyes a moment, then starts the etude. Privacy inside noise.
+公园长椅。琴桥上的弱音器。慢跑者经过，没有看一眼。她（Lisa）完成一个音阶，闭眼片刻，然后开始练习曲。噪音中的隐私。
 
 
-Bedroom desk. A planner open. She (Lisa) blocks out “scales + shifts” for fifteen minutes daily. A small star beside Sunday. Plan replaces hope.
+卧室书桌。计划本打开。她（Lisa）划出"音阶+换把"每天十五分钟。周日旁边一个小星星。计划取代希望。
 
 
-Evening soreness. A red mark under her jaw. She (Lisa) folds a soft cloth over the rest, tries again. Mark fades. Comfort adjusted, practice continues.
+傍晚的酸痛。下巴下面的红色印记。她（Lisa）将软布折叠在腮托上，再试一次。印记消退。调整舒适度，练习继续。
 
 
-String snap. Sharp, quick. She (Lisa) flinches, then opens a spare packet, threads, winds, tunes slow. Disruption handled. Bow returns to the string.
+琴弦断裂。尖锐，迅速。她（Lisa）退缩了一下，然后打开备用包装，穿弦，绕弦，慢慢调音。处理扰动。弓回到琴弦。
 
 
-Phone buzz. A friend’s invitation lights the screen. She (Lisa) looks once, turns it face down, and plays the piece end to end. Reward after task.
+手机震动。朋友的邀请点亮屏幕。她（Lisa）看了一眼，将其翻面朝下，从头到尾演奏曲目。任务后的奖励。
 
 
-Audition day. Waiting chairs in a line. She (Lisa) air-bows the first phrase, eyes closed. Shoulders stay low. Name called. She stands smoothly.
+ audition 日。等候椅排成一排。她（Lisa）闭眼，无声地运弓奏出第一个乐句。肩膀保持低垂。名字被叫到。她平稳地站起。
 
 
-Small studio. Two judges, still faces. She (Lisa) tunes, begins. First note centered, breath even. A slip in the middle; tempo holds. The last note rings.
+小录音室。两位评委，面无表情。她（Lisa）调音，开始。第一个音符居中，呼吸平稳。中间一次滑脱；节奏保持住。最后一个音符回响。
 
 
-Street outside. She (Lisa) exhales into cool air, checks her watch, and walks home. No jump, no slump. Next step implied.
+外面的街道。她（Lisa）呼入凉爽的空气，看了看手表，步行回家。没有跳跃，没有低落。下一步隐含。
 
 
-Kitchen table. Acceptance email on a tablet. She (Lisa) reads twice, then taps the metronome app and sets a new tempo goal. Celebration nested inside routine.
+厨房餐桌。平板电脑上的录取邮件。她（Lisa）读了两遍，然后点击节拍器应用，设定一个新的速度目标。庆祝嵌套在例行公事中。
 
 
-Summer afternoon. Open window, distant mower. She (Lisa) practices vibrato on long notes, then stops to listen to the decay. Ear sharpens.
+夏日午后。开着的窗户，远处的割草机。她（Lisa）在长音上练习颤音，然后停下来聆听衰减。耳朵变得敏锐。
 
 
-Library corner. She (Lisa) copies fingerings in neat pencil on a fresh sheet. The messy draft slides into recycling. Order replaces clutter.
+图书馆角落。她（Lisa）用整洁的铅笔在新谱纸上抄写指法。凌乱的草稿滑入回收箱。秩序取代杂乱。
 
 
-Community center stage. A quartet rehearsal. She (Lisa) watches the leader’s breath, lifts with it, and enters together. Listening added to playing.
+社区中心舞台。四重奏排练。她（Lisa）观察领奏者的呼吸，随之抬起，一起进入。聆听加入演奏。
 
 
-Night lamp. She (Lisa) loosens the bow, wipes the strings, touches the chinrest with two fingers, then closes the case. Habit completes the day. Quiet returns.
+夜灯。她（Lisa）松开弓，擦拭琴弦，用两根手指触碰腮托，然后合上琴盒。习惯完成一天。安静回归。
 """
 
 
@@ -314,17 +310,17 @@ human_prompt_template_script_planner = \
 
 class IntentRouterResponse(BaseModel):
     intent: Literal["narrative", "motion", "montage"] = Field(
-        ..., description="Routing decision: 'narrative' for characters multi-conversation focus, 'motion' for action/kinetic focus, 'montage' for emotional montage focus"
+        ..., description="路由决策：'narrative' 用于角色多对话焦点，'motion' 用于动作/动态焦点，'montage' 用于情感蒙太奇焦点"
     )
     rationale: Optional[str] = Field(
-        default=None, description="Brief reason for the classification"
+        default=None, description="分类的简要原因"
     )
 
 
 class PlannedScriptResponse(BaseModel):
     planned_script: str = Field(
         ...,
-        description="The full planned script with rich narrative detail, character development, dialogue, and cinematic descriptions. Should be significantly more detailed and engaging than the original basic idea."
+        description="完整的规划剧本，具有丰富的叙事细节、角色发展、对话和电影化描述。应比原始基本构思详细得多且更具吸引力。"
     )
 
 
@@ -350,13 +346,13 @@ class ScriptPlanner:
         basic_idea: str,
     ) -> PlannedScriptResponse:
         """
-        Plan a comprehensive script from a basic idea.
-        
+        根据基本构思规划一个完整的剧本。
+
         Args:
-            basic_idea: A simple story concept or idea to be expanded
-            
+            basic_idea: 要扩展的简单故事概念或构思
+
         Returns:
-            PlannedScriptResponse: A comprehensive script with structure, characters, and narrative detail
+            PlannedScriptResponse: 包含结构、角色和叙事细节的完整剧本
         """
         # 1) 路由意图以选择合适的模板
         router_parser = PydanticOutputParser(pydantic_object=IntentRouterResponse)
@@ -365,13 +361,13 @@ class ScriptPlanner:
                 (
                     'system',
                     """
-                    You are an intent router for script planning. Classify the user's basic idea into one of following intents:
+                    你是剧本规划的意图路由器。将用户的基本构思分类为以下意图之一：
 
-                    - narrative: The idea centers on character, plot, themes, dialogue, or broad storytelling beats.
-                    - motion: The idea centers on action, speed, vehicles, combat, choreography, sports, or any kinetic sequence where precise, technical motion description is primary.
-                    - montage: The idea centers on a series of shots that convey an emotional arc through imagery, pacing, and juxtaposition.
+                    - narrative：构思以角色、情节、主题、对话或广泛的叙事节拍为中心。
+                    - motion：构思以动作、速度、车辆、战斗、编排、体育或任何需要精确技术运动描述的动态序列为中心。
+                    - montage：构思以一系列通过意象、节奏和并置传达情感弧线的镜头为中心。
 
-                    Respond using the required JSON format only
+                    仅使用所需的 JSON 格式响应
                     {format_instructions}
                     """
                 ),
@@ -430,5 +426,3 @@ class ScriptPlanner:
         except Exception as e:
             logging.error(f"规划剧本出错: \n{e}")
             raise e
-
-

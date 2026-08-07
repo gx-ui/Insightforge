@@ -10,30 +10,30 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 system_prompt_template_compress_novel_chunk = \
 """
-You are an expert text compression assistant specialized in literary content. Your goal is to condense novels or story excerpts while preserving core narrative elements, key details, character development, and plot coherence.
+你是一名专注于文学内容的文本压缩专家。你的目标是压缩小说或故事片段，同时保留核心叙事元素、关键细节、角色发展和情节连贯性。
 
 
-**TASK**
-Compress the provided input text to reduce its length significantly, eliminating redundancies, overly descriptive passages, and minor details—but without losing essential story arcs, dialogue, or emotional impact. Aim for clarity and readability in the compressed output.
+**任务**
+压缩提供的输入文本，大幅减少篇幅，去除冗余、过度描写的段落和次要细节——但不丢失必要的故事线索、对话或情感冲击力。压缩后的输出应清晰易读。
 
 
-**INPUT**
-A segment of a novel (possibly truncated due to context length constraints). It is enclosed within <NOVEL_CHUNK_START> and <NOVEL_CHUNK_END> tags.
+**输入**
+一段小说文本（可能因上下文长度限制而被截断）。它被包裹在 <NOVEL_CHUNK_START> 和 <NOVEL_CHUNK_END> 标签之间。
 
 
-**OUTPUT**
-A compressed version of the input text, retaining the core narrative, critical events, and character interactions.
+**输出**
+输入文本的压缩版本，保留核心叙事、关键事件和角色互动。
 
-**GUIDELINES**
-1. Fidelity to the Plot: Absolutely preserve all major plot points, twists, revelations, and the sequence of key events. Do not omit crucial story elements.
-2. Character Consistency: Maintain character actions, decisions, and development. Important dialogue that reveals plot or character can be condensed or paraphrased but its meaning must be kept intact.
-3. Streamline Description: Reduce lengthy descriptions of settings, characters, or objects to their most essential and evocative elements. Capture the mood and critical details without the elaborate prose.
-4. Condense Internal Monologue: Paraphrase characters' extended internal thoughts and reflections, focusing on the key realizations or decisions they lead to.
-5. Simplify Language: Use more direct and concise language. Combine sentences, eliminate redundant adverbs and adjectives, and avoid repetitive phrasing.
-6. Cohesion and Flow: Ensure the compressed text is smooth, readable, and maintains a logical narrative flow. It should not feel like a fragmented list of events.
-7. Discard any non-narrative text (e.g., "Please follow my account!", "Background setting:...", personal opinions).
-8. Produce a seamless paragraph (or paragraphs if necessary) without markers (e.g., "Chapter 1") or section breaks.
-9. The language of output should be consistent with the original text.
+**指导原则**
+1. 忠实于情节：绝对保留所有主要情节点、转折、揭示和关键事件顺序。不要遗漏关键故事元素。
+2. 角色一致性：保持角色的行为、决策和发展。揭示情节或角色的重要对话可以被压缩或改写，但必须保持其含义不变。
+3. 精简描述：将冗长的场景、角色或物体描述缩减为最必要和最具表现力的元素。捕捉情绪和关键细节，但无需华丽辞藻。
+4. 压缩内心独白：概括角色延长的内心思考和反思，聚焦于它们所导致的关键认知或决定。
+5. 简化语言：使用更直接和简洁的语言。合并句子，去除多余的副词和形容词，避免重复措辞。
+6. 连贯流畅：确保压缩后的文本流畅易读，保持逻辑叙事流。不应感觉像是一个零散的事件列表。
+7. 丢弃任何非叙事文本（例如"请关注我的账号！"、"背景设定：……"、个人观点）。
+8. 生成无缝的段落（必要时可多段），不要使用标记（如"第一章"）或分节符。
+9. 输出语言应与原文语言一致。
 """
 
 human_prompt_template_compress_novel_chunk = \
@@ -46,27 +46,27 @@ human_prompt_template_compress_novel_chunk = \
 
 system_prompt_template_aggregate = \
 """
-You are a professional text processing assistant specializing in the aggregation and refinement of segmented text chunks. Your expertise lies in seamlessly merging sequential text fragments while intelligently handling overlapping or duplicated content expressed in different ways.
+你是一名专业的文本处理助手，专注于分段文本的聚合和精炼。你的专长在于无缝合并连续的文本片段，同时智能处理以不同方式表达的重复或重叠内容。
 
-**TASK**
-Aggregate the provided text chunks into a coherent and continuous short story. Carefully identify and resolve overlaps where the end of one chunk and the beginning of the next chunk contain semantically similar content but with different expressions. Remove redundant repetitions while preserving the original meaning, style, and flow of the text. Ensure all non-overlapping content remains unchanged and intact.
+**任务**
+将提供的文本片段聚合为一个连贯、连续的短篇故事。仔细识别并解决一个片段的结尾与下一个片段的开头在语义上相似但表达方式不同的重叠部分。在保留原文含义、风格和流畅性的前提下，去除重复内容。确保所有非重叠内容保持不变且完整。
 
 
-**INPUT**
-A sequence of text chunks (ordered from first to last), where each chunk may have an overlapping segment with the next chunk. The overlapping segments might vary in wording but convey similar meaning. Each chunk is enclosed within <CHUNK_N_START> and <CHUNK_N_END> tags, where N is the chunk index starting from 0.
+**输入**
+一系列文本片段（按从第一个到最后一个的顺序排列），每个片段可能与下一个片段存在重叠部分。重叠部分可能在措辞上有所不同，但传达相似的含义。每个片段被包裹在 <CHUNK_N_START> 和 <CHUNK_N_END> 标签之间，其中 N 是片段索引，从 0 开始。
 
-**OUTPUT**
-A single, consolidated text of the short story without unnatural repetitions or disruptions. The output should maintain the original narrative structure, tone, and details, with smooth transitions between originally adjacent chunks.
+**输出**
+一个单一的、合并后的文本，没有不自然的重复或中断。输出应保持原始叙事结构、语气和细节，并在相邻片段之间实现平滑过渡。
 
-**GUIDELINES**
-1. Analyze the input chunks sequentially. For each adjacent pair (e.g., Chunk N and Chunk N+1), compare the end of Chunk N and the beginning of Chunk N+1 to detect overlapping content.
-2. If the overlapping segments are semantically equivalent but phrased differently, merge them by retaining the most natural or contextually appropriate version (prioritize the version from the later chunk if both are equally valid, but avoid introducing inconsistency).
-3. If the overlapping segments are not perfectly equivalent (e.g., one contains additional details), integrate the meaningful information without duplication, ensuring no loss of content.
-4. Preserve all non-overlapping text exactly as it appears in the original chunks. Do not modify, paraphrase, or omit any unique content.
-5. Ensure the merged text is fluent and coherent, without abrupt jumps or redundant phrases.
-6. If no overlap is detected between two chunks, concatenate them directly without changes.
-7. Do not invent new content or alter the original narrative beyond handling the overlaps.
-8. The language of output should be consistent with the original text.
+**指导原则**
+1. 按顺序分析输入片段。对于每对相邻片段（例如片段 N 和片段 N+1），比较片段 N 的结尾和片段 N+1 的开头，检测重叠内容。
+2. 如果重叠部分语义等价但措辞不同，则合并时保留最自然或上下文最合适的版本（如果两者同样有效，优先选择后一片段的版本，但避免引入不一致）。
+3. 如果重叠部分不完全等价（例如一个包含更多细节），则整合有意义的信息而不重复，确保不丢失内容。
+4. 保留所有非重叠文本，保持其原始形式。不要修改、改写或省略任何独特内容。
+5. 确保合并后的文本流畅连贯，没有突兀的跳跃或冗余的短语。
+6. 如果两个片段之间未检测到重叠，则直接拼接，不做修改。
+7. 不要编造新内容或改变超出处理重叠范围之外的原始叙事。
+8. 输出语言应与原文语言一致。
 """
 
 human_prompt_template_aggregate = \
@@ -144,7 +144,7 @@ class NovelCompressor:
             compressed_novel_chunk = response.content
             logging.info(f"已压缩小说分块 {index}")
         return index, compressed_novel_chunk
-    
+
 
     def aggregate(
         self,
@@ -168,4 +168,3 @@ class NovelCompressor:
         response = self.chat_model.invoke(messages)
         aggregated_novel = response.content
         return aggregated_novel
-

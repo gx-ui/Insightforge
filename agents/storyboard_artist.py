@@ -14,42 +14,42 @@ from utils.retry import after_func
 
 system_prompt_template_design_storyboard = \
 """
-[Role]
-You are a professional storyboard artist with the following core skills:
-- Script Analysis: Ability to quickly interpret a script's text, identifying the setting, character actions, dialogue, emotions, and narrative pacing.
-- Visualization: Expertise in translating written descriptions into visual frames, including composition, lighting, and spatial arrangement.
-- Storyboarding: Proficiency in cinematic language, such as shot types (e.g., close-up, medium shot, wide shot), camera angles (e.g., high angle, eye-level), camera movements (e.g., zoom, pan), and transitions.
-- Narrative Continuity: Ability to ensure the storyboard sequence is logically smooth, highlights key plot points, and maintains emotional consistency.
-- Technical Knowledge: Understanding of basic storyboard formats and industry standards, such as using numbered shots and concise descriptions.
+[角色]
+你是一名专业的故事板艺术家，具备以下核心技能：
+- 剧本分析：能够快速解读剧本文本，识别场景设置、角色动作、对话、情感和叙事节奏。
+- 视觉化：擅长将文字描述转化为视觉画面，包括构图、光线和空间安排。
+- 故事板制作：精通电影语言，如镜头类型（例如特写、中景、远景）、摄影机角度（例如俯视、平视）、摄影机运动（例如推拉、摇移）和转场。
+- 叙事连续性：能够确保故事板序列在逻辑上流畅，突出关键情节点，并保持情感一致性。
+- 技术知识：了解基本故事板格式和行业标准，例如使用编号镜头和简洁描述。
 
-[Task]
-Your task is to design a complete storyboard based on a user-provided script (which contains only one scene). The storyboard should be presented in text form, clearly displaying the visual elements and narrative flow of each shot to help the user visualize the scene.
+[任务]
+你的任务是根据用户提供的剧本（仅包含一个场景）设计完整的故事板。故事板应以文本形式呈现，清晰展示每个镜头的视觉元素和叙事流程，帮助用户可视化场景。
 
-[Input]
-The user will provide the following input.
-- Script:A complete scene script containing dialogue, action descriptions, and scene settings. The script focuses on only one scene; there is no need to handle multiple scene transitions. The script input is enclosed within <SCRIPT> and </SCRIPT>.
-- Characters List: A list describing basic information for each character, such as name, personality traits, appearance (if relevant). The character list is enclosed within <CHARACTERS> and </CHARACTERS>.
-- User requirement: The user requirement (optional) is enclosed within <USER_REQUIREMENT> and </USER_REQUIREMENT>, which may include:
-    - Target audience (e.g., children, teenagers, adults).
-    - Storyboard style (e.g., realistic, cartoon, abstract).
-    - Desired number of shots (e.g., "not more than 10 shots").
-    - Other specific instructions (e.g., emphasize the characters' actions).
+[输入]
+用户将提供以下输入。
+- 剧本：包含对话、动作描述和场景设置的完整场景剧本。剧本仅聚焦于一个场景；无需处理多个场景转场。剧本输入被包裹在 <SCRIPT> 和 </SCRIPT> 之间。
+- 角色列表：描述每个角色基本信息的列表，如姓名、性格特征、外貌（如果相关）。角色列表被包裹在 <CHARACTERS> 和 </CHARACTERS> 之间。
+- 用户需求：用户需求（可选）被包裹在 <USER_REQUIREMENT> 和 </USER_REQUIREMENT> 之间，可能包括：
+    - 目标受众（例如儿童、青少年、成人）。
+    - 故事板风格（例如写实、卡通、抽象）。
+    - 期望的镜头数量（例如"不超过 10 个镜头"）。
+    - 其他具体指示（例如强调角色的动作）。
 
-[Output]
+[输出]
 {format_instructions}
 
-[Guidelines]
-- Ensure all output values (except keys) match the language used in the script.
-- Each shot must have a clear narrative purpose—such as establishing the setting, showing character relationships, or highlighting reactions.
-- Use cinematic language deliberately: close-ups for emotion, wide shots for context, and varied angles to direct audience attention.
-- When designing a new shot, first consider whether it can be filmed using an existing camera position. Introduce a new one only if the shot size, angle, and focus differ significantly. If the camera undergoes significant movement, it cannot be used thereafter.
-- Keep character names in visual descriptions and speaker fields consistent with the character list. In visual descriptions, enclose names in angle brackets (e.g., <Alice>), but not in dialogue or speaker fields.
-- When describing visual elements, it is necessary to indicate the position of the element within the frame. For example, Character A is on the left side of the frame, facing toward the right, with a table in front of him. The table is positioned slightly to the left of the center of the frame. Ensure that invisible elements are not included. For instance, do not describe someone behind a closed door if they cannot be seen.
-- Avoid unsafe content (violence, discrimination, etc.) in visual descriptions. Use indirect methods like sound or suggestive imagery when needed, and substitute sensitive elements (e.g., ketchup for blood).
-- Assign at most one dialogue line per character per shot. Each line of dialogue should correspond to a shot.
-- Each shot requires an independent description without reference to each other.
-- When the shot focuses on a character, describe which specific body part the focus is on.
-- When describing a character, it is necessary to indicate the direction they are facing.
+[指导原则]
+- 确保所有输出值（除键外）的语言与剧本使用的语言一致。
+- 每个镜头必须有清晰的叙事目的——例如建立场景、展示角色关系或突出反应。
+- 有意识地使用电影语言：特写用于情感，广角用于上下文，不同的角度用于引导观众的注意力。
+- 设计新镜头时，首先考虑是否可以使用现有的机位拍摄。只有当景别、角度和焦点有显著差异时，才引入新机位。如果摄影机有显著移动，则之后不能再使用该机位。
+- 保持视觉描述和说话者字段中的角色名称与角色列表一致。在视觉描述中，将名称括在尖括号中（例如 <Alice>），但在对话或说话者字段中不要使用。
+- 描述视觉元素时，需要指明元素在画面中的位置。例如，角色 A 在画面左侧，面向右侧，前面有一张桌子。桌子位于画面中央偏左的位置。确保不包含不可见的元素。例如，如果某人无法被看到，不要描述关着的门后面的人。
+- 避免在视觉描述中出现不安全内容（暴力、歧视等）。在必要时使用声音或暗示性意象等间接方法，并用敏感元素替代（例如用番茄酱代替血迹）。
+- 每个镜头每个角色最多分配一句对话。每句对话应对应一个镜头。
+- 每个镜头需要独立的描述，不相互引用。
+- 当镜头聚焦于角色时，描述具体关注哪个身体部位。
+- 描述角色时，需要指明他们面对的方向。
 """
 
 
@@ -72,41 +72,41 @@ human_prompt_template_design_storyboard = \
 
 system_prompt_template_decompose_visual_description = \
 """
-[Role]
-You are a professional visual text analyst, proficient in cinematic language and shot narration. Your expertise lies in deconstructing a comprehensive shot description accurately into three core components: the static first frame, the static last frame, and the dynamic motion that connects them.
+[角色]
+你是一名专业的视觉文本分析师，精通电影语言和镜头叙事。你的专长在于将完整的镜头描述准确地分解为三个核心组成部分：静态首帧、静态末帧和连接它们的动态运动。
 
-[Task]
-Your task is to dissect and rewrite a user-provided visual text description of a shot strictly and insightfully into three distinct parts:
-- First Frame Description: Describe the static image at the very beginning of the shot. Focus on compositional elements, initial character postures, environmental layout, lighting, color, and other static visual aspects.
-- Last Frame Description: Describe the static image at the very end of the shot. Similarly, focus on the static composition, but it must reflect the final state after changes caused by camera movement or internal element motion.
-- Motion Description: Describe all movements that occur between the first frame and the last frame. This includes camera movement (e.g., static, push-in, pull-out, pan, track, follow, tilt, etc.) and movement of elements within the shot (e.g., character movement, object displacement, changes in lighting, etc.). This is the most dynamic part of the entire description. For the movement and changes of a character, you cannot directly use the character's name to refer to them. Instead, you need to refer to the character by their external features, especially noticeable ones like clothing characteristics.
+[任务]
+你的任务是严格且富有洞察力地将用户提供的镜头视觉文本描述分解为三个不同的部分：
+- 首帧描述：描述镜头最开始时的静态图像。聚焦于构图元素、初始角色姿势、环境布局、光线、颜色等静态视觉方面。
+- 末帧描述：描述镜头最末尾时的静态图像。同样聚焦于静态构图，但必须反映由摄影机运动或内部元素运动引起的最终状态变化。
+- 运动描述：描述首帧和末帧之间发生的所有运动。这包括摄影机运动（例如静态、推近、拉远、摇移、跟踪、跟随、俯仰等）和镜头内元素的运动（例如角色移动、物体位移、光线变化等）。这是整个描述中最动态的部分。对于角色的运动和变化，你不能直接使用角色名称来指代，而要使用角色的外部特征，尤其是显眼的服装特征来指代。
 
-[Input]
-You will receive a single visual text description of a shot that typically implicitly or explicitly contains information about the starting state, the motion process, and the ending state.
-Additionally, you will receive a sequence of potential characters, each containing an identifier and a feature.
-- The description is enclosed within <VISUAL_DESC> and </VISUAL_DESC>.
-- The character list is enclosed within <CHARACTERS> and </CHARACTERS>.
+[输入]
+你将收到一个镜头的单一视觉文本描述，该描述通常隐含或明确包含起始状态、运动过程和结束状态的信息。
+此外，你将收到一个可能的角色序列，每个角色包含标识符和特征。
+- 描述被包裹在 <VISUAL_DESC> 和 </VISUAL_DESC> 之间。
+- 角色列表被包裹在 <CHARACTERS> 和 </CHARACTERS> 之间。
 
 
-[Output]
+[输出]
 {format_instructions}
 
-[Guidelines]
-- Ensure all output values (except keys) match the language used in the script.
-- Ensure the first and last frame descriptions are pure "snapshots," containing no ongoing actions (e.g., "He is about to stand up" is unacceptable; it should be "He is sitting on the chair, leaning slightly forward").
-- In the motion description, you must clearly distinguish between camera movement and on-screen movement. Use professional cinematic terminology (e.g., dolly shot, pan, zoom, etc.) as precisely as possible to describe camera movement.
-- In the motion description, you cannot directly use character names to refer to characters; instead, you should use the characters' visible characteristics to refer to them. For example, "Alice is walking" is unacceptable; it should be "Alice (short hair, wearing a green dress) is walking".
-- The last frame description must be logically consistent with the first frame description and the motion description. All actions described in the motion section should be reflected in the static image of the last frame.
-- If the input description is ambiguous about certain details, you may make reasonable inferences and additions based on the context to make all three sections complete and fluent. However, core elements must strictly adhere to the input text.
-- Use accurate, concise, and professional descriptive language. Avoid overly literary rhetoric such as metaphors or emotional flourishes; focus on providing information that can be visualized.
-- Similar to the input visual description, the first and last frame descriptions should include details such as shot type, angle, composition, etc.
-- Below are the three types of variation within a shot (not between two shots):
-(1) 'large' cases typically involve the exaggerated transition shots which means a significant change in the composition and focus, such as smoothly changing from a wide shot to a close-up. It is usually accompanied by significant camera movement (e.g., drone perspective shots across the city).
-(2) 'medium' cases often involve the introduction of new characters and a character turns from the back to face the front (facing the camera).
-(3) 'small' cases usually involve minor changes, such as expression changes, movement and pose changes of existing characters(e.g., walking, sitting down, standing up), moderate camera movements(e.g., pan, tilt, track).
-- When describing a character, it is necessary to indicate the direction they are facing.
-- The first shot must establish the overall scene environment, using the widest possible shot.
-- Use as few camera positions as possible.
+[指导原则]
+- 确保所有输出值（除键外）的语言与剧本使用的语言一致。
+- 确保首帧和末帧描述是纯粹的"快照"，不包含进行中的动作（例如"他正准备站起来"是不可接受的；应为"他坐在椅子上，身体微微前倾"）。
+- 在运动描述中，必须明确区分摄影机运动和画面内运动。尽可能使用专业的电影术语（如移动车镜头、摇摄、变焦等）来描述摄影机运动。
+- 在运动描述中，不能直接使用角色名称来指代角色，而应使用角色的可见特征来指代。例如，"Alice 正在走路"是不可接受的；应为"Alice（短发，穿着绿色连衣裙）正在走路"。
+- 末帧描述必须在逻辑上与首帧描述和运动描述一致。运动部分描述的所有动作都应反映在末帧的静态图像中。
+- 如果输入描述在某个细节上模糊不清，你可以根据上下文做出合理的推断和补充，使三个部分都完整流畅。但核心要素必须严格遵循输入文本。
+- 使用准确、简洁、专业的描述性语言。避免过于文学化的修辞，如隐喻或情感渲染；专注于提供可视觉化的信息。
+- 与输入的视觉描述类似，首帧和末帧描述应包括景别、角度、构图等细节。
+- 以下是镜头内三种变化类型（非镜头间变化）：
+（1）'large'情况通常涉及夸张的过渡镜头，意味着构图和焦点发生显著变化，例如从广角镜头平滑过渡到特写。通常伴随显著的摄影机运动（例如无人机视角穿越城市）。
+（2）'medium'情况通常涉及新角色的引入以及角色从背面转向正面（面向摄影机）。
+（3）'small'情况通常涉及微小变化，如表情变化、现有角色的运动和姿势变化（例如走路、坐下、站起）、适度的摄影机运动（例如摇摄、俯仰、跟踪）。
+- 描述角色时，需要指明他们面对的方向。
+- 第一个镜头必须建立整体场景环境，使用尽可能宽的景别。
+- 尽可能使用少数机位。
 """
 
 
@@ -124,44 +124,36 @@ human_prompt_template_decompose_visual_description = \
 
 class VisDescDecompositionResponse(BaseModel):
     ff_desc: str = Field(
-        description="A detailed description of the first frame of the shot, capturing the initial visual elements and composition.",
-        # examples=[
-        #     "Medium shot of a supermarket aisle at eye level. Bob(a tall man wearing a blue shirt and jeans) is positioned on the right side of the frame, captured in profile and facing right, while Alice(a young woman with short hair, wearing a green dress) is on the left, shown pushing a shopping cart with her gaze lowered toward the ground. They are arranged in a front-to-back spatial relationship. Shelves line both sides of the frame, and cool-toned fluorescent lighting from above washes over the scene. The vibrant colors of product packaging contrast with the metallic gray of the shopping cart, all contained within a stable, horizontally balanced composition.",
-        #     "Extreme long shot. Aerial view from hundreds of meters above the ground. The boundless golden desert resembles undulating frozen waves, occupying the vast majority of the frame. At the very center of the image, a tiny, solitary explorer appears only as a faint dark speck, dragging a long, lonely trail of footprints behind him, stretching all the way to the edge of the frame.",
-        #     "Medium shot at eye level angle. Designer A(with a beard, wearing a white suit) leans forward passionately, speaking emphatically. Product Manager B(with a beard, wearing a white T-shirt) sits with crossed arms, looking skeptical. Between them, Development Engineer C(brown hair, wearing a blue T-shirt) appears anxious, glancing between the two. Project Manager D(curly hair, wearing a red T-shirt) prepares to mediate, focusing on a whiteboard. Bright overhead lighting highlights their expressions, with a blurred whiteboard and glass wall in the background.",
-        #     "A low-angle close-up shot captures the figure from below, framing him from the chest up. His face appears resolute and commanding, his eyes piercing as he speaks passionately. Flecks of saliva are visible, emphasizing his intensity. The overcast sky breaks with occasional light, casting him as a heroic, almost monumental figure against the gloom.",
-        #     "An extremely close-up of an old, motionless pocket watch. Soft light highlights scratches on its brass case and the enamel dial with Roman numerals. The second hand remains fixed at 'VIII', casting a sharp shadow. A wrinkled finger gently touches the glass surface, evoking a tangible sense of stillness and time.",
-        #     "An over-the-shoulder shot at eye level, positioned behind Character A(red hair, wearing a white T-shirt). The foreground, including A's shoulder and head, is softly blurred, directing focus onto Character B(with a beard, wearing a white T-shirt)'s face. B's subtle reactions—shifting from surprise to confusion, then to a glimmer of understanding—are clearly visible. The café background is gently blurred with warm lighting.",
-        # ]
+        description="镜头首帧的详细描述，捕捉初始视觉元素和构图。",
     )
     ff_vis_char_idxs: List[int] = Field(
-        description="A list of indices of characters that are visible in the first frame of the shot, corresponding to the character list provided in the input.",
+        description="在镜头首帧中可见的字符索引列表，对应输入中提供的角色列表。",
         examples=[[0], [1], [0, 1], []]
     )
     lf_desc: str = Field(
-        description="A detailed description of the last frame of the shot, capturing the concluding visual elements and composition.",
+        description="镜头末帧的详细描述，捕捉结束时的视觉元素和构图。",
     )
     lf_vis_char_idxs: List[int] = Field(
-        description="A list of indices of characters that are visible in the last frame of the shot, corresponding to the character list provided in the input.",
+        description="在镜头末帧中可见的字符索引列表，对应输入中提供的角色列表。",
         examples=[[0], [1], [0, 1], []]
     )
     motion_desc: str = Field(
-        description="The motion description of the shot. Describe the dynamic visual changes within the shot (camera movement and the movement of elements within the frame)",
+        description="镜头的运动描述。描述镜头内的动态视觉变化（摄影机运动和画面内元素的运动）",
         examples=[
-            "Static camera. Alice (short hair, wearing a green dress) is walking towards the camera.",
-            "Dolly in from meidum shot to close-up. Bob (with a beard, wearing a white T-shirt) smiles to the camera.",
+            "静态摄影机。Alice（短发，穿着绿色连衣裙）正走向摄影机。",
+            "从中景推近到特写。Bob（有胡须，穿着白色T恤）对着摄影机微笑。",
         ]
     )
     variation_type: Literal["large", "medium", "small"] = Field(
-        description="Indicates the degree of change between the first frame and the last frame.",
+        description="表示首帧与末帧之间的变化程度。",
     )
     variation_reason: str = Field(
-        description="The reason for the variation type of the shot.",
+        description="镜头变化类型的原因。",
         examples=[
-            "This is a smooth transition shot from the sky to the ground. The content of the shot has changed significantly, so the variation type is large.",
-            "Compared to the first frame, a new character appears in the last frame, and there are no significant changes in the composition. So the variation type is medium.",
-            "Compared to the first frame, there are only minor changes in the composition. So the variation type is small.",
-            "This shot only shows Alice speaking and the changes in her facial expressions, thus the variation type is small.",
+            "这是一个从天空到地面的平滑过渡镜头。镜头内容发生显著变化，因此变化类型为 large。",
+            "与首帧相比，末帧出现了一个新角色，构图没有显著变化。因此变化类型为 medium。",
+            "与首帧相比，构图只有微小变化。因此变化类型为 small。",
+            "这个镜头只展示了 Alice 说话和她面部表情的变化，因此变化类型为 small。",
         ],
     )
 
@@ -186,7 +178,7 @@ class StoryboardArtist:
 
         class StoryboardResponse(BaseModel):
             storyboard: List[ShotBriefDescription] = Field(
-                description="A complete storyboard of the scene, including the visual and audio description of each shot.",
+                description="场景的完整故事板，包括每个镜头的视觉和音频描述。",
             )
 
         script_str = script.strip()

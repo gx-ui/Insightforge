@@ -6,7 +6,7 @@ from copy import deepcopy
 
 from agent_runtime.context_compactor import ContextCompactor
 from agent_runtime.llm import AssistantMessage
-from agent_runtime.loop import AgentLoop
+from agent_runtime.agent_graph import AgentLoop
 from agent_runtime.models import ToolCall, ToolResult
 from agent_runtime.prompts import PromptBuilder
 from agent_runtime.session_index import SessionIndex

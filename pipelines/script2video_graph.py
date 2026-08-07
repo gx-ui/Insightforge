@@ -1,11 +1,8 @@
-﻿"""Phase 6: 基于 LangGraph StateGraph 的 script2video 文本规划。"""
+"""Phase 6: 基于 LangGraph StateGraph 的 script2video 文本规划。
 
-Replaces the inline orchestration in Script2VideoPipeline.plan_text_artifacts
-with a stateful graph. Each node delegates to the pipeline's existing methods
-(which handle file caching); the graph adds progress emission, the
-provided-characters branch, and the camera_tree retry. The public
-plan_text_artifacts signature is unchanged; a feature flag falls back to the
-legacy inline path.
+将 Script2VideoPipeline.plan_text_artifacts 中的内联编排替换为有状态图。
+每个节点委托给管道现有的方法（这些方法负责文件缓存）；该图新增了进度上报、provided-characters 分支以及 camera_tree 重试逻辑。
+对外暴露的 plan_text_artifacts 签名保持不变；通过特性开关（feature flag）可回退到旧的内联实现路径。
 """
 
 from __future__ import annotations
@@ -13,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-from typing import Any, TypedDict
+from typing import Any, Callable, TypedDict
 
 from langgraph.graph import StateGraph, START, END
 
@@ -28,8 +25,6 @@ class PlanningState(TypedDict, total=False):
     storyboard: Any
     shot_descriptions: Any
     camera_tree: Any
-    progress: Any
-    quiet: bool
 
 
 def _emit(progress, stage, message, metadata=None):
@@ -37,69 +32,83 @@ def _emit(progress, stage, message, metadata=None):
         progress(stage, message, metadata or {})
 
 
-def build_planning_graph(pipeline: Any):
-    async def extract_characters_node(state: PlanningState) -> dict:
-        progress = state.get("progress")
-        quiet = state.get("quiet", False)
+class _PlanningGraphBuilder:
+    """将不可序列化的 progress 回调挂在实例上，避免混入图状态。"""
+
+    def __init__(self, pipeline: Any, progress: Callable | None, quiet: bool):
+        self.pipeline = pipeline
+        self.progress = progress
+        self.quiet = quiet
+
+    async def extract_characters_node(self, state: PlanningState) -> dict:
         characters = state.get("characters")
         if characters is None:
-            _emit(progress, "extract_characters", "Extracting characters from script")
-            characters = await pipeline.extract_characters(script=state["script"], quiet=quiet)
+            _emit(self.progress, "extract_characters", "Extracting characters from script")
+            characters = await self.pipeline.extract_characters(
+                script=state["script"], quiet=self.quiet,
+            )
         else:
             from pipelines.script2video_pipeline import _normalize_model_list
             characters = _normalize_model_list(characters, CharacterInScene, "characters")
-            _emit(progress, "extract_characters", "Using provided characters", {"provided": True, "count": len(characters)})
-            characters_path = os.path.join(pipeline.working_dir, "characters.json")
+            _emit(self.progress, "extract_characters", "Using provided characters",
+                  {"provided": True, "count": len(characters)})
+            characters_path = os.path.join(self.pipeline.working_dir, "characters.json")
             if not os.path.exists(characters_path):
                 with open(characters_path, "w", encoding="utf-8") as f:
                     json.dump([c.model_dump() for c in characters], f, ensure_ascii=False, indent=4)
             for character in characters:
-                pipeline.character_portrait_events[character.idx] = asyncio.Event()
+                self.pipeline.character_portrait_events[character.idx] = asyncio.Event()
         return {"characters": characters}
 
-    async def design_storyboard_node(state: PlanningState) -> dict:
-        _emit(state.get("progress"), "design_storyboard", "Designing storyboard")
-        storyboard = await pipeline.design_storyboard(
+    async def design_storyboard_node(self, state: PlanningState) -> dict:
+        _emit(self.progress, "design_storyboard", "Designing storyboard")
+        storyboard = await self.pipeline.design_storyboard(
             script=state["script"],
             characters=state["characters"],
             user_requirement=state["user_requirement"],
-            quiet=state.get("quiet", False),
+            quiet=self.quiet,
         )
         return {"storyboard": storyboard}
 
-    async def decompose_shots_node(state: PlanningState) -> dict:
-        _emit(state.get("progress"), "decompose_shots", "Decomposing shot visual descriptions", {"shot_count": len(state["storyboard"])})
-        shot_descriptions = await pipeline.decompose_visual_descriptions(
+    async def decompose_shots_node(self, state: PlanningState) -> dict:
+        _emit(self.progress, "decompose_shots", "Decomposing shot visual descriptions",
+              {"shot_count": len(state["storyboard"])})
+        shot_descriptions = await self.pipeline.decompose_visual_descriptions(
             shot_brief_descriptions=state["storyboard"],
             characters=state["characters"],
-            quiet=state.get("quiet", False),
+            quiet=self.quiet,
         )
         return {"shot_descriptions": shot_descriptions}
 
-    async def construct_camera_tree_node(state: PlanningState) -> dict:
-        progress = state.get("progress")
-        quiet = state.get("quiet", False)
+    async def construct_camera_tree_node(self, state: PlanningState) -> dict:
         camera_tree = None
         for attempt in range(2):
             try:
                 stage = "construct_camera_tree" if attempt == 0 else "construct_camera_tree_retry"
                 message = "Constructing camera tree" if attempt == 0 else "Retrying camera tree construction after schema/type failure"
-                _emit(progress, stage, message, {"shot_count": len(state["shot_descriptions"]), "attempt": attempt + 1})
-                camera_tree = await pipeline.construct_camera_tree(shot_descriptions=state["shot_descriptions"], quiet=quiet)
+                _emit(self.progress, stage, message,
+                      {"shot_count": len(state["shot_descriptions"]), "attempt": attempt + 1})
+                camera_tree = await self.pipeline.construct_camera_tree(
+                    shot_descriptions=state["shot_descriptions"], quiet=self.quiet,
+                )
                 break
             except Exception:
-                camera_tree_path = os.path.join(pipeline.working_dir, "camera_tree.json")
+                camera_tree_path = os.path.join(self.pipeline.working_dir, "camera_tree.json")
                 if os.path.exists(camera_tree_path):
                     os.remove(camera_tree_path)
                 if attempt == 1:
                     raise
         return {"camera_tree": camera_tree}
 
+
+def build_planning_graph(pipeline: Any, progress: Callable | None = None, quiet: bool = False):
+    builder = _PlanningGraphBuilder(pipeline, progress, quiet)
+
     g = StateGraph(PlanningState)
-    g.add_node("extract_characters", extract_characters_node)
-    g.add_node("design_storyboard", design_storyboard_node)
-    g.add_node("decompose_shots", decompose_shots_node)
-    g.add_node("construct_camera_tree", construct_camera_tree_node)
+    g.add_node("extract_characters", builder.extract_characters_node)
+    g.add_node("design_storyboard", builder.design_storyboard_node)
+    g.add_node("decompose_shots", builder.decompose_shots_node)
+    g.add_node("construct_camera_tree", builder.construct_camera_tree_node)
     g.add_edge(START, "extract_characters")
     g.add_edge("extract_characters", "design_storyboard")
     g.add_edge("design_storyboard", "decompose_shots")
@@ -109,8 +118,13 @@ def build_planning_graph(pipeline: Any):
 
 
 async def run_planning_graph(pipeline: Any, **kwargs) -> dict:
-    """构建并运行规划图，返回产物字典。"""
-    app = build_planning_graph(pipeline)
+    """构建并运行规划图，返回产物字典。
+
+    只将可序列化字段传入图状态；progress / quiet 通过 _PlanningGraphBuilder 注入。
+    """
+    progress = kwargs.pop("progress", None)
+    quiet = kwargs.pop("quiet", False)
+    app = build_planning_graph(pipeline, progress=progress, quiet=quiet)
     result = await app.ainvoke(kwargs)
     return {
         "characters": result.get("characters"),

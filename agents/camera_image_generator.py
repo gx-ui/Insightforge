@@ -19,42 +19,42 @@ from PIL import Image
 
 system_prompt_template_select_reference_camera = \
 """
-[Role]
-You are a professional video editing expert specializing in multi-camera shot analysis and scene structure modeling. You have deep knowledge of cinematic language, enabling you to understand shot sizes (e.g., wide shot, medium shot, close-up) and content inclusion relationships. You can infer hierarchical structures between camera positions based on corresponding shot descriptions.
+[角色]
+你是一名专业的视频剪辑专家，专精于多机位镜头分析及场景结构建模。你拥有深厚的镜头语言知识，能够理解景别（如远景、中景、特写）和内容包含关系。你可以根据相应的镜头描述推断机位之间的层级结构。
 
-[Task]
-Your task is to analyze the input camera position data to construct a "camera position tree". This tree structure represents a relationship where a parent camera's content encompasses that of a child camera. Specifically, you need to identify the parent camera for each camera position (if one exists) and determine the dependent shot indices (i.e., the specific shots within the parent camera's footage that contain the child camera's content). If a camera position has no parent, output None.
+[任务]
+你的任务是分析输入的机位数据，构建一个"机位树"。该树结构表示父级机位的内容包含子级机位的内容。具体来说，你需要为每个机位找出其父级机位（若存在），并确定依赖的镜头索引（即父级机位素材中包含了子级机位内容的具体镜头）。如果某个机位没有父级，则输出 None。
 
-[Input]
-The input is a sequence of cameras. The sequence will be enclosed within <CAMERA_SEQ> and </CAMERA_SEQ>.
-Each camera contains a sequence of shots filmed by the camera, which will be enclosed within <CAMERA_N> and </CAMERA_N>, where N is the index of the camera.
+[输入]
+输入是一个机位序列。该序列被包裹在 <CAMERA_SEQ> 和 </CAMERA_SEQ> 之间。
+每个机位包含该机位拍摄的一系列镜头，这些镜头被包裹在 <CAMERA_N> 和 </CAMERA_N> 之间，其中 N 是机位的索引。
 
-Below is an example of the input format:
+以下是输入格式示例：
 
 <CAMERA_SEQ>
 <CAMERA_0>
-Shot 0: Medium shot of the street. Alice and Bob are walking towards each other.
-Shot 2: Medium shot of the street. Alice and Bob hug each other.
+Shot 0: 街道中景。Alice 和 Bob 正朝彼此走去。
+Shot 2: 街道中景。Alice 和 Bob 拥抱。
 </CAMERA_0>
 <CAMERA_1>
-Shot 1: Close-up of the Alice's face. Her expression shifts from surprise to delight as she recognizes Bob.
+Shot 1: Alice 面部特写。她认出 Bob 时，表情从惊讶转为欣喜。
 </CAMERA_1>
 </CAMERA_SEQ>
 
 
-[Output]
+[输出]
 {format_instructions}
 
-[Guidelines]
-- The language of all output values (not include keys) should be consistent with the language of the input.
-- Content Inclusion Check: The parent camera should as fully as possible contain the child camera's content in certain shots (e.g., a parent medium two-shot encompasses a child over-the-shoulder reverse shot). Analyze shot descriptions by comparing keywords (e.g., characters, actions, setting) to ensure the parent shot's field of view covers the child shot's.
-- Transition Smoothness Priority: Larger shot size as parent camera is preferred, such as Wide Shot -> Medium Shot or Medium Shot -> Close-up. The shot sizes of adjacent parent and child nodes should be as similar as possible. A direct transition from a long shot to a close-up is not allowed unless absolutely necessary.
-- Temporal Proximity: Each camera is described by its corresponding first shot, and the parent camera is located based on the description of the first shot. The shot index of the parent camera should be as close as possible to the first shot index of the child camera.
-- Logical Consistency: The camera tree should be acyclic, avoid circular dependencies. If a camera is contained by multiple potential parents, select the best match (based on shot size and content). If there is no suitable parent camera, output None.
-- When a broader perspective is not available, choose the shot with the largest overlapping field of view as the parent (the one with the most information overlap), or a shot can also serve as the parent of a reverse shot. When two cameras can be the parent of each other, choose the one with the smaller index as the parent of the camera with the larger index.
-- Only one camera can exist without a parent.
-- When describing the elements lost in a shot, carefully compare the details between the parent shot and the child shot. For example, the parent shot is a medium shot of Character A and Character B facing each other (both in profile to the camera), while the child shot is a close-up of Character A (with Character A facing the camera directly). In this case, the child shot lacks the frontal view information of Character A.
-- The first camera must be the root of the camera tree.
+[指导原则]
+- 所有输出值（不含键）的语言应与输入语言保持一致。
+- 内容包含检查：父级机位应尽可能完整地包含子级机位的内容（例如，父级中景双人镜头包含了子级过肩反打镜头）。通过比较关键词（如角色、动作、场景）分析镜头描述，确保父级镜头的视野覆盖了子级镜头的内容。
+- 过渡平滑优先：优先选择景别较大的机位作为父机位，例如远景→中景或中景→特写。相邻父子节点的景别应尽可能相似。除非必要，不允许从远景直接跳到特写。
+- 时间邻近性：每个机位以其对应的第一个镜头描述，根据第一个镜头的描述定位父机位。父机位的镜头索引应尽可能接近子机位的第一个镜头索引。
+- 逻辑一致性：机位树应无环，避免循环依赖。如果某个机位被多个潜在父级包含，选择最佳匹配（基于景别和内容）。如果没有合适的父级机位，则输出 None。
+- 当没有更广的视角时，选择视野重叠最大的镜头作为父级（信息重叠最多的那个），或者一个镜头也可以作为反打镜头的父级。当两个机位可以互为父级时，选择索引较小的作为索引较大的机位的父级。
+- 只能有一个机位没有父级。
+- 描述镜头中丢失的元素时，仔细比较父级镜头和子级镜头的细节。例如，父级镜头是角色 A 和角色 B 面对面的中景（两者都侧对镜头），而子级镜头是角色 A 的特写（角色 A 正对镜头）。在这种情况下，子级镜头缺少角色 A 的正面信息。
+- 第一个机位必须是机位树的根节点。
 """
 
 
@@ -67,41 +67,41 @@ human_prompt_template_select_reference_camera = \
 
 
 class CameraParentItem(BaseModel):
-    parent_cam_idx: Optional[int] = Field( 
-        default=None, 
-        description="The index of the parent camera. Set to None if the camera has no parent (e.g., for a root camera).",
-        examples=[0, 1, None], 
+    parent_cam_idx: Optional[int] = Field(
+        default=None,
+        description="父级机位的索引。如果该机位没有父级（例如根机位），则设为 None。",
+        examples=[0, 1, None],
     )
-    parent_shot_idx: Optional[int] = Field( 
-        default=None, 
-        description="The index of the dependent shot. Set to None if the camera has no parent (e.g., for a root camera).",
-        examples=[0, 3, None], 
+    parent_shot_idx: Optional[int] = Field(
+        default=None,
+        description="依赖的镜头索引。如果该机位没有父级（例如根机位），则设为 None。",
+        examples=[0, 3, None],
     )
     reason: str = Field(
-        description="The reason for the selection of the parent camera. If the camera has no parent, it should explain why it's a root camera.",
+        description="选择父级机位的原因。如果该机位没有父级，则说明其为何是根机位。",
         examples=[
-            "The parent shot's field of view covers the child shot's field of view (from medium shot to close-up)",
-            "The parent shot and the child shot have a shot/reverse shot relationship.",
-            "CAMERA_0 (Shot 0) establishes the entire scene and contains all characters and the setting. It is the root camera." # 补充 LLM 实际输出的例子
+            "父级镜头的视野覆盖了子级镜头的视野（从中景到特写）",
+            "父级镜头和子级镜头具有正反打关系。",
+            "CAMERA_0（Shot 0）建立了整个场景，包含所有角色和场景设置。它是根机位。",
         ],
     )
-    is_parent_fully_covers_child: Optional[bool] = Field( 
-        default=None, 
-        description="Whether the parent camera fully covers the child camera's content. Set to None if the camera has no parent.",
-        examples=[True, False, None], 
+    is_parent_fully_covers_child: Optional[bool] = Field(
+        default=None,
+        description="父级机位是否完全覆盖了子级机位的内容。如果该机位没有父级，则设为 None。",
+        examples=[True, False, None],
     )
     missing_info: Optional[str] = Field(
         default=None,
-        description="The missing elements in the child shot that are not covered by the parent shot. If the parent shot fully covers the child shot, set this to None.",
+        description="子级镜头中未被父级镜头覆盖的缺失元素。如果父级镜头完全覆盖子级镜头，则设为 None。",
         examples=[
-            "The frontal view of Alice.",
+            "Alice 的正面视角。",
             None,
         ],
     )
 
 class CameraTreeResponse(BaseModel):
     camera_parent_items: List[Optional[CameraParentItem]] = Field(
-        description="The parent camera items for each camera. If a camera has no parent, set this to None. The length of the list should be the same as the number of cameras.",
+        description="每个机位的父级机位项。如果某个机位没有父级，则设为 None。列表长度应与机位数量相同。",
     )
 
 
@@ -189,9 +189,9 @@ class CameraImageGenerator:
         progress=None,
     ) -> VideoOutput:
 
-        prompt = f"Two shots. The transition between the shots is a cut to. The style of the two shots should be consistent."
-        prompt += f"\nThe first shot description: {first_shot_visual_desc}."
-        prompt += f"\nThe second shot description: {second_shot_visual_desc}."
+        prompt = f"两个镜头。两个镜头之间的转场是直接切换。两个镜头的风格应保持一致。"
+        prompt += f"\n第一个镜头描述：{first_shot_visual_desc}。"
+        prompt += f"\n第二个镜头描述：{second_shot_visual_desc}。"
         reference_image_paths = [first_shot_ff_path]
         video_output = await self.video_generator.generate_single_video(
             prompt=prompt,
@@ -243,7 +243,7 @@ class CameraImageGenerator:
         for i,(path, text )in enumerate(character_portrait_path_and_text_pairs):
             prompt += f"Image {i}: {text}\n"
             reference_image_paths.append(path)
-        prompt += f"Generate an image based on the following description: {shot_desc.ff_desc}."
+        prompt += f"根据以下描述生成图片：{shot_desc.ff_desc}。"
         image_output = await self.image_generator.generate_single_image(
             prompt=prompt,
             reference_image_paths=reference_image_paths,

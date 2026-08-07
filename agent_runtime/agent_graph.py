@@ -1,24 +1,24 @@
 from __future__ import annotations
+
 import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncIterator, TypedDict
 from langgraph.config import get_stream_writer
 from langgraph.graph import StateGraph, START, END
-from .context_compactor import ContextCompactor
+from .context_compactor import ContextCompactor, CompactionResult
+from .llm import OpenAICompatibleLLM
 from .models import TurnControl, ToolCall
-from .loop import (
-    MAX_TOOL_PASSES,
-    _compaction_record,
-    _openai_tool_call,
-    _prompt_tokens,
-    _tool_schema_tokens,
-    _transition,
-)
+from .prompts import PromptBuilder
+from .session_index import SessionIndex
+from .tool_executor import ToolExecutor
+from .tools import build_builtin_registry
+
+MAX_TOOL_PASSES = 50
 
 _OBSERVATION_PREFIX = (
-    "Tool-provided image observation(s). Inspect these pixels as evidence "
-    "for the active task; this is not a new user request."
+    "工具提供的图像观察结果。请将这些像素作为证据进行审查， "
+    "以推进当前任务；这不是新的用户请求。"
 )
 
 
@@ -78,12 +78,20 @@ class AgentLoop:
     async def _ensure_graph(self):
         if self._graph is not None:
             return
+     
         import aiosqlite
+        from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
         from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
         Path(self._checkpoint_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = await aiosqlite.connect(self._checkpoint_path)
-        self._saver = AsyncSqliteSaver(self._conn)
+        self._saver = AsyncSqliteSaver(
+            self._conn,
+            serde=JsonPlusSerializer(
+                allowed_json_modules=(("langchain",), ("langchain_core",), ("langgraph",))
+
+            ),
+        )
         self._graph = self._build_graph()
 
     def _build_graph(self):
@@ -310,3 +318,47 @@ class AgentLoop:
         writer({"type": "done", "turn_id": turn_id, "assistant": final_text, "tool_results": all_tool_results})
         writer({"type": "session", "turn_id": turn_id, "session": self.session_index.snapshot()})
         return {"history": history}
+
+
+def _compaction_record(result: CompactionResult) -> dict[str, Any]:
+    return {
+        "summary": result.summary,
+        "preserved_message_count": len(result.preserved_messages),
+        "compacted_message_count": result.compacted_message_count,
+        "estimated_tokens_before": result.estimated_tokens_before,
+        "estimated_tokens_after": result.estimated_tokens_after,
+        "reason": result.reason,
+        "mode": result.mode,
+        "created_at": result.created_at,
+    }
+
+
+def _prompt_tokens(parts: list[Any]) -> int:
+    return sum(max(1, len(str(getattr(part, "body", ""))) // 4) for part in parts)
+
+
+def _tool_schema_tokens(tool_schemas: list[dict[str, Any]]) -> int:
+    try:
+        return max(0, len(json.dumps(tool_schemas, ensure_ascii=False, default=str)) // 4)
+    except TypeError:
+        return max(0, len(str(tool_schemas)) // 4)
+
+
+def _transition(src: str, dst: str, reason: str) -> dict[str, str]:
+    return {"from": src, "to": dst, "reason": reason}
+
+
+def _openai_tool_call(call: ToolCall) -> dict[str, Any]:
+    return {"id": call.id, "type": "function", "function": {"name": call.name, "arguments": json.dumps(call.arguments, ensure_ascii=False)}}
+
+
+def build_runtime(workspace_root: str | Path = ".", llm: Any | None = None, adapter_specs: list[Any] | None = None) -> AgentLoop:
+    from .insightforge_adapters import build_insightforge_adapter_specs
+    root = Path(workspace_root).resolve()
+    session_index = SessionIndex(root)
+    specs = adapter_specs if adapter_specs is not None else build_insightforge_adapter_specs(root, session_index)
+    registry = build_builtin_registry(root, session_index, specs)
+    executor = ToolExecutor(registry, session_index)
+    prompt_builder = PromptBuilder(root / "prompts", session_index, registry)
+    resolved_llm = llm or OpenAICompatibleLLM()
+    return AgentLoop(session_index, prompt_builder, registry, executor, resolved_llm, ContextCompactor(resolved_llm))

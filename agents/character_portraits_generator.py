@@ -14,19 +14,19 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 prompt_template_front = \
 """
-Generate a full-body, front-view portrait of character {identifier} based on the following description, with a pure white background. Use a wide 16:9 landscape canvas, not a vertical portrait canvas. The character should be centered in the image, occupying the middle of the wide frame with enough horizontal empty space. Gazing straight ahead. Standing with arms relaxed at sides. Natural expression.
-Features: {features}
-Style: {style}
+根据以下描述生成角色 {identifier} 的全身正面肖像，纯白背景。使用宽幅 16:9 横向画布，而非纵向肖像画布。角色应位于图像中央，占据宽幅画面的中间位置，两侧留有足够的水平空白空间。目光平视前方。站立，双臂自然垂放于身体两侧。表情自然。
+特征：{features}
+风格：{style}
 """
 
 prompt_template_side = \
 """
-Generate a full-body, side-view portrait of character {identifier} based on the provided front-view portrait, with a pure white background. Use a wide 16:9 landscape canvas, not a vertical portrait canvas. The character should be centered in the image, occupying the middle of the wide frame with enough horizontal empty space. Facing left. Standing with arms relaxed at sides.
+根据提供的前视图肖像，生成角色 {identifier} 的全身侧面肖像，纯白背景。使用宽幅 16:9 横向画布，而非纵向肖像画布。角色应位于图像中央，占据宽幅画面的中间位置，两侧留有足够的水平空白空间。面向左侧。站立，双臂自然垂放于身体两侧。
 """
 
 prompt_template_back = \
 """
-Generate a full-body, back-view portrait of character {identifier} based on the provided front-view portrait, with a pure white background. Use a wide 16:9 landscape canvas, not a vertical portrait canvas. The character should be centered in the image, occupying the middle of the wide frame with enough horizontal empty space. No facial features should be visible.
+根据提供的前视图肖像，生成角色 {identifier} 的全身背面肖像，纯白背景。使用宽幅 16:9 横向画布，而非纵向肖像画布。角色应位于图像中央，占据宽幅画面的中间位置，两侧留有足够的水平空白空间。不应看到任何面部特征。
 """
 
 
@@ -43,7 +43,7 @@ class CharacterPortraitsGenerator:
         character: CharacterInScene,
         style: str,
     ) -> ImageOutput:
-        features = "(static) " + (character.static_features or "") + "; (dynamic) " + (character.dynamic_features or "")
+        features = "(静态) " + (character.static_features or "") + "; (动态) " + (character.dynamic_features or "")
         prompt = prompt_template_front.format(
             identifier=character.identifier_in_scene,
             features=features,

@@ -12,32 +12,32 @@ from utils.image import image_path_to_b64
 
 system_prompt_template_select_most_consistent_image = \
 """
-[Role]
-You are a professional visual assessment expert. Your expertise includes identifying Character Consistency and Spatial Consistency between candidate image and reference image, and assessing semantic consistency between candidate image and text description.
+[角色]
+你是一名专业的视觉评估专家。你的专长包括识别候选图片与参考图片之间的角色一致性、空间一致性，以及评估候选图片与文本描述之间的语义一致性。
 
-[Task]
-Based on the reference image provided by the user, the text description of the target image, and several candidate images, evaluate which candidate image performs best in the following aspects:
-- Character Consistency: Whether the character features (a. gender, b.ethnicity, c.age, d.facial features, e.body shape, f.outlook, g. hairstyle) in the candidate image align with those of the character in the reference image.
-- Spatial Consistency: Whether the relative positions between characters (e.g. Character A is on the left, character B is on the right, scene layout, perspective, and other spatial relationships) in the candidate image are consistent with those in the reference image.
-- Description Accuracy: Whether the candidate image accurately reflects the content described in the text (Note: The text description describes the target image we want, which is not an editing instruction).
+[任务]
+根据用户提供的参考图片、目标图片的文本描述以及若干候选图片，评估哪张候选图片在以下方面表现最佳：
+- 角色一致性：候选图片中的角色特征（a. 性别、b. 种族、c. 年龄、d. 面部特征、e. 体型、f. 外观、g. 发型）是否与参考图片中的角色一致。
+- 空间一致性：候选图片中角色之间的相对位置（例如角色 A 在左、角色 B 在右、场景布局、视角等空间关系）是否与参考图片一致。
+- 描述准确性：候选图片是否准确反映了文本描述的内容（注意：文本描述描述的是我们想要的目标图片，而非编辑指令）。
 
-[Input]
-The user will provide the following content:
-- Reference images: These include images of characters or other perspectives, each along with a brief text description. For example, "Reference Image 0: A young girl with long brown hair wearing a red dress." then follow the corresponding image. The index starts from 0.
-- Candidate images: The candidate images to be evaluated. For example, "Generated Image 0", then follow a generated image. The index starts from 0.
-- Text description for target image: This describes what the generated image should contain. It is enclosed <TARGET_DESCRIPTION_START> and <TARGET_DESCRIPTION_END> tags.
+[输入]
+用户将提供以下内容：
+- 参考图片：包含角色或其他视角的图片，每张图片附带简短文本描述。例如"参考图片 0：一位身穿红色连衣裙、拥有棕色长发的年轻女孩。"，随后是对应的图片。索引从 0 开始。
+- 候选图片：待评估的候选图片。例如"候选图片 0"，随后是一张生成的图片。索引从 0 开始。
+- 目标图片文本描述：描述生成的图片应包含什么内容。它被包裹在 <TARGET_DESCRIPTION_START> 和 <TARGET_DESCRIPTION_END> 标签之间。
 
-[Output]
+[输出]
 {format_instructions}
 
-[Guidelines]
-- Prioritize Character Consistency: Ensure that the characters in the generated image are highly consistent with those in the reference image in terms of visual features (e.g., a. gender b.ethnicity, c.age, d.facial features, e.body shape, f.outlook, g. hairstyle etc.).
-- Focus on Spatial Consistency: Verify whether the relative positions of characters, object arrangements, and perspectives align logically with the reference image (e.g., if Character A is on the left and Character B is on the right in the reference image, the generated image should not reverse this).
-- Strictly Compare with Text Description: The generated image must adhere to key elements in the text description (e.g., actions, scenes, objects, etc.), while disregarding parts related to editing instructions (as the input description reflects the expected outcome rather than directives).
-- If multiple images partially meet the criteria, select the one with the highest overall consistency; if none are ideal, choose the relatively best option and explain its shortcomings.
-- Ensure the key elements described in the text are present in the selected image.
-- Avoid subjective preferences; base all analysis on objective comparisons.
-- Prioritize images without white borders, black edges, or any additional framing.
+[指导原则]
+- 优先考虑角色一致性：确保生成图片中的角色在视觉特征（如 a. 性别、b. 种族、c. 年龄、d. 面部特征、e. 体型、f. 外观、g. 发型等）上与参考图片高度一致。
+- 关注空间一致性：验证角色的相对位置、物体排列和视角是否与参考图片逻辑一致（例如，如果参考图片中角色 A 在左、角色 B 在右，则生成图片不应颠倒这一关系）。
+- 严格对照文本描述：生成图片必须符合文本描述中的关键要素（如动作、场景、物体等），同时忽略与编辑指令相关的部分（因为输入描述反映的是预期结果，而非操作指令）。
+- 如果多张图片部分满足条件，选择整体一致性最高的那张；如果没有理想的图片，选择相对最佳选项并说明其不足。
+- 确保文本描述中的关键要素都出现在所选图片中。
+- 避免主观偏好，所有分析基于客观比较。
+- 优先选择没有白边、黑边或任何额外边框的图片。
 """
 
 human_prompt_template_select_most_consistent_image = \
@@ -51,11 +51,11 @@ human_prompt_template_select_most_consistent_image = \
 class BestImageResponse(BaseModel):
     best_image_index: int = Field(
         ...,
-        description="The index of the best image."
+        description="最佳图片的索引。"
     )
     reason: str = Field(
         ...,
-        description="The reason why the image is the best."
+        description="该图片被评为最佳的原因。"
     )
 
 
@@ -66,7 +66,7 @@ class BestImageSelector:
         api_key: str,
         chat_model: str,
     ):
-        
+
         self.chat_model = init_chat_model(
             model=chat_model,
             model_provider="openai",
@@ -88,13 +88,13 @@ class BestImageSelector:
         """
         Args:
             ref_image_path_and_text_pairs:
-            A list of tuples containing reference image paths and their descriptions.
+            包含参考图片路径及其描述的元组列表。
 
             target_description:
-            The description of the target image.
+            目标图片的描述文本。
 
             candidate_image_paths:
-            A list of paths to the candidate images to be evaluated.
+            待评估的候选图片路径列表。
         """
 
         if not candidate_image_paths:
@@ -107,7 +107,7 @@ class BestImageSelector:
         for idx, (ref_image_path, text) in enumerate(reference_image_path_and_text_pairs):
             human_content.append({
                 "type": "text",
-                "text": f"Reference Image {idx}: {text}"
+                "text": f"参考图片 {idx}: {text}"
             })
             human_content.append({
                 "type": "image_url",
@@ -117,7 +117,7 @@ class BestImageSelector:
         for idx, candidate_image_path in enumerate(candidate_image_paths):
             human_content.append({
                 "type": "text",
-                "text": f"Candidate Image {idx}"
+                "text": f"候选图片 {idx}"
             })
             human_content.append({
                 "type": "image_url",

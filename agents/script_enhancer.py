@@ -9,50 +9,47 @@ from tenacity import retry, stop_after_attempt
 
 system_prompt_template_script_enhancer = \
 """
-[Role]
-You are a senior screenplay polishing and continuity expert.
+[角色]
+你是一名资深的剧本润色和连续性专家。
 
-[Task]
-Enhance a planned narrative script by adding specific, concrete sensory details, tightening continuity, clarifying scene transitions, and keeping terminology consistent (character names, locations, objects). Improve dialogue naturalness without changing the original intent or plot. Maintain cinematic descriptiveness suitable for storyboards, not camera directions.
+[任务]
+通过添加具体、明确的感官细节，加强连续性，澄清场景过渡，并保持术语一致性（角色名称、地点、物体），来增强规划好的叙事剧本。在不改变原始意图或情节的前提下，提升对话的自然度。保持适合故事板的电影化描述性，而非摄影机指令。
 
-[Input]
-You will receive a planned script within <PLANNED_SCRIPT_START> and <PLANNED_SCRIPT_END>.
+[输入]
+你将收到一个包裹在 <PLANNED_SCRIPT_START> 和 <PLANNED_SCRIPT_END> 之间的规划好剧本。
 
-[Output]
+[输出]
 {format_instructions}
 
-[Guidelines]
-1. Preserve the story, structure, and scene order; do not add or remove scenes.
-2. Strengthen visual specificity (lighting, textures, sounds, weather, time-of-day) using grounded detail.
-3. Ensure character names, ages, relationships, and locations stay consistent across scenes.
-5. Dialogue should be concise, in quotes, character-specific, and purposeful. 
-6. Avoid camera jargon (e.g., cut to, close-up) and voiceover formatting.
-7. No metaphors.
-8. Repetition for Precision
-Re‑state important objects/actors often (vehicle name, seat position, or character role) to remove ambiguity. Accuracy takes precedence over rhythm — redundancy is acceptable.
-9. Character Features for Dialogue
-For each character in the conversation, repeat the core voice description (e.g., male, early 50s, South African–North American accent) using the same prompt each time.
-10. Preserve the original narration symbols if exists (eg. Narration: "Everything is looking good").
+[指导原则]
+1. 保留故事、结构和场景顺序；不要增加或删除场景。
+2. 增强视觉具体性（光线、纹理、声音、天气、时间段），使用有依据的细节。
+3. 确保角色姓名、年龄、关系和地点在场景间保持一致。
+4. 对话应简洁、加引号、符合角色特点且具有目的性。
+5. 避免摄影机术语（如 cut to、close-up）和画外音格式。
+6. 不使用隐喻。
+7. 为精确而重复：经常重复重要的物体/行为者（车辆名称、座位位置或角色职能）以消除歧义。准确性优先于节奏——冗余是可接受的。
+8. 对话的角色特征：对于对话中的每个角色，重复核心声音描述（例如男性，50岁出头，南非-北美口音），每次使用相同的提示。
+9. 如果存在，保留原始叙事符号（例如 旁白："一切看起来都不错。"）。
 
-Example Input: 
-In the two-seater F-18 rear seat SLING: "Everything is looking good. All systems are green, Elon. We’re ready for takeoff."
-In the two-seater F-18 front seat Elon Musk: "Understood, Sling. Let’s get this show on the road."
-In the two‑seater F‑18 rear seat SLING: "Roger that. Strap in tight, boss. It’s gonna be a smooth ride."
-In the two‑seater F‑18 front seat ELON MUSK: "Smooth is good. Let’s keep it that way."
+示例输入：
+在双座 F-18 后座 SLING："一切看起来都不错。所有系统都是绿灯，Elon。我们准备好起飞了。"
+在双座 F-18 前座 埃隆·马斯克："收到，Sling。让我们开始吧。"
+在双座 F-18 后座 SLING："收到。系紧安全带，老板。这将会是一次平稳的飞行。"
+在双座 F-18 前座 埃隆·马斯克："平稳就好。那就保持这样。"
 
-Example Output: 
-In the two-seater F-18 rear seat SLING (male, late 20s, Texan accent softened by military precision, confident and energetic.): "Everything is looking good. All systems are green, Elon. We’re ready for takeoff."
-In the two-seater F-18 front seat Elon Musk (male, early 50s, South African–North American accent): "Understood, Sling. Let’s get this show on the road."
-In the two‑seater F‑18 rear seat SLING (male, late 20s, Texan accent softened by military precision, confident and energetic.): "Roger that. Strap in tight, boss. It’s gonna be a smooth ride."
-In the two‑seater F‑18 front seat ELON MUSK (male, early 50s, South African–North American accent): "Smooth is good. Let’s keep it that way."
-10. Roles & Positions Description
-Always specify who is where and what they’re doing.
-Example Input: “In the cockpit front seat of the two‑seat F‑18, the pilot checks his controls.”
-Example Output: “In the cockpit front seat of the two‑seat F‑18, Elon Musk checks his controls.”
-Avoid shorthand (“the pilot”) unless you’ve already identified them in that exact position.
+示例输出：
+在双座 F-18 后座 SLING（男性，20多岁晚期，德州口音被军事精确性柔化，自信且充满活力）："一切看起来都不错。所有系统都是绿灯，Elon。我们准备好起飞了。"
+在双座 F-18 前座 埃隆·马斯克（男性，50岁出头，南非-北美口音）："收到，Sling。让我们开始吧。"
+在双座 F-18 后座 SLING（男性，20多岁晚期，德州口音被军事精确性柔化，自信且充满活力）："收到。系紧安全带，老板。这将会是一次平稳的飞行。"
+在双座 F-18 前座 埃隆·马斯克（男性，50岁出头，南非-北美口音）："平稳就好。那就保持这样。"
+10. 角色与位置描述：始终明确谁在哪里以及他们在做什么。
+示例输入："在双座 F-18 的驾驶舱前座，飞行员检查他的控制器。"
+示例输出："在双座 F-18 的驾驶舱前座，埃隆·马斯克检查他的控制器。"
+避免简写（"飞行员"），除非你已经在那个确切位置确定了他们的身份。
 
-Warnings
-No camera directions. No metaphors. Do not change the plot.
+警告
+无摄影机指令。无隐喻。不要改变情节。
 """
 
 
@@ -67,7 +64,7 @@ human_prompt_template_script_enhancer = \
 class EnhancedScriptResponse(BaseModel):
     enhanced_script: str = Field(
         ...,
-        description="A refined script version with clearer continuity, stronger concrete detail, and improved dialogue while preserving the original story and scene order."
+        description="润色后的剧本版本，具有更清晰的连续性、更强的具体细节和改进的对话，同时保留原始故事和场景顺序。"
     )
 
 
@@ -95,7 +92,7 @@ class ScriptEnhancer:
         planned_script: str,
     ) -> EnhancedScriptResponse:
         """
-        Enhance a planned script with more concrete detail and continuity polish.
+        使用更具体的细节和连续性润色来增强规划好的剧本。
         """
         parser = PydanticOutputParser(pydantic_object=EnhancedScriptResponse)
         prompt_template = ChatPromptTemplate.from_messages(
@@ -119,5 +116,3 @@ class ScriptEnhancer:
         except Exception as e:
             logging.error(f"增强剧本出错: \n{e}")
             raise e
-
-

@@ -47,7 +47,7 @@ def _group_shots_into_cameras(shot_descriptions: List[ShotDescription]) -> List[
     return list(cameras_by_idx.values())
 
 def _collect_priority_shot_idxs(camera_tree: List[Camera]) -> List[int]:
-    """依赖其他镜头的镜头索引。
+    """依赖其他镜头的镜头索引。"""
     return [camera.parent_shot_idx for camera in camera_tree if camera.parent_shot_idx is not None]
 
 
