@@ -7,8 +7,8 @@ describe('theme selection', () => {
     expect(resolveTheme('light', true)).toBe('light');
   });
 
-  it('falls back to the system preference', () => {
+  it('falls back to the dark default regardless of system preference', () => {
     expect(resolveTheme(null, true)).toBe('dark');
-    expect(resolveTheme(undefined, false)).toBe('light');
+    expect(resolveTheme(undefined, false)).toBe('dark');
   });
 });

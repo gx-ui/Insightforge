@@ -232,12 +232,13 @@ function SectionHeading({title, detail}: {title: string; detail: string}) {
   return <header className="artifact-section-heading"><h2>{title}</h2><span>{detail}</span></header>;
 }
 
-export function StoryboardPanel({open, artifacts, activeRenderStage, onClose, onCountChange}: {
+export function StoryboardPanel({open, artifacts, activeRenderStage, onClose, onCountChange, embedded = false}: {
   open: boolean;
   artifacts: Artifact[];
   activeRenderStage?: string;
   onClose: () => void;
   onCountChange: (count: number) => void;
+  embedded?: boolean;
 }) {
   const storyboardArtifacts = useMemo(
     () => artifacts.filter(isStoryboardArtifact).sort((left, right) => left.path.localeCompare(right.path, undefined, {numeric: true})),
@@ -294,10 +295,12 @@ export function StoryboardPanel({open, artifacts, activeRenderStage, onClose, on
   const activeCheckpoint = activeRenderStage ? activeRenderCheckpoint(activeRenderStage) : undefined;
   return (
     <aside className={`storyboard-panel ${open ? 'is-open' : ''}`}>
-      <header>
-        <div><strong>分镜</strong><span>{previews.length > 0 ? `${index + 1} / ${previews.length}` : '预览'}</span></div>
-        <button className="icon-button" onClick={onClose} aria-label="关闭分镜预览"><X size={18} /></button>
-      </header>
+      {!embedded && (
+        <header>
+          <div><strong>分镜</strong><span>{previews.length > 0 ? `${index + 1} / ${previews.length}` : '预览'}</span></div>
+          <button className="icon-button" onClick={onClose} aria-label="关闭分镜预览"><X size={18} /></button>
+        </header>
+      )}
       <section className="render-readiness" aria-label="渲染就绪状态">
         <div className="render-readiness-summary">
           <strong>{readiness.readyToRender ? '就绪可渲染' : '规划未完成'}</strong>

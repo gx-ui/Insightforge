@@ -76,7 +76,7 @@ describe('web bridge state', () => {
     await writeFile(path.join(root, '.working_dir', 'session-1', 'script2video', 'shots', '0', 'first_frame.png'), 'image');
     const artifacts = await listSessionArtifacts(root, 'session-1');
     expect(artifacts[0]).toMatchObject({kind: 'image', name: 'first_frame.png'});
-    expect(() => resolveArtifactPath(root, 'session-1', '../../secrets')).toThrow(/escapes/);
+    expect(() => resolveArtifactPath(root, 'session-1', '../../secrets')).toThrow(/超出了当前会话/);
   });
 
   it('stores uploads inside the session without overwriting matching names', async () => {
@@ -86,7 +86,7 @@ describe('web bridge state', () => {
     expect(first).toMatchObject({name: 'script.txt', path: 'uploads/script.txt', size: 5});
     expect(second).toMatchObject({name: 'script (2).txt', path: 'uploads/script (2).txt', size: 6});
     expect(await readFile(path.join(root, '.working_dir', 'session-1', second.path), 'utf8')).toBe('second');
-    await expect(storeWorkspaceUpload(root, 'session-1', '../escape.txt', Buffer.from('no'))).rejects.toThrow(/unsupported/);
+    await expect(storeWorkspaceUpload(root, 'session-1', '../escape.txt', Buffer.from('no'))).rejects.toThrow(/不支持的字符/);
   });
 
   it('deletes project state, artifacts, and matching log records', async () => {

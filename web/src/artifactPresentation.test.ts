@@ -21,15 +21,15 @@ describe('artifact presentation', () => {
   });
 
   it('creates readable artifact and field labels', () => {
-    expect(friendlyArtifactTitle(artifact)).toBe('Scene 1 · Storyboard');
-    expect(friendlyFieldLabel('motion_desc')).toBe('Motion');
+    expect(friendlyArtifactTitle(artifact)).toBe('Scene 1 · 分镜');
+    expect(friendlyFieldLabel('motion_desc')).toBe('运动');
     expect(friendlyFieldLabel('custom_camera_note')).toBe('Custom Camera Note');
   });
 
   it('presents indexes and booleans for non-technical readers', () => {
     expect(formatStructuredValue(0, 'cam_idx')).toBe('1');
     expect(formatStructuredValue([0, 2], 'ff_vis_char_idxs')).toBe('1, 3');
-    expect(formatStructuredValue(false, 'is_last')).toBe('No');
+    expect(formatStructuredValue(false, 'is_last')).toBe('否');
   });
 
   it('identifies filesystem metadata that should stay hidden in artifacts', () => {

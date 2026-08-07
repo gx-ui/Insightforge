@@ -32,3 +32,7 @@ project_plan/
 project_working/
 user_idea/
 .vscode/
+doc/
+
+# Font source files (subsetting pipeline inputs; regenerable, archived locally)
+web/fonts-src/

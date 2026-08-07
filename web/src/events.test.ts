@@ -18,7 +18,7 @@ describe('agent event mapping', () => {
     state = applyAgentEvent(state, {type: 'tool_progress', turn_id: 'turn-1', tool: {name: 'insightforge_render_video'}, progress: {stage: 'generate_frames', message: 'Generating frames'}});
     state = applyAgentEvent(state, {type: 'tool_result', turn_id: 'turn-1', tool_result: {name: 'insightforge_render_video', ok: true}});
     expect(state.messages).toHaveLength(1);
-    expect(state.messages[0]).toMatchObject({tool: 'insightforge_render_video', status: 'done', text: 'Completed'});
+    expect(state.messages[0]).toMatchObject({tool: 'insightforge_render_video', status: 'done', text: '已完成'});
   });
 
   it('keeps each composer submission on one stdin line', () => {

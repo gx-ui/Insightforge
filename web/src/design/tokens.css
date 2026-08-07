@@ -1,0 +1,111 @@
+/* Forge Flow design tokens — values mirror design/tokens.ts (single source of truth). */
+
+@import './misans.css';
+@theme inline {
+  --color-bg-canvas: var(--bg-canvas);
+  --color-bg-raised: var(--bg-raised);
+  --color-bg-overlay: var(--bg-overlay);
+  --color-ink-primary: var(--ink-primary);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-glow: var(--accent-glow);
+  --color-flow-teal: var(--flow-teal);
+  --color-error: var(--semantic-error);
+  --color-warn: var(--semantic-warn);
+  --color-info: var(--semantic-info);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-on-accent: var(--on-accent);
+  --font-display: var(--ff-display);
+  --font-body: var(--ff-body);
+  --font-mono: var(--ff-mono);
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-overlay: 16px;
+}
+
+:root,
+html[data-theme='dark'] {
+  --bg-canvas: #0A0C0E;
+  --bg-raised: #12151A;
+  --bg-overlay: #1A1E24;
+  --ink-primary: #F2F5F0;
+  --ink-secondary: #9AA38F;
+  --ink-faint: #5A6255;
+  --accent: #C6F135;
+  --accent-deep: #8FBF1F;
+  --accent-glow: rgba(198, 241, 53, .35);
+  --flow-teal: #3ED6A4;
+  --semantic-error: #FF6B5E;
+  --semantic-warn: #FFB224;
+  --semantic-info: #5EB0FF;
+  --line: rgba(255, 255, 255, .08);
+  --line-strong: rgba(255, 255, 255, .14);
+  --on-accent: #0A0C0E;
+  --ff-display: 'Smiley Sans', 'Space Grotesk', 'MiSans', system-ui, sans-serif;
+  --ff-body: 'MiSans', -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --ff-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+  color-scheme: dark;
+}
+
+html[data-theme='light'] {
+  --bg-canvas: #FAFBF7;
+  --bg-raised: #FFFFFF;
+  --bg-overlay: #FFFFFF;
+  --ink-primary: #1C211A;
+  --ink-secondary: #5A6255;
+  --ink-faint: #9AA38F;
+  --accent: #8FBF1F;
+  --accent-deep: #6F9618;
+  --accent-glow: rgba(143, 191, 31, .25);
+  --flow-teal: #2BA384;
+  --semantic-error: #D63B2F;
+  --semantic-warn: #A96D17;
+  --semantic-info: #1769D2;
+  --line: rgba(28, 33, 26, .10);
+  --line-strong: rgba(28, 33, 26, .18);
+  --on-accent: #1C211A;
+  color-scheme: light;
+}
+
+@font-face {
+  font-family: 'Smiley Sans';
+  src: url('/fonts/smileysans-subset.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-regular-subset.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-bold-subset.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/space-grotesk-regular-subset.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/space-grotesk-bold-subset.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
