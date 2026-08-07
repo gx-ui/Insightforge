@@ -299,7 +299,8 @@ a:focus-visible {
 }
 
 .composer {
-  overflow: hidden;
+  /* overflow 需为 visible：底部偏好条的浮层面板向上弹出，不能被输入框裁剪 */
+  overflow: visible;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid #d9dee4;
   border-radius: 22px;
@@ -2059,4 +2060,274 @@ textarea:focus-visible {
 }
 .artifacts-drawer-narrow .artifact-content-section {
   margin: 0;
+}
+
+/* ============ Preference Bar ============ */
+.preference-bar {
+  position: relative;
+  padding: 0 16px 8px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-canvas);
+}
+
+.pref-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: var(--ink-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.pref-summary:hover {
+  background: var(--line);
+  color: var(--ink-primary);
+}
+
+.pref-icon {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.pref-summary-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--accent);
+}
+
+.pref-panel {
+  position: absolute;
+  bottom: 100%;
+  left: 16px;
+  right: 16px;
+  margin-bottom: 4px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+  z-index: 50;
+  padding: 12px;
+}
+
+.pref-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pref-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.pref-tab {
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+
+.pref-tab:hover {
+  color: var(--ink-primary);
+}
+
+.pref-tab.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.pref-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.pref-reset,
+.pref-close {
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-secondary);
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.15s;
+}
+
+.pref-reset:hover,
+.pref-close:hover {
+  color: var(--ink-primary);
+  background: var(--line);
+}
+
+.pref-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pref-field {
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+
+.pref-field.active {
+  background: var(--bg-overlay);
+}
+
+.pref-field-label {
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 6px;
+}
+
+.pref-field.active .pref-field-label {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.pref-field-label strong {
+  color: var(--ink-primary);
+  font-weight: 500;
+}
+
+.pref-field.active .pref-field-label strong {
+  color: var(--accent);
+}
+
+.pref-options {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0 10px 8px;
+}
+
+.pref-arrow {
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  background: var(--bg-canvas);
+  color: var(--ink-secondary);
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.15s;
+}
+
+.pref-arrow:hover:not(:disabled) {
+  color: var(--ink-primary);
+  border-color: var(--accent);
+}
+
+.pref-arrow:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pref-options-list {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 2px 0;
+  scrollbar-width: thin;
+}
+
+.pref-option {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  background: var(--bg-canvas);
+  color: var(--ink-secondary);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  transition: all 0.15s;
+}
+
+.pref-option:hover {
+  color: var(--ink-primary);
+  border-color: var(--accent);
+}
+
+.pref-option.current {
+  color: var(--accent-deep);
+  border-color: var(--accent-deep);
+}
+
+.pref-option.selected {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+html[data-theme='dark'] .preference-bar {
+  border-top-color: var(--line);
+}
+
+html[data-theme='dark'] .pref-panel {
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
+}
+
+/* 偏好条内嵌到输入框底部的左下方（作为 footer 行的紧凑 chip） */
+.composer .preference-bar {
+  position: relative;
+  flex-shrink: 1;
+  min-width: 0;
+  padding: 0;
+  border-top: 0;
+  background: transparent;
+}
+
+.composer .pref-summary {
+  width: 100%;
+  padding: 3px 9px;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+}
+
+.composer .pref-summary:hover {
+  background: var(--line);
+  color: var(--ink-primary);
+}
+
+.composer .pref-icon {
+  opacity: 0.55;
+}
+
+.composer .pref-summary-text {
+  font-size: 11px;
+  color: var(--ink-secondary);
+}
+
+.composer .pref-panel {
+  left: 0;
+  right: auto;
+  bottom: calc(100% + 8px);
+  width: min(340px, calc(100vw - 96px));
+  margin-bottom: 0;
 }

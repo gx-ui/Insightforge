@@ -22,6 +22,7 @@ export default function Composer({
   onSlashSelect,
   loadError,
   onDismissError,
+  prefsBar,
 }: {
   draft: string;
   onDraftChange: (value: string) => void;
@@ -42,6 +43,7 @@ export default function Composer({
   onSlashSelect: (command: string) => void;
   loadError: string;
   onDismissError: () => void;
+  prefsBar?: React.ReactNode;
 }) {
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Tab' && slashMatches[0]) {
@@ -66,10 +68,12 @@ export default function Composer({
       {showSlashCommands && (
         <SlashCommandMenu matches={slashMatches} contextPercent={contextPercent} onSelect={onSlashSelect} />
       )}
-      <div className={`composer ${busy ? 'is-busy' : ''} relative overflow-hidden rounded-[12px] border bg-bg-raised`}>
-        {busy && (
-          <div className="forge-band-composer pointer-events-none" aria-hidden="true" />
-        )}
+      <div className={`composer ${busy ? 'is-busy' : ''} relative rounded-[12px] border bg-bg-raised`}>
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[22px]" aria-hidden="true">
+          {busy && (
+            <div className="forge-band-composer" />
+          )}
+        </div>
         <textarea
           ref={textareaRef}
           value={draft}
@@ -132,6 +136,7 @@ export default function Composer({
           >
             <Plus size={20} />
           </button>
+          {prefsBar}
           <div className="flex-1" />
           <div className="flex items-center gap-2 text-[11px] text-ink-faint">
             <ContextRing percent={contextPercent} />

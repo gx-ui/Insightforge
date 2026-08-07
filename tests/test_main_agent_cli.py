@@ -2,7 +2,9 @@ import contextlib
 import io
 import json
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import main_agent
@@ -25,6 +27,14 @@ class FakeSessionIndex:
         self.project_name = project_name
         self.activated = f"new-{self.created}"
         return {"session_id": self.activated}
+
+    def active(self):
+        if self.activated:
+            return {"session_id": self.activated}
+        return None
+
+    def working_dir(self, session_id):
+        return Path(tempfile.mkdtemp())
 
     def snapshot(self):
         return {"active_session_id": self.activated, "session": {"session_id": self.activated, "stage": "created"}}
@@ -81,9 +91,10 @@ class MainAgentCliTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stderr, "")
         self.assertEqual(runtime.inputs, ["hello"])
         lines = [json.loads(line) for line in stdout.splitlines()]
-        self.assertTrue(lines)
-        self.assertEqual({event["turn_id"] for event in lines}, {"turn-test"})
-        self.assertEqual(lines[0]["type"], "turn")
+        turn_events = [event for event in lines if event.get("type") != "preference_state"]
+        self.assertTrue(turn_events)
+        self.assertEqual({event["turn_id"] for event in turn_events}, {"turn-test"})
+        self.assertEqual(turn_events[0]["type"], "turn")
         self.assertIn("terminal", [event["type"] for event in lines])
         self.assertNotIn("›", stdout)
 
@@ -113,7 +124,7 @@ class MainAgentCliTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(code, 2)
         self.assertEqual(stdout, "")
-        self.assertIn("unknown session id", stderr)
+        self.assertIn("未知的会话 ID", stderr)
         self.assertEqual(runtime.inputs, [])
 
 
@@ -153,7 +164,7 @@ class MainAgentCliTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(code, 2)
         self.assertEqual(stdout, "")
-        self.assertIn("cannot be used together", stderr)
+        self.assertIn("不能同时使用", stderr)
         self.assertEqual(runtime.inputs, [])
 
 
@@ -162,7 +173,7 @@ class MainAgentCliTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
         self.assertEqual(runtime.inputs, [])
-        events = [json.loads(line) for line in stdout.splitlines()]
+        events = [json.loads(line) for line in stdout.splitlines() if json.loads(line).get("type") != "preference_state"]
         self.assertEqual([event["type"] for event in events], ["turn", "status", "token", "done", "session"])
         turn_ids = {event["turn_id"] for event in events}
         self.assertEqual(len(turn_ids), 1)

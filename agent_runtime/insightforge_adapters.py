@@ -573,6 +573,9 @@ def _build_chat_model() -> Any:
     )
 
 
+current_preference = None  # PreferenceMgr singleton, set by main_agent at startup
+
+
 def _build_image_generator() -> ImageGeneratorNanobananaYunwuAPI | ImageGeneratorOpenRouterAPI | ImageGeneratorDoubaoSeedreamArkAPI:
     api_key = image_api_key()
     if not api_key:
@@ -583,6 +586,8 @@ def _build_image_generator() -> ImageGeneratorNanobananaYunwuAPI | ImageGenerato
     if provider == "openrouter":
         return ImageGeneratorOpenRouterAPI(api_key=api_key, model=model, base_url=base_url)
     if provider == "volcengine":
+        if current_preference is not None:
+            model = current_preference.resolve_image_model(model)
         return ImageGeneratorDoubaoSeedreamArkAPI(api_key=api_key, model=model, base_url=base_url)
     return ImageGeneratorNanobananaYunwuAPI(api_key=api_key, model=model, base_url=base_url)
 
@@ -599,7 +604,10 @@ def _build_video_generator() -> VideoGeneratorVeoYunwuAPI | VideoGeneratorOpenRo
     if provider == "yunwu":
         return VideoGeneratorVeoYunwuAPI(api_key=api_key, t2v_model=model, ff2v_model=model, base_url=base_url)
     if provider == "volcengine":
-        return VideoGeneratorDoubaoSeedanceArkAPI(api_key=api_key, t2v_model=video_t2v_model(), i2v_model=video_i2v_model(), base_url=base_url)
+        t2v = video_t2v_model()
+        if current_preference is not None:
+            t2v = current_preference.resolve_video_model(t2v)
+        return VideoGeneratorDoubaoSeedanceArkAPI(api_key=api_key, t2v_model=t2v, i2v_model=video_i2v_model(), base_url=base_url)
     raise RuntimeError(f"不支持的视频 base_url，无法自动匹配供应商: {base_url}")
 
 

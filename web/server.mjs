@@ -12,6 +12,7 @@ import {
   readSessionHistory,
   readSessionState,
   resolveArtifactPath,
+  saveSessionPreferences,
   storeWorkspaceUpload,
 } from './server-lib.mjs';
 
@@ -104,6 +105,29 @@ const server = createServer(async (request, response) => {
     if (url.pathname === '/api/agent/stop' && request.method === 'POST') {
       stopAgent('user');
       return sendJson(response, 200, {ok: true});
+    }
+    if (url.pathname === '/api/preferences' && request.method === 'POST') {
+      const body = await readJsonBody(request);
+      if (!body.preferences || typeof body.preferences !== 'object') {
+        return sendJson(response, 400, {error: 'preferences object is required'});
+      }
+      if (!agentProcess?.stdin.writable) {
+        return sendJson(response, 409, {error: 'Agent is not running'});
+      }
+      const version = (Number(body.version) || 0) + 1;   // 只有 server 递增；客户端发递增前的版本
+      const event = JSON.stringify({
+        type: 'preference_updated',
+        scope: 'session',
+        version,
+        preferences: body.preferences,
+      });
+      try {
+        await saveSessionPreferences(repoRoot, version, body.preferences);
+      } catch (error) {
+        console.warn('preferences not persisted:', error?.message);
+      }
+      agentProcess.stdin.write(`${event}\n`);
+      return sendJson(response, 202, {ok: true, version});
     }
     if (url.pathname === '/api/health' && request.method === 'GET') {
       return sendJson(response, 200, {ok: true, agentRunning: Boolean(agentProcess), activeSessionId});

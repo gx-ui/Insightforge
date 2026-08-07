@@ -112,27 +112,51 @@ async def amain(argv: list[str] | None = None) -> int:
     if args.new_session_name and not args.new_session:
         print("错误: --new-session-name 需要配合 --new-session", file=sys.stderr)
         return 2
-    if args.session or args.new_session:
+    session_index = load_session_index()
+    if args.new_session:
         try:
-            session_index = load_session_index()
-            if args.new_session:
-                if args.new_session_name:
-                    session_index.create(project_name=args.new_session_name)
-                else:
-                    session_index.create()
+            if args.new_session_name:
+                session_index.create(project_name=args.new_session_name)
             else:
-                session_index.set_active(args.session)
+                session_index.create()
+        except ValueError as exc:
+            print(f"错误: 无效的会话 ID: {exc}", file=sys.stderr)
+            return 2
+    elif args.session:
+        try:
+            session_index.set_active(args.session)
         except KeyError:
             print(f"错误: 未知的会话 ID: {args.session}", file=sys.stderr)
             return 2
         except ValueError as exc:
             print(f"错误: 无效的会话 ID: {exc}", file=sys.stderr)
             return 2
+    # 偏好管理器：加载全局 + 会话 yaml，注入 adapter 单例
+    # 在 load_runtime() 之前发射 preference_state，确保前端即使在 runtime 加载失败时也能收到偏好
+    from agents.preference_manager import PreferenceMgr
+    import agent_runtime.insightforge_adapters as _adapters
+    pref_mgr = PreferenceMgr(".", session_index)
+    _adapters.current_preference = pref_mgr
+    print_event({"type": "preference_state", "version": pref_mgr.version, "preferences": pref_mgr.snapshot()}, jsonl=args.jsonl)
+
     runtime = load_runtime()
+
     interactive = sys.stdin.isatty() and not args.once
     if interactive and not args.jsonl:
         print("InsightForge agent 已就绪。按 Ctrl+C 退出。")
     for user_input in prompt_inputs(args):
+        # JSONL 分发：拦截 preference_updated 事件（E1）
+        if args.stdin_repl:
+            try:
+                payload = json.loads(user_input)
+            except (json.JSONDecodeError, ValueError):
+                payload = None
+            if isinstance(payload, dict) and payload.get("type") == "preference_updated":
+                try:
+                    pref_mgr.apply_preference_updated(payload)
+                except (ValueError, TypeError) as exc:
+                    print_event({"type": "error", "message": f"malformed preference_updated event discarded: {exc}"}, jsonl=args.jsonl)
+                continue
         if user_input.strip() == "/compact":
             turn_id = f"turn-{uuid4().hex[:12]}"
             print_event({"type": "turn", "turn_id": turn_id, "turn": {"id": turn_id}}, jsonl=args.jsonl)
@@ -147,7 +171,7 @@ async def amain(argv: list[str] | None = None) -> int:
                 print_event(event, jsonl=args.jsonl)
         except Exception as exc:
             # 保持 REPL 存活：一次失败的轮次不能杀掉进程
-            # （否则会连带杀掉通过 stdio 驱动我们的 TUI）。
+            # （否则会连带杀掉通过 stdio 驱动我们的 Web UI）。
             turn_id = f"turn-{uuid4().hex[:12]}"
             print_event({"type": "error", "turn_id": turn_id, "message": f"轮次失败: {exc}"}, jsonl=args.jsonl)
             print_event({"type": "done", "turn_id": turn_id, "assistant": "", "tool_results": []}, jsonl=args.jsonl)

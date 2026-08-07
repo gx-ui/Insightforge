@@ -2,7 +2,7 @@ import {mkdtemp, mkdir, readFile, stat, writeFile} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {afterEach, describe, expect, it} from 'vitest';
-import {deleteSession, listSessionArtifacts, readSessionHistory, readSessionState, resolveArtifactPath, storeWorkspaceUpload} from './server-lib.mjs';
+import {deleteSession, listSessionArtifacts, readSessionHistory, readSessionState, resolveArtifactPath, saveSessionPreferences, storeWorkspaceUpload} from './server-lib.mjs';
 
 const roots = [];
 
@@ -103,5 +103,31 @@ describe('web bridge state', () => {
     await expect(stat(path.join(root, '.working_dir', 'session-1'))).rejects.toThrow();
     expect(await readFile(logPath, 'utf8')).toContain('session-2');
     expect(await readFile(logPath, 'utf8')).not.toContain('session-1');
+  });
+});
+
+describe('preferences persistence', () => {
+  it('writes versioned preferences.yaml into the active session', async () => {
+    const root = await fixture();
+    const prefs = {
+      image: {aspect_ratio: '9:16', model: 'seedream_5_0_pro', quality: '2k'},
+      video: {aspect_ratio: '16:9', model: 'follow_config', resolution: '1080p'},
+    };
+    await saveSessionPreferences(root, 5, prefs);
+    const text = await readFile(path.join(root, '.working_dir', 'session-1', 'preferences.yaml'), 'utf8');
+    const {parse} = await import('yaml');
+    const payload = parse(text);
+    expect(payload.version).toBe(5);
+    expect(payload.image).toEqual(prefs.image);
+    expect(payload.video).toEqual(prefs.video);
+  });
+
+  it('is a no-op when no session is active', async () => {
+    const root = await fixture();
+    await writeFile(path.join(root, '.insightforge', 'sessions.json'), JSON.stringify({
+      active_session_id: '',
+      sessions: {},
+    }));
+    await expect(saveSessionPreferences(root, 3, {image: {}, video: {}})).resolves.toBeUndefined();
   });
 });

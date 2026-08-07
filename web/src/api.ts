@@ -1,4 +1,4 @@
-import type {AgentConfig, AgentEvent, Artifact, JsonValue, Message, SessionSummary, WorkspaceUpload} from './types';
+import type {AgentConfig, AgentEvent, Artifact, JsonValue, Message, PreferenceSnapshot, SessionSummary, WorkspaceUpload} from './types';
 
 export async function getSessions() {
   return request<{activeSessionId: string; sessions: SessionSummary[]}>('/api/sessions');
@@ -56,6 +56,10 @@ export async function startAgent(options: {sessionId?: string; newSession?: bool
 
 export async function sendMessage(text: string) {
   return request<{ok: boolean}>('/api/messages', {method: 'POST', body: JSON.stringify({text})});
+}
+
+export async function updatePreferences(prefs: PreferenceSnapshot, version: number) {
+  return request<{ok: boolean; version: number}>('/api/preferences', {method: 'POST', body: JSON.stringify({preferences: prefs, version})});
 }
 
 export async function stopAgent() {

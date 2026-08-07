@@ -8,16 +8,18 @@ import SettingsView from './components/settings/SettingsView';
 import type {DrawerType} from './components/TopBar';
 import ForgeTimeline from './components/chat/ForgeTimeline';
 import Composer from './components/chat/Composer';
+import PreferenceBar from './components/chat/PreferenceBar';
+import {DEFAULT_PREFERENCES} from './components/chat/preferences';
 import EmptyState from './components/chat/EmptyState';
 
 import {groupChatBlocks} from './lib/chatBlocks';
 import {sessionTitle} from './lib/sessionGroups';
-import {deleteSession, getArtifacts, getHistory, getSessions, sendMessage, startAgent, stopAgent, subscribeToEvents, uploadWorkspaceFile} from './api';
+import {deleteSession, getArtifacts, getHistory, getSessions, sendMessage, startAgent, stopAgent, subscribeToEvents, updatePreferences, uploadWorkspaceFile} from './api';
 import {StoryboardPanel} from './ArtifactViews';
 import {applyAgentEvent, appendLocalUser, composeAgentPrompt, createChatState} from './events';
 import {matchingSlashCommands, shouldShowSlashCommands} from './slashCommands';
 import type {Theme} from './theme';
-import type {AgentEvent, Artifact, ChatState, Message, SessionSummary, WorkspaceUpload} from './types';
+import type {AgentEvent, Artifact, ChatState, Message, PreferenceSnapshot, SessionSummary, WorkspaceUpload} from './types';
 
 const CONTEXT_TARGET = 160_000;
 
@@ -37,6 +39,14 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
   const [draft, setDraft] = useState('');
   const [workspaceUploads, setWorkspaceUploads] = useState<WorkspaceUpload[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [preferences, setPreferences] = useState<PreferenceSnapshot>(DEFAULT_PREFERENCES);
+  const [prefVersion, setPrefVersion] = useState(0);
+  // 版本唯一事实源：同步预留下一个版本，避免快速连续编辑因 React state 异步更新产生重复版本被 Agent 丢弃
+  const prefVersionRef = useRef(0);
+  const applyPrefVersion = useCallback((value: number) => {
+    prefVersionRef.current = value;
+    setPrefVersion(value);
+  }, []);
   const [loadError, setLoadError] = useState('');
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -91,8 +101,16 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
         void refreshArtifacts(sessionId);
       }
     }
+    if (event.type === 'preference_state') {
+      const v = Number(event.version) || 0;
+      if (v >= prefVersionRef.current && event.preferences) {
+        setPreferences(event.preferences);
+        applyPrefVersion(v);
+      }
+      return;
+    }
     setChat((current) => applyAgentEvent(current, event));
-  }, () => undefined), [refreshArtifacts, refreshSessions]);
+  }, () => undefined), [refreshArtifacts, refreshSessions, applyPrefVersion]);
 
   useEffect(() => {
     let cancelled = false;
@@ -163,7 +181,9 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
     }
     setLoadError('');
     setSelectedSessionId(sessionId);
-    
+    // 切换会话时重置偏好版本，避免上一会话的高版本挡住新会话的 preference_state
+    setPreferences(DEFAULT_PREFERENCES);
+    applyPrefVersion(0);
     setChat(createChatState());
     try {
       const [history] = await Promise.all([
@@ -197,6 +217,9 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
       await new Promise((resolve) => window.setTimeout(resolve, 450));
       const state = await refreshSessions();
       setSelectedSessionId(state.activeSessionId);
+      // 新建会话：重置偏好版本，让新会话的 preference_state 总是被采纳
+      setPreferences(DEFAULT_PREFERENCES);
+      applyPrefVersion(0);
       setChat(createChatState());
       setArtifacts([]);
       setWorkspaceView('workspace');
@@ -210,6 +233,18 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
     }
   }
 
+async function handleUpdatePrefs(prefs: PreferenceSnapshot) {
+    const base = prefVersionRef.current;   // 递增前的已知版本（server 端会 +1）
+    const next = base + 1;
+    applyPrefVersion(next);                // 同步预留，保证连续编辑严格递增
+    setPreferences(prefs);                 // 乐观更新 UI
+    try {
+      const result = await updatePreferences(prefs, base);
+      if (result.version !== next) applyPrefVersion(result.version);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : String(error));
+    }
+  }
   async function submit() {
     const text = draft.trim();
     if (!text || chat.busy || uploadingFiles) return;
@@ -386,6 +421,15 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
             onSlashSelect={(cmd) => { setDraft(cmd); textareaRef.current?.focus(); }}
             loadError={loadError}
             onDismissError={() => setLoadError('')}
+            prefsBar={
+              selectedSessionId ? (
+                <PreferenceBar
+                  prefs={preferences}
+                  version={prefVersion}
+                  onUpdate={(prefs) => void handleUpdatePrefs(prefs)}
+                />
+              ) : undefined
+            }
           />
         </div>      ) : (
         <div style={{height: '100%', overflow: 'auto'}}>

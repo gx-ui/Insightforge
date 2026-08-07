@@ -79,8 +79,28 @@ export type AgentEvent = {
     total_estimated_tokens?: number;
     totals?: {total_tokens?: number; total_estimated_tokens?: number};
   };
+  version?: number;
+  scope?: string;
+  preferences?: PreferenceSnapshot;
 };
 
+
+export type ImagePreferences = {
+  aspect_ratio: string;
+  model: string;
+  quality: string;
+};
+
+export type VideoPreferences = {
+  aspect_ratio: string;
+  model: string;
+  resolution: string;
+};
+
+export type PreferenceSnapshot = {
+  image: ImagePreferences;
+  video: VideoPreferences;
+};
 export type ChatState = {
   messages: Message[];
   busy: boolean;

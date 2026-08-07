@@ -56,7 +56,7 @@ class SessionRecord:
     updated_at: str = ""
 
 
-StreamEventType = Literal["turn", "status", "token", "tool_start", "tool_progress", "tool_result", "terminal", "done", "session", "error", "prompt_trace"]
+StreamEventType = Literal["turn", "status", "token", "tool_start", "tool_progress", "tool_result", "terminal", "done", "session", "error", "prompt_trace", "preference_state"]
 
 
 def now_ts() -> float:

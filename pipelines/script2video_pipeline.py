@@ -381,10 +381,14 @@ class Script2VideoPipeline:
                     prefix_prompt += f"Image {i}: {text}\n"
                 prompt = f"{prefix_prompt}\n{prompt}"
                 reference_image_paths = [item[0] for item in reference_image_path_and_text_pairs]
+                from agent_runtime import insightforge_adapters as _adapters
+                _pref_size = "1600x900"
+                if _adapters.current_preference is not None:
+                    _pref_size = _adapters.current_preference.format_for_generator("image") or "1600x900"
                 ff_image: ImageOutput = await self.image_generator.generate_single_image(
                     prompt=prompt,
                     reference_image_paths=reference_image_paths,
-                    size="1600x900",
+                    size=_pref_size,
                 )
                 ff_image.save(first_shot_ff_path)
                 self.frame_events[first_shot_idx]["first_frame"].set()
@@ -470,11 +474,14 @@ class Script2VideoPipeline:
 
             print(f"🎬 开始为镜头 {shot_description.idx} 生成视频...")
             _emit_render_progress(progress, "video_clip_start", f"Generating video clip for shot {shot_description.idx}", {"shot_idx": shot_description.idx, "frame_count": len(frame_paths)})
-            video_output = await self.video_generator.generate_single_video(
-                prompt=shot_description.motion_desc + "\n" + shot_description.audio_desc,
-                reference_image_paths=frame_paths,
-                progress=_scoped_progress(progress, shot_idx=shot_description.idx, artifact="video_clip"),
-            )
+            from agent_runtime import insightforge_adapters as _adapters
+            _vkwargs = {"prompt": shot_description.motion_desc + "\n" + shot_description.audio_desc, "reference_image_paths": frame_paths, "progress": _scoped_progress(progress, shot_idx=shot_description.idx, artifact="video_clip")}
+            if _adapters.current_preference is not None:
+                _vresolution, _vaspect = _adapters.current_preference.format_for_generator("video")
+                _vkwargs["resolution"] = _vresolution
+                if _vaspect is not None:
+                    _vkwargs["aspect_ratio"] = _vaspect
+            video_output = await self.video_generator.generate_single_video(**_vkwargs)
             video_output.save(video_path)
             print(f"☑️ 已为镜头 {shot_description.idx} 生成视频，保存到 {video_path}。")
             _emit_render_progress(progress, "video_clip_done", f"Generated video clip for shot {shot_description.idx}", {"shot_idx": shot_description.idx, "path": video_path})
@@ -533,10 +540,14 @@ class Script2VideoPipeline:
             prompt = f"{prefix_prompt}\n{prompt}"
             reference_image_paths = [item[0] for item in reference_image_path_and_text_pairs]
 
+            from agent_runtime import insightforge_adapters as _adapters
+            _pref_size = "1600x900"
+            if _adapters.current_preference is not None:
+                _pref_size = _adapters.current_preference.format_for_generator("image") or "1600x900"
             frame_image: ImageOutput = await self.image_generator.generate_single_image(
                 prompt=prompt,
                 reference_image_paths=reference_image_paths,
-                size="1600x900",
+                size=_pref_size,
             )
             frame_image.save(frame_image_path)
             print(f"☑️ 已为镜头 {shot_idx} 生成 {frame_type} 帧，保存到 {frame_image_path}。")

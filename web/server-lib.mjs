@@ -1,5 +1,6 @@
 import {lstat, mkdir, readFile, readdir, rename, rm, stat, writeFile} from 'node:fs/promises';
 import path from 'node:path';
+import {stringify} from 'yaml';
 
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov']);
@@ -93,6 +94,22 @@ export async function readSessionHistory(repoRoot, sessionId) {
   } catch {
     return [];
   }
+}
+
+export async function saveSessionPreferences(repoRoot, version, prefs) {
+  // 偏好写入活动会话的 <working_dir>/preferences.yaml，
+  // 供 Agent 的 PreferenceMgr 重启加载，保证版本与持久化三方一致。
+  const state = await readSessionState(repoRoot);
+  const active = state.sessions.find((session) => session.sessionId === state.activeSessionId);
+  if (!active?.sessionId) return;
+  const sessionRoot = resolveSessionRoot(repoRoot, active.sessionId);
+  const sessionPath = path.join(sessionRoot, 'preferences.yaml');
+  const temporaryPath = `${sessionPath}.${process.pid}.tmp`;
+  const image = prefs.image && typeof prefs.image === 'object' ? prefs.image : {};
+  const video = prefs.video && typeof prefs.video === 'object' ? prefs.video : {};
+  await mkdir(sessionRoot, {recursive: true});
+  await writeFile(temporaryPath, stringify({version, image, video}, {lineWidth: 0}), {mode: 0o600});
+  await rename(temporaryPath, sessionPath);
 }
 
 export async function storeWorkspaceUpload(repoRoot, sessionId, fileName, data) {

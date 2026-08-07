@@ -193,11 +193,14 @@ class CameraImageGenerator:
         prompt += f"\n第一个镜头描述：{first_shot_visual_desc}。"
         prompt += f"\n第二个镜头描述：{second_shot_visual_desc}。"
         reference_image_paths = [first_shot_ff_path]
-        video_output = await self.video_generator.generate_single_video(
-            prompt=prompt,
-            reference_image_paths=reference_image_paths,
-            progress=progress,
-        )
+        from agent_runtime import insightforge_adapters as _adapters
+        _vkwargs = {"prompt": prompt, "reference_image_paths": reference_image_paths, "progress": progress}
+        if _adapters.current_preference is not None:
+            _vresolution, _vaspect = _adapters.current_preference.format_for_generator("video")
+            _vkwargs["resolution"] = _vresolution
+            if _vaspect is not None:
+                _vkwargs["aspect_ratio"] = _vaspect
+        video_output = await self.video_generator.generate_single_video(**_vkwargs)
         return video_output
 
 
@@ -244,10 +247,14 @@ class CameraImageGenerator:
             prompt += f"Image {i}: {text}\n"
             reference_image_paths.append(path)
         prompt += f"根据以下描述生成图片：{shot_desc.ff_desc}。"
+        from agent_runtime import insightforge_adapters as _adapters
+        _pref_size = "1600x900"
+        if _adapters.current_preference is not None:
+            _pref_size = _adapters.current_preference.format_for_generator("image") or "1600x900"
         image_output = await self.image_generator.generate_single_image(
             prompt=prompt,
             reference_image_paths=reference_image_paths,
-            size="1600x900",
+            size=_pref_size,
         )
         return image_output
 
