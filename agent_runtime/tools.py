@@ -13,6 +13,7 @@ from typing import Any, Awaitable, Callable
 
 from .image_tools import ViewImageHandler
 from .models import ToolCall, ToolResult
+from .streaming import normalize_stage, utc_timestamp_ms
 
 ToolHandler = Callable[..., Awaitable[ToolResult] | ToolResult]
 ProgressCallback = Callable[[dict[str, Any]], None]
@@ -46,17 +47,29 @@ class ToolRuntimeContext:
     progress_callback: ProgressCallback | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
+    def emit_event(self, event: dict[str, Any]) -> None:
+        if self.progress_callback is None:
+            return
+        payload = dict(event)
+        if self.turn_id:
+            payload.setdefault("turn_id", self.turn_id)
+        self.progress_callback(payload)
+
     def emit_progress(self, message: str, *, stage: str = "running", metadata: dict[str, Any] | None = None) -> None:
         if self.progress_callback is None:
             return
+        stage_info = normalize_stage(stage)
         payload: dict[str, Any] = {
             "type": "tool_progress",
             "tool": {"requested_name": self.requested_name, "name": self.canonical_name},
             "progress": {"stage": stage, "message": message, "metadata": metadata or {}},
+            "stage_group": stage_info.group,
+            "stage": stage_info.stage,
+            "label": stage_info.label,
+            "raw_stage": stage,
+            "timestamp": utc_timestamp_ms(),
         }
-        if self.turn_id:
-            payload["turn_id"] = self.turn_id
-        self.progress_callback(payload)
+        self.emit_event(payload)
 
     def emit_terminal(self, line: str, *, stream: str = "stdout") -> None:
         if self.progress_callback is None:
