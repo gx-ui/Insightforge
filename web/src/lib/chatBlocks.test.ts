@@ -60,4 +60,13 @@ describe('chat block grouping', () => {
     ]);
     expect(hasRunningActivity(blocks[0])).toBe(false);
   });
+
+  it('keeps character products with their forge activity', () => {
+    const blocks = groupChatBlocks([
+      msg({id: 't1', role: 'activity', tool: 'render', status: 'running'}),
+      msg({id: 'p1', role: 'product', text: 'Alice · 正面', product: {artifactId: 'alice-front', roleId: 'alice', roleVersion: 1, view: 'front', url: '/api/artifact', caption: 'Alice · 正面'}}),
+    ]);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({type: 'forge', activities: [expect.any(Object)], products: [expect.objectContaining({id: 'p1'})]});
+  });
 });

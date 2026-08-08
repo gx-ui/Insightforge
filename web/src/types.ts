@@ -43,17 +43,50 @@ export type JsonValue = JsonPrimitive | JsonValue[] | {[key: string]: JsonValue}
 
 export type Message = {
   id: string;
-  role: 'user' | 'assistant' | 'activity' | 'error';
+  role: 'user' | 'assistant' | 'activity' | 'product' | 'error';
   text: string;
   createdAt?: string;
   tool?: string;
   status?: 'running' | 'done' | 'error';
   stage?: string;
+  rawStage?: string;
+  runId?: string;
+  product?: CharacterProduct;
+};
+
+export type StageInfo = {
+  group: string;
+  stage: string;
+  label: string;
+};
+
+export type RunState = {
+  runId: string;
+  status: 'idle' | 'running' | 'completed' | 'failed' | 'stopped' | 'reconnecting';
+  stage?: StageInfo;
+  startedAt?: number;
+  lastEventId?: string;
+};
+
+export type CharacterProduct = {
+  artifactId: string;
+  roleId: string;
+  roleVersion: number;
+  view: string;
+  url: string;
+  caption: string;
 };
 
 export type AgentEvent = {
   type?: string;
   turn_id?: string;
+  run_id?: string;
+  event_id?: string;
+  session_id?: string | null;
+  timestamp?: number;
+  sequence?: number;
+  tokens?: number;
+  mode?: 'stream' | 'buffered';
   delta?: string;
   message?: string;
   phase?: string;
@@ -65,6 +98,19 @@ export type AgentEvent = {
   sessions?: SessionSummary[];
   tool?: {id?: string; name?: string; requested_name?: string};
   progress?: {stage?: string; message?: string; metadata?: Record<string, unknown>};
+  stage_group?: string;
+  stage?: string;
+  label?: string;
+  raw_stage?: string;
+  product?: {
+    kind?: string;
+    artifact_id?: string;
+    role_id?: string;
+    role_version?: number;
+    view?: string;
+    url?: string;
+    caption?: string;
+  };
   tool_result?: {name?: string; ok?: boolean; content?: string; metadata?: Record<string, unknown>};
   session?: {
     active_session_id?: string;
@@ -106,4 +152,8 @@ export type ChatState = {
   busy: boolean;
   turnId: string;
   promptTokens: number;
+  run: RunState;
+  seenEventIds: string[];
+  tokenBuffers: Record<string, Record<number, string>>;
+  sessionId?: string;
 };

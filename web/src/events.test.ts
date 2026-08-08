@@ -47,4 +47,31 @@ describe('agent event mapping', () => {
       text: 'Configuration updated',
     });
   });
+
+  it('drops duplicate ids and restores text ordering', () => {
+    let state = createChatState();
+    state = applyAgentEvent(state, {type: 'run_started', event_id: 'evt-0', run_id: 'turn-1'});
+    state = applyAgentEvent(state, {type: 'token', event_id: 'evt-2', turn_id: 'turn-1', sequence: 2, delta: '好'});
+    state = applyAgentEvent(state, {type: 'token', event_id: 'evt-1', turn_id: 'turn-1', sequence: 1, delta: '你'});
+    state = applyAgentEvent(state, {type: 'token', event_id: 'evt-2', turn_id: 'turn-1', sequence: 2, delta: '好'});
+    expect(state.messages.at(-1)).toMatchObject({text: '你好'});
+  });
+
+  it('marks all running activities interrupted when a run stops', () => {
+    let state = applyAgentEvent(createChatState(), {
+      type: 'tool_start',
+      turn_id: 'turn-1',
+      tool: {id: 'tool-1', name: 'insightforge_render_video'},
+    });
+    state = applyAgentEvent(state, {
+      type: 'tool_start',
+      turn_id: 'turn-1',
+      tool: {id: 'tool-2', name: 'image_generator'},
+    });
+    state = applyAgentEvent(state, {type: 'run_stopped', run_id: 'turn-1', message: '生成已停止'});
+    expect(state.messages.filter((message) => message.role === 'activity')).toEqual([
+      expect.objectContaining({status: 'error', stage: 'interrupted'}),
+      expect.objectContaining({status: 'error', stage: 'interrupted'}),
+    ]);
+  });
 });

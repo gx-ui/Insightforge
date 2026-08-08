@@ -1,7 +1,16 @@
-import type {AgentEvent, ChatState, Message} from './types';
+import type {AgentEvent, CharacterProduct, ChatState, Message, RunState, StageInfo} from './types';
 
-export function createChatState(messages: Message[] = []): ChatState {
-  return {messages, busy: false, turnId: '', promptTokens: 0};
+export function createChatState(messages: Message[] = [], sessionId = ''): ChatState {
+  return {
+    messages,
+    busy: false,
+    turnId: '',
+    promptTokens: 0,
+    run: {runId: '', status: 'idle'},
+    seenEventIds: [],
+    tokenBuffers: {},
+    sessionId,
+  };
 }
 
 export function appendLocalUser(state: ChatState, text: string): ChatState {
@@ -20,24 +29,43 @@ export function composeAgentPrompt(text: string, workspaceUploads: string[] = []
 }
 
 export function applyAgentEvent(state: ChatState, event: AgentEvent): ChatState {
-  const turnId = event.turn_id || state.turnId || `turn-${Date.now()}`;
+  if (event.session_id && state.sessionId && event.session_id !== state.sessionId) return state;
+  if (event.event_id && state.seenEventIds.includes(event.event_id)) return state;
+  const next = event.event_id
+    ? {...state, seenEventIds: [...state.seenEventIds, event.event_id].slice(-10_000), run: {...state.run, lastEventId: event.event_id}}
+    : state;
+  const turnId = event.run_id || event.turn_id || next.run.runId || next.turnId || `turn-${Date.now()}`;
+  const stage = stageFromEvent(event);
   switch (event.type) {
+    case 'run_started':
+      return {
+        ...next,
+        busy: true,
+        turnId,
+        run: {runId: turnId, status: 'running', stage, startedAt: event.timestamp || Date.now(), lastEventId: event.event_id},
+      };
     case 'turn':
-      return {...state, busy: true, turnId};
+      return {...next, busy: true, turnId, run: next.run.runId ? next.run : {runId: turnId, status: 'running', startedAt: event.timestamp || Date.now()}};
     case 'prompt_trace': {
       const tokens = event.prompt_trace?.totals?.total_tokens
         ?? event.prompt_trace?.totals?.total_estimated_tokens
         ?? event.prompt_trace?.total_estimated_tokens
-        ?? state.promptTokens;
-      return {...state, promptTokens: Math.max(0, Math.round(tokens))};
+        ?? next.promptTokens;
+      return {...next, promptTokens: Math.max(0, Math.round(tokens))};
     }
     case 'token':
-      return appendAssistantDelta(state, turnId, event.delta || '');
+      return appendAssistantDelta(next, turnId, event.delta || '', event.sequence);
+    case 'stream_start':
+    case 'stream_end':
+      return {...next, run: {...next.run, runId: turnId, status: 'running', stage: stage || next.run.stage}};
+    case 'status':
+      return {...next, busy: true, run: {...next.run, runId: turnId, status: 'running', stage: stage || next.run.stage}};
     case 'tool_start': {
       const name = event.tool?.name || event.tool?.requested_name || 'tool';
-      return upsertActivity(state, {
+      return upsertActivity(next, {
         id: activityId(turnId, event.tool?.id, name),
         role: 'activity',
+        runId: turnId,
         tool: name,
         status: 'running',
         stage: 'starting',
@@ -46,19 +74,23 @@ export function applyAgentEvent(state: ChatState, event: AgentEvent): ChatState 
     }
     case 'tool_progress': {
       const name = event.tool?.name || event.tool?.requested_name || 'tool';
-      return upsertLatestToolActivity(state, name, {
+      const updated = upsertLatestToolActivity(next, turnId, name, {
         role: 'activity',
+        runId: turnId,
         tool: name,
         status: 'running',
-        stage: event.progress?.stage || 'running',
-        text: event.progress?.message || humanize(event.progress?.stage || '运行中'),
+        stage: event.stage || event.progress?.stage || 'running',
+        rawStage: event.raw_stage || event.progress?.stage,
+        text: event.label || event.progress?.message || '正在处理你的创作任务',
       });
+      return {...updated, busy: true, run: {...updated.run, runId: turnId, status: 'running', stage: stage || updated.run.stage}};
     }
     case 'tool_result': {
       const name = event.tool_result?.name || 'tool';
       const ok = event.tool_result?.ok !== false;
-      return upsertLatestToolActivity(state, name, {
+      return upsertLatestToolActivity(next, turnId, name, {
         role: 'activity',
+        runId: turnId,
         tool: name,
         status: ok ? 'done' : 'error',
         stage: ok ? 'completed' : 'failed',
@@ -66,12 +98,13 @@ export function applyAgentEvent(state: ChatState, event: AgentEvent): ChatState 
       });
     }
     case 'terminal':
-      if (event.stream !== 'stderr') return state;
+      if (event.stream !== 'stderr') return next;
       return {
-        ...state,
-        messages: [...state.messages, {
+        ...next,
+        messages: [...next.messages, {
           id: `terminal-${Date.now()}`,
           role: 'activity',
+          runId: turnId,
           status: 'error',
           tool: 'runtime',
           text: cleanError(event.line || '运行时错误'),
@@ -79,41 +112,55 @@ export function applyAgentEvent(state: ChatState, event: AgentEvent): ChatState 
       };
     case 'error':
       return {
-        ...state,
+        ...next,
         busy: false,
-        messages: [...state.messages, {id: `error-${turnId}-${Date.now()}`, role: 'error', text: event.message || '未知的 agent 错误'}],
+        run: finishRun(next.run, turnId, 'failed', stage),
+        messages: [...interruptActivities(next.messages, turnId, event.message || '运行失败'), {id: `error-${turnId}-${Date.now()}`, role: 'error', runId: turnId, text: event.message || '未知的 agent 错误'}],
       };
     case 'done': {
-      const hasAssistant = state.messages.some((message) => message.id === `assistant-${turnId}`);
-      const messages = !hasAssistant && event.assistant
-        ? [...state.messages, {id: `assistant-${turnId}`, role: 'assistant' as const, text: event.assistant}]
-        : state.messages;
-      return {...state, messages, busy: false};
+      const messages = reconcileAssistant(next.messages, turnId, event.assistant || '');
+      return {...next, messages, busy: false, run: finishRun(next.run, turnId, 'completed', stage)};
     }
+    case 'product': {
+      const product = characterProductFromEvent(event);
+      if (!product || next.messages.some((message) => message.product?.artifactId === product.artifactId)) return next;
+      return {...next, messages: [...next.messages, {id: `product-${product.artifactId}`, role: 'product', runId: turnId, text: product.caption, product}]};
+    }
+    case 'run_stopped':
+      return {...next, busy: false, run: finishRun(next.run, turnId, 'stopped', stage), messages: interruptActivities(next.messages, turnId, event.message || '生成已停止')};
+    case 'sse_replay_unavailable':
+      return {...next, run: {...next.run, status: 'reconnecting'}};
     case 'bridge_status':
-      if (event.status !== 'error' && event.status !== 'stopped') return state;
+      if (event.status !== 'error' && event.status !== 'stopped') return next;
       return {
-        ...state,
+        ...next,
         busy: false,
-        messages: state.messages.map((message) => message.role === 'activity' && message.status === 'running'
+        run: {...next.run, status: event.status === 'error' ? 'failed' : 'stopped'},
+        messages: next.messages.map((message) => message.role === 'activity' && message.status === 'running'
           ? {...message, status: 'error', stage: 'interrupted', text: event.message || '生成已停止'}
           : message),
       };
     default:
-      return state;
+      return next;
   }
 }
 
-function appendAssistantDelta(state: ChatState, turnId: string, delta: string): ChatState {
+function appendAssistantDelta(state: ChatState, turnId: string, delta: string, sequence?: number): ChatState {
   if (!delta) return state;
   const id = `assistant-${turnId}`;
+  const tokenBuffers = Number.isFinite(sequence)
+    ? {...state.tokenBuffers, [turnId]: {...state.tokenBuffers[turnId], [Number(sequence)]: delta}}
+    : state.tokenBuffers;
+  const text = Number.isFinite(sequence)
+    ? Object.entries(tokenBuffers[turnId]).sort(([left], [right]) => Number(left) - Number(right)).map(([, value]) => value).join('')
+    : undefined;
   const index = state.messages.findIndex((message) => message.id === id);
   if (index < 0) {
-    return {...state, messages: [...state.messages, {id, role: 'assistant', text: delta}]};
+    return {...state, tokenBuffers, messages: [...state.messages, {id, role: 'assistant', runId: turnId, text: text ?? delta}]};
   }
   const messages = [...state.messages];
-  messages[index] = {...messages[index], text: `${messages[index].text}${delta}`};
-  return {...state, messages};
+  messages[index] = {...messages[index], text: text ?? `${messages[index].text}${delta}`};
+  return {...state, tokenBuffers, messages};
 }
 
 function upsertActivity(state: ChatState, message: Message): ChatState {
@@ -124,19 +171,57 @@ function upsertActivity(state: ChatState, message: Message): ChatState {
   return {...state, messages};
 }
 
-function upsertLatestToolActivity(state: ChatState, tool: string, update: Omit<Message, 'id'>): ChatState {
+function upsertLatestToolActivity(state: ChatState, turnId: string, tool: string, update: Omit<Message, 'id'>): ChatState {
   const messages = [...state.messages];
   for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (messages[index].role === 'activity' && messages[index].tool === tool && messages[index].status === 'running') {
+    if (messages[index].role === 'activity' && messages[index].runId === turnId && messages[index].tool === tool && messages[index].status === 'running') {
       messages[index] = {...messages[index], ...update};
       return {...state, messages};
     }
   }
-  return {...state, messages: [...messages, {id: `activity-${tool}-${Date.now()}`, ...update}]};
+  return {...state, messages: [...messages, {id: `activity-${turnId}-${tool}-${Date.now()}`, ...update}]};
 }
 
 function activityId(turnId: string, toolId: string | undefined, name: string) {
   return `activity-${turnId}-${toolId || name}-${Date.now()}`;
+}
+
+function stageFromEvent(event: AgentEvent): StageInfo | undefined {
+  if (!event.stage && !event.label) return undefined;
+  return {group: event.stage_group || 'generic', stage: event.stage || event.raw_stage || 'running', label: event.label || '正在处理你的创作任务'};
+}
+
+function finishRun(run: RunState, turnId: string, status: RunState['status'], stage?: StageInfo): RunState {
+  return {...run, runId: turnId, status, stage: stage || run.stage};
+}
+
+function interruptActivities(messages: Message[], turnId: string, text: string): Message[] {
+  return messages.map((message) => message.role === 'activity' && message.runId === turnId && message.status === 'running'
+    ? {...message, status: 'error', stage: 'interrupted', text}
+    : message);
+}
+
+function reconcileAssistant(messages: Message[], turnId: string, text: string): Message[] {
+  if (!text) return messages;
+  const id = `assistant-${turnId}`;
+  const index = messages.findIndex((message) => message.id === id);
+  if (index < 0) return [...messages, {id, role: 'assistant', runId: turnId, text}];
+  const next = [...messages];
+  next[index] = {...next[index], text};
+  return next;
+}
+
+function characterProductFromEvent(event: AgentEvent): CharacterProduct | null {
+  const product = event.product;
+  if (product?.kind !== 'character_image' || !product.artifact_id || !product.role_id || !product.url) return null;
+  return {
+    artifactId: product.artifact_id,
+    roleId: product.role_id,
+    roleVersion: Number(product.role_version) || 1,
+    view: product.view || 'default',
+    url: product.url,
+    caption: product.caption || product.role_id,
+  };
 }
 
 export function humanize(value: string) {

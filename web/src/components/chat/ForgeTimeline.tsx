@@ -3,15 +3,16 @@ import {ChevronDown, ChevronUp, Loader2} from 'lucide-react';
 import {humanize} from '../../events';
 import {activityToolKind, ActivityToolIcon} from './activityMeta';
 import type {Message} from '../../types';
+import CharacterProductCard from './CharacterProductCard';
 
-export default function ForgeTimeline({activities}: {activities: Message[]}) {
+export default function ForgeTimeline({activities, products = []}: {activities: Message[]; products?: Message[]}) {
   const hasRunning = activities.some((a) => a.status === 'running');
-  const [expanded, setExpanded] = useState(hasRunning);
+  const [expanded, setExpanded] = useState(hasRunning || products.length > 0);
 
   // 运行中步骤始终展开（M3 AC：正在工作应当可见）；用户手动折叠在无运行中时不被打断
   useEffect(() => {
-    if (hasRunning) setExpanded(true);
-  }, [hasRunning]);
+    if (hasRunning || products.length > 0) setExpanded(true);
+  }, [hasRunning, products.length]);
 
   const running = activities.filter((a) => a.status === 'running');
   const done = activities.filter((a) => a.status === 'done');
@@ -32,7 +33,7 @@ export default function ForgeTimeline({activities}: {activities: Message[]}) {
             <span className={`relative inline-flex h-2 w-2 rounded-full ${hasRunning ? 'bg-accent' : done.length > 0 ? 'bg-info' : errored.length > 0 ? 'bg-error' : 'bg-ink-faint'}`} />
           </span>
           <span className="text-sm font-medium text-ink-primary">
-            {hasRunning ? '锻造进行中' : done.length > 0 ? `已完成 ${done.length} 个步骤` : '锻造过程'}
+            {hasRunning ? '锻造进行中' : done.length > 0 ? `已完成 ${done.length} 个步骤` : products.length > 0 ? '角色图已生成' : '锻造过程'}
           </span>
           {running.length > 0 && (
             <span className="text-xs text-accent">
@@ -50,6 +51,7 @@ export default function ForgeTimeline({activities}: {activities: Message[]}) {
           {activities.map((activity) => (
             <ActivityRow key={activity.id} activity={activity} />
           ))}
+          <CharacterProductCard products={products.flatMap((message) => message.product ? [message.product] : [])} />
         </div>
       )}
     </div>

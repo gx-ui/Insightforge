@@ -7,6 +7,7 @@ import ArtifactsDrawer from './components/drawers/ArtifactsDrawer';
 import SettingsView from './components/settings/SettingsView';
 import type {DrawerType} from './components/TopBar';
 import ForgeTimeline from './components/chat/ForgeTimeline';
+import RunStatusBar from './components/chat/RunStatusBar';
 import Composer from './components/chat/Composer';
 import PreferenceBar from './components/chat/PreferenceBar';
 import {DEFAULT_PREFERENCES} from './components/chat/preferences';
@@ -57,6 +58,8 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queuedTokenEventsRef = useRef<AgentEvent[]>([]);
+  const tokenFrameRef = useRef<number>();
 
   const selectedSession = sessions.find((session) => session.sessionId === selectedSessionId);
   const slashMatches = useMemo(() => matchingSlashCommands(draft), [draft]);
@@ -83,7 +86,18 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
     setArtifacts(payload.artifacts);
   }, []);
 
-  useEffect(() => subscribeToEvents((event) => {
+  useEffect(() => {
+    const flushTokens = () => {
+      tokenFrameRef.current = undefined;
+      const queued = queuedTokenEventsRef.current.splice(0);
+      if (queued.length) setChat((current) => queued.reduce(applyAgentEvent, current));
+    };
+    const unsubscribe = subscribeToEvents((event) => {
+    if (event.type === 'token') {
+      queuedTokenEventsRef.current.push(event);
+      if (!tokenFrameRef.current) tokenFrameRef.current = window.requestAnimationFrame(flushTokens);
+      return;
+    }
     if (event.type === 'sessions_changed') {
       setSessions(event.sessions || []);
       if (event.activeSessionId) setSelectedSessionId(event.activeSessionId);
@@ -109,8 +123,22 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
       }
       return;
     }
+    if (event.type === 'sse_replay_unavailable' && selectedSessionId) {
+      void Promise.all([getHistory(selectedSessionId), refreshArtifacts(selectedSessionId)]).then(([history]) => {
+        setChat(createChatState(history.messages, selectedSessionId));
+      });
+    }
     setChat((current) => applyAgentEvent(current, event));
-  }, () => undefined), [refreshArtifacts, refreshSessions, applyPrefVersion]);
+    }, (connected) => {
+      setChat((current) => current.run.status === 'running' || current.run.status === 'reconnecting'
+        ? {...current, run: {...current.run, status: connected ? 'running' : 'reconnecting'}}
+        : current);
+    });
+    return () => {
+      unsubscribe();
+      if (tokenFrameRef.current) window.cancelAnimationFrame(tokenFrameRef.current);
+    };
+  }, [refreshArtifacts, refreshSessions, applyPrefVersion, selectedSessionId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,7 +153,7 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
           startAgent({sessionId: state.activeSessionId}),
         ]);
         if (!cancelled) {
-          setChat(createChatState(history.messages));
+          setChat(createChatState(history.messages, state.activeSessionId));
           setAgentReady(true);
         }
       } catch (error) {
@@ -184,14 +212,14 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
     // 切换会话时重置偏好版本，避免上一会话的高版本挡住新会话的 preference_state
     setPreferences(DEFAULT_PREFERENCES);
     applyPrefVersion(0);
-    setChat(createChatState());
+    setChat(createChatState([], sessionId));
     try {
       const [history] = await Promise.all([
         getHistory(sessionId),
         refreshArtifacts(sessionId),
         startAgent({sessionId}),
       ]);
-      setChat(createChatState(history.messages));
+      setChat(createChatState(history.messages, sessionId));
       setAgentReady(true);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : String(error));
@@ -220,7 +248,7 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
       // 新建会话：重置偏好版本，让新会话的 preference_state 总是被采纳
       setPreferences(DEFAULT_PREFERENCES);
       applyPrefVersion(0);
-      setChat(createChatState());
+      setChat(createChatState([], state.activeSessionId));
       setArtifacts([]);
       setWorkspaceView('workspace');
       setNewProjectOpen(false);
@@ -257,7 +285,14 @@ async function handleUpdatePrefs(prefs: PreferenceSnapshot) {
         setAgentReady(true);
       }
       const outbound = composeAgentPrompt(text, workspaceUploads.map((file) => file.path));
-      await sendMessage(outbound);
+      const result = await sendMessage(outbound);
+      setChat((current) => applyAgentEvent(current, {
+        type: 'run_started',
+        run_id: result.runId,
+        stage_group: 'narrative',
+        stage: 'narrative',
+        label: '正在理解你的创作需求',
+      }));
       setWorkspaceUploads([]);
     } catch (error) {
       const event: AgentEvent = {type: 'error', message: error instanceof Error ? error.message : String(error)};
@@ -297,7 +332,7 @@ async function handleUpdatePrefs(prefs: PreferenceSnapshot) {
   async function stop() {
     await stopAgent();
     setAgentReady(false);
-    setChat((current) => ({...current, busy: false}));
+    setChat((current) => ({...current, busy: false, run: {...current.run, status: 'stopped'}}));
   }
 
   async function confirmDelete() {
@@ -312,7 +347,7 @@ async function handleUpdatePrefs(prefs: PreferenceSnapshot) {
       setPendingDelete(undefined);
       if (deletingSelected) {
         setSelectedSessionId('');
-        setChat(createChatState());
+        setChat(createChatState([], state.activeSessionId));
         setArtifacts([]);
         setAgentReady(false);
         if (state.activeSessionId) await openSession(state.activeSessionId);
@@ -383,6 +418,7 @@ async function handleUpdatePrefs(prefs: PreferenceSnapshot) {
                 <EmptyState onPickExample={(text) => { setDraft(text); textareaRef.current?.focus(); }} />
               ) : (
                 <div className="space-y-2">
+                  <RunStatusBar run={chat.run} />
                   {groupChatBlocks(chat.messages).map((block, i) =>
                     block.type === 'dialogue' ? (
                       <div key={i} className="space-y-3">
@@ -391,10 +427,10 @@ async function handleUpdatePrefs(prefs: PreferenceSnapshot) {
                         ))}
                       </div>
                     ) : (
-                      <ForgeTimeline key={i} activities={block.activities} />
+                      <ForgeTimeline key={i} activities={block.activities} products={block.products} />
                     )
                   )}
-                  {chat.busy && !chat.messages.some(m => m.role === 'activity' && m.status === 'running') && (
+                  {chat.busy && !chat.run.runId && !chat.messages.some(m => m.role === 'activity' && m.status === 'running') && (
                     <div className="text-center text-sm text-ink-faint">思考中…</div>
                   )}
                 </div>

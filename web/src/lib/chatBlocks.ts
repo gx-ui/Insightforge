@@ -2,17 +2,18 @@ import type {Message} from '../types';
 
 export type ChatBlock =
   | {type: 'dialogue'; messages: Message[]}
-  | {type: 'forge'; activities: Message[]};
+  | {type: 'forge'; activities: Message[]; products: Message[]};
 
 export function groupChatBlocks(messages: Message[]): ChatBlock[] {
   const blocks: ChatBlock[] = [];
   for (const message of messages) {
     const last = blocks[blocks.length - 1];
-    if (message.role === 'activity') {
+    if (message.role === 'activity' || message.role === 'product') {
       if (last?.type === 'forge') {
-        last.activities.push(message);
+        if (message.role === 'activity') last.activities.push(message);
+        else last.products.push(message);
       } else {
-        blocks.push({type: 'forge', activities: [message]});
+        blocks.push({type: 'forge', activities: message.role === 'activity' ? [message] : [], products: message.role === 'product' ? [message] : []});
       }
     } else {
       if (last?.type === 'dialogue') {

@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import {ChevronDown, ChevronUp, FileJson, Film, Files, Image as ImageIcon, Maximize2, Video, X} from 'lucide-react';
 import {getJsonArtifact} from './api';
+import MediaPreviewDialog from './components/chat/MediaPreviewDialog';
 import {
   activeRenderCheckpoint,
   deriveStoryboardReadiness,
@@ -134,7 +135,7 @@ export function ArtifactsView({session, artifacts}: {session?: SessionSummary; a
           )}
         </>
       )}
-      {previewArtifact && <MediaPreviewDialog artifact={previewArtifact} onClose={() => setPreviewArtifact(undefined)} />}
+      {previewArtifact && <MediaPreviewDialog media={{kind: previewArtifact.kind === 'video' ? 'video' : 'image', url: mediaUrl(previewArtifact), title: visualArtifactLabel(previewArtifact), detail: formatBytes(previewArtifact.size)}} onClose={() => setPreviewArtifact(undefined)} />}
     </section>
   );
 }
@@ -199,32 +200,6 @@ function RelatedVisuals({artifacts, onPreview}: {artifacts: Artifact[]; onPrevie
         </div>
       )}
     </aside>
-  );
-}
-
-function MediaPreviewDialog({artifact, onClose}: {artifact: Artifact; onClose: () => void}) {
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
-
-  return (
-    <div className="media-preview-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className="media-preview-dialog" role="dialog" aria-modal="true" aria-label={`预览 ${visualArtifactLabel(artifact)}`}>
-        <header>
-          <div><strong>{visualArtifactLabel(artifact)}</strong><span>{formatBytes(artifact.size)}</span></div>
-          <button className="icon-button" onClick={onClose} aria-label="关闭预览"><X size={18} /></button>
-        </header>
-        <div className="media-preview-stage">
-          {artifact.kind === 'image'
-            ? <img src={mediaUrl(artifact)} alt={visualArtifactLabel(artifact)} />
-            : <video src={mediaUrl(artifact)} controls autoPlay playsInline preload="metadata" />}
-        </div>
-      </section>
-    </div>
   );
 }
 
