@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, AsyncIterator
 from uuid import uuid4
 
 from langchain.chat_models import init_chat_model
@@ -31,6 +31,12 @@ class AssistantMessage:
     text: str = ""
     tool_calls: list[ToolCall] = field(default_factory=list)
     raw_message: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class AssistantStreamChunk:
+    text: str = ""
+    tool_calls: list[ToolCall] = field(default_factory=list)
 
 
 def _to_langchain_messages(messages: list[dict[str, Any]]) -> list:
@@ -73,8 +79,14 @@ def _to_langchain_messages(messages: list[dict[str, Any]]) -> list:
 
 def _assistant_message_from_langchain(ai: AIMessage) -> AssistantMessage:
     text = ai.content if isinstance(ai.content, str) else ""
+    calls = _tool_calls_from_langchain(ai)
+    raw = ai.model_dump() if hasattr(ai, "model_dump") else {"content": text}
+    return AssistantMessage(text=text, tool_calls=calls, raw_message=raw)
+
+
+def _tool_calls_from_langchain(ai: Any) -> list[ToolCall]:
     calls: list[ToolCall] = []
-    for tc in ai.tool_calls or []:
+    for tc in getattr(ai, "tool_calls", None) or []:
         calls.append(
             ToolCall(
                 id=tc.get("id") or f"tool-{uuid4().hex[:12]}",
@@ -82,8 +94,15 @@ def _assistant_message_from_langchain(ai: AIMessage) -> AssistantMessage:
                 arguments=dict(tc.get("args") or {}),
             )
         )
-    raw = ai.model_dump() if hasattr(ai, "model_dump") else {"content": text}
-    return AssistantMessage(text=text, tool_calls=calls, raw_message=raw)
+    return calls
+
+
+def _text_from_langchain_content(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(str(item.get("text", "")) for item in content if isinstance(item, dict) and item.get("type") == "text")
+    return ""
 
 
 class OpenAICompatibleLLM:
@@ -128,3 +147,12 @@ class OpenAICompatibleLLM:
         else:
             ai = await self._chat_model.ainvoke(lc_messages)
         return _assistant_message_from_langchain(ai)
+
+    async def complete_stream(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> AsyncIterator[AssistantStreamChunk]:
+        lc_messages = _to_langchain_messages(messages)
+        model = self._chat_model.bind_tools(tools) if tools else self._chat_model
+        async for chunk in model.astream(lc_messages):
+            yield AssistantStreamChunk(
+                text=_text_from_langchain_content(getattr(chunk, "content", "")),
+                tool_calls=_tool_calls_from_langchain(chunk),
+            )

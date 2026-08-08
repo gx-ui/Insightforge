@@ -145,6 +145,7 @@ async def amain(argv: list[str] | None = None) -> int:
     if interactive and not args.jsonl:
         print("InsightForge agent 已就绪。按 Ctrl+C 退出。")
     for user_input in prompt_inputs(args):
+        run_id: str | None = None
         # JSONL 分发：拦截 preference_updated 事件（E1）
         if args.stdin_repl:
             try:
@@ -157,6 +158,12 @@ async def amain(argv: list[str] | None = None) -> int:
                 except (ValueError, TypeError) as exc:
                     print_event({"type": "error", "message": f"malformed preference_updated event discarded: {exc}"}, jsonl=args.jsonl)
                 continue
+            if isinstance(payload, dict) and payload.get("type") == "user_message":
+                text = payload.get("text")
+                requested_run_id = payload.get("run_id")
+                if isinstance(text, str) and text.strip() and isinstance(requested_run_id, str) and requested_run_id.strip():
+                    user_input = text.strip()
+                    run_id = requested_run_id.strip()
         if user_input.strip() == "/compact":
             turn_id = f"turn-{uuid4().hex[:12]}"
             print_event({"type": "turn", "turn_id": turn_id, "turn": {"id": turn_id}}, jsonl=args.jsonl)
@@ -167,12 +174,13 @@ async def amain(argv: list[str] | None = None) -> int:
             print_event({"type": "session", "turn_id": turn_id, "session": runtime.session_index.snapshot()}, jsonl=args.jsonl)
             continue
         try:
-            async for event in runtime.stream_events(user_input):
+            stream = runtime.stream_events(user_input, run_id=run_id) if run_id else runtime.stream_events(user_input)
+            async for event in stream:
                 print_event(event, jsonl=args.jsonl)
         except Exception as exc:
             # 保持 REPL 存活：一次失败的轮次不能杀掉进程
             # （否则会连带杀掉通过 stdio 驱动我们的 Web UI）。
-            turn_id = f"turn-{uuid4().hex[:12]}"
+            turn_id = run_id or f"turn-{uuid4().hex[:12]}"
             print_event({"type": "error", "turn_id": turn_id, "message": f"轮次失败: {exc}"}, jsonl=args.jsonl)
             print_event({"type": "done", "turn_id": turn_id, "assistant": "", "tool_results": []}, jsonl=args.jsonl)
     return 0

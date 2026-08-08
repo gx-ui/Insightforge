@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncIterator, TypedDict
 from langgraph.config import get_stream_writer
 from langgraph.graph import StateGraph, START, END
 from .context_compactor import ContextCompactor, CompactionResult
-from .llm import OpenAICompatibleLLM
+from .llm import AssistantMessage, OpenAICompatibleLLM
 from .models import TurnControl, ToolCall
 from .prompts import PromptBuilder
 from .session_index import SessionIndex
 from .tool_executor import ToolExecutor
 from .tools import build_builtin_registry
+from .streaming import normalize_stage, utc_timestamp_ms
 
 MAX_TOOL_PASSES = 50
 
@@ -27,6 +29,7 @@ class AgentState(TypedDict, total=False):
     history: list[dict[str, Any]]
     # 每轮次（在 init 中重置）：
     user_input: str
+    run_id: str
     turn_id: str
     tool_schemas: list[dict[str, Any]]
     system: str
@@ -144,19 +147,20 @@ class AgentLoop:
         await self._graph.aupdate_state(config, {"history": self.history})
         return f"Compacted context {result.estimated_tokens_before} -> {result.estimated_tokens_after} ({result.mode})."
 
-    async def stream_events(self, user_input: str) -> AsyncIterator[dict[str, Any]]:
+    async def stream_events(self, user_input: str, *, run_id: str | None = None) -> AsyncIterator[dict[str, Any]]:
         await self._ensure_graph()
         session = self.session_index.active() or self.session_index.create()
         thread_id = session["session_id"]
         config = {"configurable": {"thread_id": thread_id}, "recursion_limit": MAX_TOOL_PASSES * 2 + 10}
-        async for chunk in self._graph.astream({"user_input": user_input}, config=config, stream_mode="custom"):
-            yield chunk
+        input_state = {"user_input": user_input, "run_id": run_id or ""}
+        async for chunk in self._graph.astream(input_state, config=config, stream_mode="custom"):
+            yield _stream_event_envelope(chunk, run_id)
 
     # -- 节点 --
 
     async def _init_node(self, state: AgentState) -> dict:
         writer = get_stream_writer()
-        control = TurnControl()
+        control = TurnControl(turn_id=state.get("run_id") or TurnControl().turn_id)
         self._control = control
         turn_id = control.turn_id
         writer({"type": "turn", "turn_id": turn_id, "turn": {"id": turn_id}})
@@ -185,6 +189,7 @@ class AgentLoop:
         ]
         return {
             "turn_id": turn_id,
+            "run_id": turn_id,
             "history": self.history,
             "tool_schemas": tool_schemas,
             "runtime_messages": runtime_messages,
@@ -203,7 +208,7 @@ class AgentLoop:
         tool_round = state.get("tool_round", 0)
         writer({"type": "status", "turn_id": turn_id, "phase": "sampling_assistant", "message": "正在采样助手"})
         try:
-            assistant = await self.llm.complete(state["runtime_messages"], tools=state["tool_schemas"])
+            assistant = await self._complete_assistant(state["runtime_messages"], state["tool_schemas"], writer, turn_id)
         except Exception as exc:
             final_text = f"Agent LLM 请求失败: {exc}"
             transitions = state.get("transitions", []) + [_transition("sampling_assistant", "finalizing_answer", "llm_sampling_failed")]
@@ -220,8 +225,6 @@ class AgentLoop:
         if not assistant.tool_calls:
             transitions = state.get("transitions", []) + [_transition("sampling_assistant", "finalizing_answer", "assistant_finished_without_tools")]
             final_text = assistant.text
-            if final_text:
-                writer({"type": "token", "turn_id": turn_id, "delta": final_text})
             return {"assistant_text": assistant.text, "assistant_tool_calls": tc_dicts, "assistant_turns": assistant_turns, "transitions": transitions, "final_text": final_text}
         transitions = state.get("transitions", []) + [_transition("sampling_assistant", "executing_tools", "assistant_requested_tools")]
         if tool_round >= MAX_TOOL_PASSES:
@@ -229,6 +232,47 @@ class AgentLoop:
             writer({"type": "error", "turn_id": turn_id, "message": final_text, "metadata": {"max_tool_passes": MAX_TOOL_PASSES}})
             return {"assistant_text": assistant.text, "assistant_tool_calls": tc_dicts, "assistant_turns": assistant_turns, "transitions": transitions, "final_text": final_text, "status": "halted"}
         return {"assistant_text": assistant.text, "assistant_tool_calls": tc_dicts, "assistant_turns": assistant_turns, "transitions": transitions}
+
+    async def _complete_assistant(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], writer: Any, turn_id: str) -> AssistantMessage:
+        complete_stream = getattr(self.llm, "complete_stream", None)
+        if callable(complete_stream):
+            text_parts: list[str] = []
+            tool_calls: dict[str, ToolCall] = {}
+            started = False
+            sequence = 0
+            try:
+                async for chunk in complete_stream(messages, tools):
+                    text = str(getattr(chunk, "text", "") or "")
+                    if text:
+                        if not started:
+                            writer({"type": "stream_start", "turn_id": turn_id, "mode": "stream"})
+                            started = True
+                        sequence += 1
+                        text_parts.append(text)
+                        writer({"type": "token", "turn_id": turn_id, "sequence": sequence, "delta": text})
+                    for call in getattr(chunk, "tool_calls", []) or []:
+                        tool_calls[call.id] = call
+            except Exception:
+                if started:
+                    writer({"type": "stream_end", "turn_id": turn_id, "mode": "stream", "tokens": sequence})
+                assistant = await self.llm.complete(messages, tools=tools)
+                self._emit_buffered_text(writer, turn_id, assistant.text)
+                return assistant
+            if started:
+                writer({"type": "stream_end", "turn_id": turn_id, "mode": "stream", "tokens": sequence})
+            return AssistantMessage(text="".join(text_parts), tool_calls=list(tool_calls.values()))
+        assistant = await self.llm.complete(messages, tools=tools)
+        self._emit_buffered_text(writer, turn_id, assistant.text)
+        return assistant
+
+    def _emit_buffered_text(self, writer: Any, turn_id: str, text: str) -> None:
+        chunks = _buffered_text_chunks(text)
+        if not chunks:
+            return
+        writer({"type": "stream_start", "turn_id": turn_id, "mode": "buffered"})
+        for sequence, chunk in enumerate(chunks, start=1):
+            writer({"type": "token", "turn_id": turn_id, "sequence": sequence, "delta": chunk, "mode": "buffered"})
+        writer({"type": "stream_end", "turn_id": turn_id, "mode": "buffered", "tokens": len(chunks)})
 
     def _route_after_model(self, state: AgentState) -> str:
         tcs = state.get("assistant_tool_calls")
@@ -350,6 +394,30 @@ def _transition(src: str, dst: str, reason: str) -> dict[str, str]:
 
 def _openai_tool_call(call: ToolCall) -> dict[str, Any]:
     return {"id": call.id, "type": "function", "function": {"name": call.name, "arguments": json.dumps(call.arguments, ensure_ascii=False)}}
+
+
+def _stream_event_envelope(event: dict[str, Any], run_id: str | None) -> dict[str, Any]:
+    payload = dict(event)
+    turn_id = str(payload.get("turn_id") or run_id or "")
+    if turn_id:
+        payload.setdefault("turn_id", turn_id)
+        payload.setdefault("run_id", run_id or turn_id)
+    payload.setdefault("timestamp", utc_timestamp_ms())
+    raw_stage = payload.get("raw_stage")
+    if not isinstance(raw_stage, str):
+        progress = payload.get("progress")
+        raw_stage = progress.get("stage") if isinstance(progress, dict) else payload.get("phase")
+    if isinstance(raw_stage, str) and raw_stage:
+        info = normalize_stage(raw_stage)
+        payload.setdefault("stage_group", info.group)
+        payload.setdefault("stage", info.stage)
+        payload.setdefault("label", info.label)
+        payload.setdefault("raw_stage", raw_stage)
+    return payload
+
+
+def _buffered_text_chunks(text: str) -> list[str]:
+    return [part for part in re.split(r"(?<=[。！？.!?])\s*", text) if part]
 
 
 def build_runtime(workspace_root: str | Path = ".", llm: Any | None = None, adapter_specs: list[Any] | None = None) -> AgentLoop:
