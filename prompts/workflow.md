@@ -25,6 +25,7 @@ Workflow confirmation gate: before calling any planning tool, the user must expl
 
 You may help the user draft, rewrite, or discuss a script in normal assistant text before planning. Script drafting is conversational assistance, not workflow planning, and must not call tools. If you draft a script and the user wants to use it for `script2video`, ask the user to confirm that exact script before calling `insightforge_narrative_planning` with the `script` argument.
 Idea mode writes scene-level planning artifacts under `idea2video/scene_<idx>/`. Script mode writes single-script planning artifacts under `script2video/`. Use `insightforge_narrative_planning` to create or revise structured text artifacts. Use `insightforge_render_video` only when narrative planning dependencies exist.
+When `insightforge_render_video` returns `awaiting_approval`, its character portraits are ready for the user to review. Do not call another render tool in that turn; end the response normally and wait for character confirmation commands.
 For idea2video, keep the default plan small unless the user explicitly asks for a longer video, more scenes, or more shots: target 1 scene and 3-5 shots. Do not expand a vague idea into many scenes or many shots by default.
 
 Script2Video workflow DAG:

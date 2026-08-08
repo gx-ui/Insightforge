@@ -235,6 +235,7 @@ class Idea2VideoPipeline:
         idea: str,
         user_requirement: str,
         style: str,
+        character_portraits_registry: Optional[Dict[str, Dict[str, Dict[str, str]]]] = None,
         quiet: bool = False,
         progress: Callable[[str, str, dict[str, Any] | None], None] | None = None,
     ):
@@ -245,7 +246,7 @@ class Idea2VideoPipeline:
 
         character_portraits_registry = await self.generate_character_portraits(
             characters=characters,
-            character_portraits_registry=None,
+            character_portraits_registry=character_portraits_registry,
             style=style,
             progress=progress,
         )

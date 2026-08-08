@@ -309,12 +309,59 @@ class Novel2MoviePipeline:
         }
 
 
+    def _load_novel_characters(self) -> list[CharacterInNovel]:
+        novel_level_dir = os.path.join(self.working_dir, "global_information", "characters", "novel_level")
+        novel_files = [
+            filename
+            for filename in os.listdir(novel_level_dir)
+            if filename.startswith("novel_characters_after_event_") and filename.endswith(".json")
+        ]
+        if not novel_files:
+            raise RuntimeError("novel2video/global_information/characters/novel_level 中没有小说角色文件")
+        latest_novel_file = max(novel_files, key=lambda filename: int(filename.split("_")[-1].split(".")[0]))
+        with open(os.path.join(novel_level_dir, latest_novel_file), "r", encoding="utf-8") as handle:
+            return [CharacterInNovel.model_validate(item) for item in json.load(handle)]
+
+    async def generate_base_character_portraits(
+        self,
+        style: str,
+        *,
+        characters: list[CharacterInNovel] | None = None,
+        progress: Callable[[str, str, Dict[str, Any] | None], None] | None = None,
+    ) -> dict[str, str]:
+        characters = characters or self._load_novel_characters()
+        _emit_text_plan_progress(progress, "novel_portraits_start", "Generating novel character portraits", {"character_count": len(characters)})
+        base_character_portrait_dir = os.path.join(self.working_dir, "character_portraits", "base")
+        os.makedirs(base_character_portrait_dir, exist_ok=True)
+
+        async def generate_base_portrait(sem: asyncio.Semaphore, character: CharacterInNovel) -> tuple[str, str]:
+            async with sem:
+                image_path = os.path.join(base_character_portrait_dir, f"character_{character.index}_{safe_path_component(character.identifier_in_novel)}.png")
+                if os.path.exists(image_path):
+                    _emit_text_plan_progress(progress, "character_portrait_front_done", f"Loaded novel portrait for {character.identifier_in_novel}", {"identifier": character.identifier_in_novel, "path": image_path})
+                    return character.identifier_in_novel, image_path
+                prompt = f"Generate a full-body, front-view portrait based on the following description, in the style of {style}:"
+                prompt += f"\nCharacter Identifier: {character.identifier_in_novel}"
+                prompt += f"\nFeatures: {character.static_features}"
+                prompt += "\nThe character should be centered in the image, occupying most of the frame. Gazing straight ahead. Standing with arms relaxed at sides. Natural expression. The background should be plain white."
+                image = await self.image_generator.generate_single_image(prompt=prompt, size="512x512")
+                image.save(image_path)
+                _emit_text_plan_progress(progress, "character_portrait_front_done", f"Generated novel portrait for {character.identifier_in_novel}", {"identifier": character.identifier_in_novel, "path": image_path})
+                return character.identifier_in_novel, image_path
+
+        sem = asyncio.Semaphore(5)
+        results = await asyncio.gather(*[generate_base_portrait(sem, character) for character in characters])
+        portraits = dict(results)
+        _emit_text_plan_progress(progress, "novel_portraits_base_done", "Base character portraits ready", {"character_count": len(portraits)})
+        return portraits
+
     async def render_video_artifacts(
         self,
         style: str,
         user_requirement: str = "",
         progress: Callable[[str, str, Dict[str, Any] | None], None] | None = None,
         quiet: bool = False,
+        base_character_portraits: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """根据已有的小说规划产物渲染角色肖像和逐场景视频。
 
@@ -376,36 +423,15 @@ class Novel2MoviePipeline:
             with open(path, "r", encoding="utf-8") as f:
                 event_idx_to_characters_in_event[event.index] = [CharacterInEvent.model_validate(item) for item in json.load(f)]
 
-        novel_files = [fname for fname in os.listdir(novel_level_dir) if fname.startswith("novel_characters_after_event_") and fname.endswith(".json")]
-        if not novel_files:
-            raise RuntimeError("novel2video/global_information/characters/novel_level 中没有小说角色文件")
-        latest_novel_file = max(novel_files, key=lambda fname: int(fname.split("_")[-1].split(".json")[0]))
-        with open(os.path.join(novel_level_dir, latest_novel_file), "r", encoding="utf-8") as f:
-            characters_in_novel = [CharacterInNovel.model_validate(item) for item in json.load(f)]
-
-        _emit_text_plan_progress(progress, "novel_portraits_start", "Generating novel character portraits", {"character_count": len(characters_in_novel)})
+        characters_in_novel = self._load_novel_characters()
         working_dir_character_portrait = os.path.join(self.working_dir, "character_portraits")
-        base_character_portrait_dir = os.path.join(working_dir_character_portrait, "base")
-        os.makedirs(base_character_portrait_dir, exist_ok=True)
-
-        async def generate_base_portrait(sem, character: CharacterInNovel):
-            async with sem:
-                image_path = os.path.join(base_character_portrait_dir, f"character_{character.index}_{safe_path_component(character.identifier_in_novel)}.png")
-                if os.path.exists(image_path):
-                    _emit_text_plan_progress(progress, "character_portrait_front_done", f"Loaded novel portrait for {character.identifier_in_novel}", {"identifier": character.identifier_in_novel, "path": image_path})
-                    return image_path
-                prompt = f"Generate a full-body, front-view portrait based on the following description, in the style of {style}:"
-                prompt += f"\nCharacter Identifier: {character.identifier_in_novel}"
-                prompt += f"\nFeatures: {character.static_features}"
-                prompt += "\nThe character should be centered in the image, occupying most of the frame. Gazing straight ahead. Standing with arms relaxed at sides. Natural expression. The background should be plain white."
-                image = await self.image_generator.generate_single_image(prompt=prompt, size="512x512")
-                image.save(image_path)
-                _emit_text_plan_progress(progress, "character_portrait_front_done", f"Generated novel portrait for {character.identifier_in_novel}", {"identifier": character.identifier_in_novel, "path": image_path})
-                return image_path
-
-        sem = asyncio.Semaphore(5)
-        await asyncio.gather(*[generate_base_portrait(sem, character) for character in characters_in_novel])
-        _emit_text_plan_progress(progress, "novel_portraits_base_done", "Base character portraits ready", {"character_count": len(characters_in_novel)})
+        if base_character_portraits is None:
+            base_character_portraits = await self.generate_base_character_portraits(style, characters=characters_in_novel, progress=progress)
+        else:
+            missing_portraits = [character.identifier_in_novel for character in characters_in_novel if not os.path.isfile(base_character_portraits.get(character.identifier_in_novel, ""))]
+            if missing_portraits:
+                raise RuntimeError(f"已确认的角色肖像缺失: {', '.join(missing_portraits)}")
+            _emit_text_plan_progress(progress, "novel_portraits_base_done", "Using confirmed novel character portraits", {"character_count": len(base_character_portraits)})
 
         async def generate_scene_portrait(sem, base_character_image_path: str, character: CharacterInScene, event_idx: int, scene_idx: int):
             async with sem:
@@ -432,7 +458,7 @@ class Novel2MoviePipeline:
         scene_portrait_tasks = []
         sem = asyncio.Semaphore(3)
         for character in characters_in_novel:
-            base_path = os.path.join(base_character_portrait_dir, f"character_{character.index}_{safe_path_component(character.identifier_in_novel)}.png")
+            base_path = base_character_portraits[character.identifier_in_novel]
             for event_idx, identifier_in_event in character.active_events.items():
                 event_characters = event_idx_to_characters_in_event[int(event_idx)]
                 character_in_event = [char for char in event_characters if char.identifier_in_event == identifier_in_event][0]

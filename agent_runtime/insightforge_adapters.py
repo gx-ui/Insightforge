@@ -7,9 +7,11 @@ import inspect
 import json
 import logging
 import os
+import shutil
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+from uuid import uuid4
 
 from langchain.chat_models import init_chat_model
 from langchain_openai import OpenAIEmbeddings
@@ -30,9 +32,11 @@ from tools.reranker_bge_silicon_api import RerankerBgeSiliconapi
 from tools.video_generator_doubao_seedance_ark_api import VideoGeneratorDoubaoSeedanceArkAPI
 from tools.video_generator_openrouter_api import VideoGeneratorOpenRouterAPI
 from tools.video_generator_veo_yunwu_api import VideoGeneratorVeoYunwuAPI
+from utils.text import safe_path_component
 
 from .config import api_provider_from_base_url, embedding_api_key, embedding_base_url, embedding_model, embedding_model_provider, image_api_key, image_base_url, image_model, llm_api_key, llm_base_url, llm_model, llm_model_provider, reranker_api_key, reranker_base_url, reranker_model, video_api_key, video_base_url, video_model, video_provider, video_t2v_model, video_i2v_model
 from .models import ToolResult
+from .render_checkpoint import CHECKPOINT_FILENAME, RenderCheckpoint, RoleVersionState, load_checkpoint, save_checkpoint
 from .tools import ToolArgumentSchema, ToolRuntimeContext, ToolSpec
 
 
@@ -390,61 +394,52 @@ class InsightForgeAdapters:
             _write_render_status(working_dir, status="dependency_missing", payload=payload)
             return ToolResult("insightforge_render_video", False, f"Dependency missing: {', '.join(missing)}", payload)
 
-        self.session_index.update_stage(session_id, "rendering", "Rendering video artifacts")
-        _write_render_status(working_dir, status="rendering", payload={"session_id": session_id, "render_started": True, "render_completed": False})
+        existing_checkpoint = _load_session_checkpoint(working_dir)
+        if existing_checkpoint is not None:
+            payload = _awaiting_approval_payload(existing_checkpoint)
+            return ToolResult("insightforge_render_video", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
+
+        run_id = str(runtime.turn_id if runtime and runtime.turn_id else args.get("run_id") or f"render-{uuid4().hex}")
+        mode = _render_mode(checklist)
+        self.session_index.update_stage(session_id, "rendering_portraits", "Generating character portraits for approval")
+        _write_render_status(working_dir, status="rendering_portraits", payload={"session_id": session_id, "run_id": run_id, "render_started": True, "render_completed": False})
         try:
             chat_model = _build_chat_model()
             image_generator = _build_image_generator()
             video_generator = _build_video_generator()
             if runtime:
-                runtime.emit_progress("Starting video render", stage="rendering", metadata={"session_id": session_id})
-            if _idea_mode_ready(checklist):
-                idea_pipeline = Idea2VideoPipeline(chat_model=chat_model, image_generator=image_generator, video_generator=video_generator, working_dir=str(working_dir / "idea2video"))
-                with _suppress_pipeline_output():
-                    final_video = await _run_idea_pipeline(
-                        idea_pipeline,
-                        idea=str(session.get("idea", "")),
-                        user_requirement=str(session.get("user_requirement", "")),
-                        style=str(session.get("style", "")),
-                        quiet=True,
-                        progress=_pipeline_progress(runtime, session_id, session_root=working_dir),
-                    )
-                self.session_index.update_stage(session_id, "rendered", "Final video rendered")
-                payload = {"session_id": session_id, "render_mode": "idea2video", "render_started": True, "render_completed": True, "final_video_path": str(Path(final_video).relative_to(self.workspace_root)), "missing": []}
-                _write_render_status(working_dir, status="rendered", payload=payload)
-                return ToolResult("insightforge_render_video", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
-            if _script_mode_ready(checklist):
-                script_dir = working_dir / "script2video"
-                script_text = _load_script_text(working_dir)
-                characters = _load_characters(script_dir / "characters.json")
-                pipeline = Script2VideoPipeline(chat_model=chat_model, image_generator=image_generator, video_generator=video_generator, working_dir=str(script_dir))
-                with _suppress_pipeline_output():
-                    final_video = await pipeline(script=script_text, user_requirement=str(session.get("user_requirement", "")), style=str(session.get("style", "")), characters=characters, quiet=True, progress=_pipeline_progress(runtime, session_id, session_root=working_dir))
-                self.session_index.update_stage(session_id, "rendered", "Final video rendered")
-                payload = {"session_id": session_id, "render_mode": "script2video", "render_started": True, "render_completed": True, "final_video_path": str(Path(final_video).relative_to(self.workspace_root)), "missing": []}
-                _write_render_status(working_dir, status="rendered", payload=payload)
-                return ToolResult("insightforge_render_video", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
-            if _novel_mode_ready(checklist):
-                novel_dir = working_dir / "novel2video"
-                pipeline = _build_novel_render_pipeline(novel_dir, chat_model, image_generator, video_generator)
-                with _suppress_pipeline_output():
-                    render_result = await pipeline.render_video_artifacts(style=str(session.get("style", "")), user_requirement=str(session.get("user_requirement", "")), quiet=True, progress=_pipeline_progress(runtime, session_id, session_root=working_dir))
-                scene_videos_dir = Path(render_result["scene_videos_dir"])
-                self.session_index.update_stage(session_id, "novel_scene_rendered", "Novel scene videos rendered")
-                payload = {
-                    "session_id": session_id,
-                    "render_mode": "novel2video",
-                    "render_started": True,
-                    "render_completed": True,
-                    "scene_render_completed": True,
-                    "final_video_path": None,
-                    "scene_videos_dir": str(scene_videos_dir.relative_to(self.workspace_root)),
-                    "scene_video_dirs": [str(Path(path).relative_to(self.workspace_root)) for path in render_result.get("scene_video_dirs", [])],
-                    "scene_count": render_result.get("scene_count", 0),
-                    "missing": [],
-                }
-                _write_render_status(working_dir, status="rendered", payload=payload)
-                return ToolResult("insightforge_render_video", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
+                runtime.emit_progress("Generating character portraits for approval", stage="character_portraits_start", metadata={"session_id": session_id})
+            portraits, role_details = await self._generate_initial_portraits(
+                mode,
+                working_dir,
+                chat_model,
+                image_generator,
+                video_generator,
+                str(session.get("style", "")),
+                runtime,
+                session_id,
+            )
+            checkpoint = _create_render_checkpoint(working_dir, run_id, session_id, mode, portraits, role_details)
+            save_checkpoint(working_dir, checkpoint)
+            self.session_index.update_stage(session_id, "awaiting_character_approval", "Waiting for character portrait approval")
+            payload = _awaiting_approval_payload(checkpoint)
+            _write_render_status(working_dir, status="awaiting_character_approval", payload=payload)
+            if runtime:
+                runtime.metadata["session_root"] = str(working_dir)
+                for role in checkpoint.roles.values():
+                    for view, path in role.artifact_paths.items():
+                        emit_character_product(
+                            runtime,
+                            session_id,
+                            run_id,
+                            role.role_id,
+                            role.role_version,
+                            view,
+                            working_dir / path,
+                            f"{role.display_name or role.role_id} · {_portrait_view_label(view)}",
+                        )
+                runtime.emit_event({"type": "approval_required", "run_id": run_id, "approval": payload["approval"]})
+            return ToolResult("insightforge_render_video", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
         except Exception as exc:
             unwrapped = _unwrap_retry_error(exc)
             error_text = _sanitize_error_text(str(unwrapped))
@@ -464,9 +459,42 @@ class InsightForgeAdapters:
             if runtime:
                 runtime.emit_progress("Render failed; partial artifacts were kept", stage="render_failed", metadata=payload)
             return ToolResult("insightforge_render_video", False, f"Render failed: {error_text}", payload)
-        payload = {"error_type": "dependency_missing", "session_id": session_id}
-        _write_render_status(working_dir, status="dependency_missing", payload=payload)
-        return ToolResult("insightforge_render_video", False, "No render mode matched current session.", payload)
+
+    async def _generate_initial_portraits(
+        self,
+        mode: str,
+        working_dir: Path,
+        chat_model: Any,
+        image_generator: Any,
+        video_generator: Any,
+        style: str,
+        runtime: ToolRuntimeContext | None,
+        session_id: str,
+    ) -> tuple[dict[str, dict[str, dict[str, str]]], dict[str, tuple[str, str]]]:
+        progress = _pipeline_progress(runtime, session_id, session_root=working_dir)
+        if mode == "idea2video":
+            pipeline = Idea2VideoPipeline(chat_model=chat_model, image_generator=image_generator, video_generator=video_generator, working_dir=str(working_dir / "idea2video"))
+            characters = _load_characters(working_dir / "idea2video" / "characters.json")
+            with _suppress_pipeline_output():
+                portraits = await pipeline.generate_character_portraits(characters, None, style, progress=progress)
+            return portraits, _character_role_details(characters)
+        if mode == "script2video":
+            script_dir = working_dir / "script2video"
+            characters = _load_characters(script_dir / "characters.json")
+            pipeline = Script2VideoPipeline(chat_model=chat_model, image_generator=image_generator, video_generator=video_generator, working_dir=str(script_dir))
+            with _suppress_pipeline_output():
+                portraits = await pipeline.generate_character_portraits(characters, None, style, progress=progress)
+            return portraits, _character_role_details(characters)
+        if mode == "novel2video":
+            pipeline = _build_novel_render_pipeline(working_dir / "novel2video", chat_model, image_generator, video_generator)
+            with _suppress_pipeline_output():
+                base_portraits = await pipeline.generate_base_character_portraits(style, progress=progress)
+            portraits = {
+                role_id: {"front": {"path": path, "description": f"A portrait of {role_id}."}}
+                for role_id, path in base_portraits.items()
+            }
+            return portraits, {role_id: (role_id, "") for role_id in portraits}
+        raise RuntimeError("No render mode matched current session.")
 
     def _resolve_session(self, session_id: str, *, idea: str, script: str, user_requirement: str, style: str) -> dict[str, Any]:
         requested_source = idea or script
@@ -588,6 +616,107 @@ def _narrative_max_tokens() -> int:
         return max(256, int(raw))
     except ValueError:
         return 4096
+
+
+def _render_mode(checklist: dict[str, bool]) -> str:
+    if _idea_mode_ready(checklist):
+        return "idea2video"
+    if _script_mode_ready(checklist):
+        return "script2video"
+    if _novel_mode_ready(checklist):
+        return "novel2video"
+    raise RuntimeError("No render mode matched current session.")
+
+
+def _character_role_details(characters: list[CharacterInScene]) -> dict[str, tuple[str, str]]:
+    return {
+        character.identifier_in_scene: (
+            character.identifier_in_scene,
+            str(character.dynamic_features or character.static_features or ""),
+        )
+        for character in characters
+    }
+
+
+def _create_render_checkpoint(
+    session_root: Path,
+    run_id: str,
+    session_id: str,
+    mode: str,
+    portraits: dict[str, dict[str, dict[str, str]]],
+    role_details: dict[str, tuple[str, str]],
+) -> RenderCheckpoint:
+    roles: dict[str, RoleVersionState] = {}
+    versions_root = session_root / "character_portrait_versions"
+    for role_id, views in portraits.items():
+        if not isinstance(views, dict):
+            continue
+        artifact_paths: dict[str, str] = {}
+        for view, artifact in views.items():
+            if not isinstance(artifact, dict) or not artifact.get("path"):
+                continue
+            source = Path(str(artifact["path"])).resolve()
+            if not source.is_file() or (source != session_root and session_root not in source.parents):
+                raise RuntimeError(f"角色肖像不在当前会话中: {role_id}")
+            suffix = source.suffix or ".png"
+            destination = versions_root / safe_path_component(role_id) / "v1" / f"{safe_path_component(view)}{suffix}"
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if not destination.exists():
+                shutil.copy2(source, destination)
+            artifact_paths[str(view)] = destination.relative_to(session_root).as_posix()
+        if artifact_paths:
+            display_name, description = role_details.get(role_id, (role_id, ""))
+            roles[role_id] = RoleVersionState(
+                role_id=role_id,
+                role_version=1,
+                display_name=display_name,
+                description=description,
+                artifact_paths=artifact_paths,
+            )
+    if not roles:
+        raise RuntimeError("没有可供确认的角色肖像")
+    return RenderCheckpoint(
+        run_id=run_id,
+        session_id=session_id,
+        mode=mode,  # type: ignore[arg-type]
+        status="awaiting_character_approval",
+        roles=roles,
+    )
+
+
+def _load_session_checkpoint(session_root: Path) -> RenderCheckpoint | None:
+    checkpoint_path = session_root / CHECKPOINT_FILENAME
+    if not checkpoint_path.exists():
+        return None
+    payload = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    return load_checkpoint(session_root, str(payload["run_id"]))
+
+
+def _awaiting_approval_payload(checkpoint: RenderCheckpoint) -> dict[str, Any]:
+    roles = [
+        {
+            "role_id": role.role_id,
+            "role_version": role.role_version,
+            "display_name": role.display_name or role.role_id,
+            "description": role.description,
+            "approved": role.approved,
+            "artifact_ids": [f"character:{role.role_id}:v{role.role_version}:{view}" for view in role.artifact_paths],
+        }
+        for role in checkpoint.roles.values()
+    ]
+    return {
+        "session_id": checkpoint.session_id,
+        "run_id": checkpoint.run_id,
+        "render_mode": checkpoint.mode,
+        "render_started": True,
+        "render_completed": False,
+        "awaiting_approval": True,
+        "approval": {"run_id": checkpoint.run_id, "session_id": checkpoint.session_id, "roles": roles},
+    }
+
+
+def _portrait_view_label(view: str) -> str:
+    return {"front": "正面", "side": "侧面", "back": "背面"}.get(view, "角色图")
 
 
 def _pipeline_progress(runtime: ToolRuntimeContext | None, session_id: str, *, scene_index: int | None = None, session_root: Path | None = None):
