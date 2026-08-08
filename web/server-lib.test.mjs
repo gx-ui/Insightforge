@@ -148,4 +148,16 @@ describe('local event trace', () => {
     expect(lines[3]).toMatchObject({tokens: 12});
     expect(JSON.stringify(lines)).not.toContain('private');
   });
+
+  it('records approval action and role without portrait details', async () => {
+    const root = await fixture();
+    const trace = createTraceWriter(root);
+    await trace.record({
+      type: 'approval_resolved', event_id: 'evt-1', timestamp: 100, session_id: 'session-1', run_id: 'turn-1',
+      approval: {action: 'edit', role_id: 'alice', description: 'private portrait prompt'},
+    });
+    const [line] = (await readFile(path.join(root, '.insightforge', 'logs', 'trace.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+    expect(line).toMatchObject({type: 'approval', result: 'edit', role_id: 'alice'});
+    expect(JSON.stringify(line)).not.toContain('private');
+  });
 });

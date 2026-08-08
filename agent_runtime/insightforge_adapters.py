@@ -513,6 +513,10 @@ class InsightForgeAdapters:
             if checkpoint.session_id != session_id:
                 raise ValueError("checkpoint 与当前会话不匹配")
             if action == "confirm":
+                artifact_id = str(command.get("artifact_id") or "").strip()
+                expected_artifacts = {f"character:{role_id}:v{role_version}:{view}" for view in checkpoint.role(role_id, role_version).artifact_paths}
+                if artifact_id not in expected_artifacts:
+                    raise ValueError("确认的角色图与当前版本不匹配")
                 changed = checkpoint.confirm(role_id, role_version)
                 save_checkpoint(working_dir, checkpoint)
                 ready_to_resume = checkpoint.ready_to_resume

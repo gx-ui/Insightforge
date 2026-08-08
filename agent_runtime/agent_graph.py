@@ -359,6 +359,8 @@ class AgentLoop:
             )
             if result.model_content:
                 round_model_content.extend(result.model_content)
+            if result.metadata.get("awaiting_approval"):
+                break
         if round_model_content:
             runtime_messages.append(
                 {"role": "user", "content": [{"type": "text", "text": _OBSERVATION_PREFIX}, *round_model_content]}

@@ -15,12 +15,12 @@ import EmptyState from './components/chat/EmptyState';
 
 import {groupChatBlocks} from './lib/chatBlocks';
 import {sessionTitle} from './lib/sessionGroups';
-import {deleteSession, getArtifacts, getHistory, getSessions, sendMessage, startAgent, stopAgent, subscribeToEvents, updatePreferences, uploadWorkspaceFile} from './api';
+import {confirmCharacter, deleteSession, getArtifacts, getHistory, getSessions, regenerateCharacter, sendMessage, startAgent, stopAgent, subscribeToEvents, updatePreferences, uploadWorkspaceFile} from './api';
 import {StoryboardPanel} from './ArtifactViews';
 import {applyAgentEvent, appendLocalUser, composeAgentPrompt, createChatState} from './events';
 import {matchingSlashCommands, shouldShowSlashCommands} from './slashCommands';
 import type {Theme} from './theme';
-import type {AgentEvent, Artifact, ChatState, Message, PreferenceSnapshot, SessionSummary, WorkspaceUpload} from './types';
+import type {AgentEvent, Artifact, CharacterApprovalRole, ChatState, Message, PreferenceSnapshot, SessionSummary, WorkspaceUpload} from './types';
 
 const CONTEXT_TARGET = 160_000;
 
@@ -55,6 +55,7 @@ export default function App({theme, onToggleTheme}: {theme: Theme; onToggleTheme
   const [creatingProject, setCreatingProject] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<SessionSummary>();
   const [deleting, setDeleting] = useState(false);
+  const [pendingCharacterRoleId, setPendingCharacterRoleId] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -335,6 +336,34 @@ async function handleUpdatePrefs(prefs: PreferenceSnapshot) {
     setChat((current) => ({...current, busy: false, run: {...current.run, status: 'stopped'}}));
   }
 
+  async function confirmCharacterPortrait(role: CharacterApprovalRole, artifactId: string) {
+    const runId = chat.approval?.runId || chat.run.runId;
+    if (!runId || pendingCharacterRoleId) return;
+    setPendingCharacterRoleId(role.roleId);
+    setLoadError('');
+    try {
+      await confirmCharacter(runId, {roleId: role.roleId, roleVersion: role.roleVersion, artifactId, action: 'confirm'});
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setPendingCharacterRoleId('');
+    }
+  }
+
+  async function regenerateCharacterPortrait(role: CharacterApprovalRole, action: 'edit' | 'regenerate', displayName?: string, description?: string) {
+    const runId = chat.approval?.runId || chat.run.runId;
+    if (!runId || pendingCharacterRoleId) return;
+    setPendingCharacterRoleId(role.roleId);
+    setLoadError('');
+    try {
+      await regenerateCharacter(runId, {roleId: role.roleId, roleVersion: role.roleVersion, action, displayName, description});
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setPendingCharacterRoleId('');
+    }
+  }
+
   async function confirmDelete() {
     if (!pendingDelete || deleting) return;
     const sessionId = pendingDelete.sessionId;
@@ -418,7 +447,7 @@ async function handleUpdatePrefs(prefs: PreferenceSnapshot) {
                 <EmptyState onPickExample={(text) => { setDraft(text); textareaRef.current?.focus(); }} />
               ) : (
                 <div className="space-y-2">
-                  <RunStatusBar run={chat.run} />
+                  <RunStatusBar run={chat.run} onStop={() => void stop()} />
                   {groupChatBlocks(chat.messages).map((block, i) =>
                     block.type === 'dialogue' ? (
                       <div key={i} className="space-y-3">
@@ -427,7 +456,7 @@ async function handleUpdatePrefs(prefs: PreferenceSnapshot) {
                         ))}
                       </div>
                     ) : (
-                      <ForgeTimeline key={i} activities={block.activities} products={block.products} />
+                      <ForgeTimeline key={i} activities={block.activities} products={block.products} approval={chat.approval} pendingRoleId={pendingCharacterRoleId} onConfirm={(role, artifactId) => void confirmCharacterPortrait(role, artifactId)} onRegenerate={(role, action, displayName, description) => void regenerateCharacterPortrait(role, action, displayName, description)} />
                     )
                   )}
                   {chat.busy && !chat.run.runId && !chat.messages.some(m => m.role === 'activity' && m.status === 'running') && (

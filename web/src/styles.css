@@ -2362,10 +2362,16 @@ html[data-theme='dark'] .pref-panel {
   animation: run-status-spin 1.2s linear infinite;
 }
 
+.run-status-bar.is-waiting_user { border-left-color: #b7791f; background: linear-gradient(90deg, #fff9eb, #fffcf5); }
+.run-status-bar.is-waiting_user .run-status-icon { color: #9a6719; background: #fff0cf; }
+
 .run-status-bar > div { display: grid; gap: 1px; }
 .run-status-bar small { color: #6d7e8f; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .run-status-bar strong { font-size: 13px; font-weight: 680; }
 .run-status-bar time { color: #6d7e8f; font-size: 11px; font-variant-numeric: tabular-nums; }
+.run-status-bar .run-status-actions { display: flex; align-items: center; gap: 8px; }
+.run-status-actions button { padding: 3px 7px; color: #6d4d4d; font-size: 10px; background: #fff; border: 1px solid #e7caca; border-radius: 4px; cursor: pointer; }
+.run-status-actions button:hover { color: #9e3e3e; border-color: #d99c9c; }
 
 .character-product-block { padding: 6px 2px 2px; }
 .character-product-block > header { display: flex; justify-content: space-between; align-items: baseline; margin: 2px 4px 9px; }
@@ -2374,6 +2380,7 @@ html[data-theme='dark'] .pref-panel {
 .character-product-card small { color: #84909c; font-size: 10px; }
 .character-product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 10px; }
 .character-product-card { overflow: hidden; background: #fff; border: 1px solid #dce5ee; border-radius: 8px; }
+.character-product-views { display: grid; grid-template-columns: repeat(auto-fit, minmax(86px, 1fr)); }
 .character-product-image { position: relative; display: block; width: 100%; aspect-ratio: 1 / 1; padding: 0; overflow: hidden; cursor: zoom-in; background: #e8edf2; border: 0; }
 .character-product-image img { width: 100%; height: 100%; object-fit: cover; transition: transform 180ms ease; }
 .character-product-image span { position: absolute; right: 7px; bottom: 7px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; color: #fff; font-size: 10px; background: rgba(20, 31, 42, .72); border-radius: 4px; opacity: 0; transition: opacity 160ms ease; }
@@ -2381,8 +2388,20 @@ html[data-theme='dark'] .pref-panel {
 .character-product-image:focus-visible img { transform: scale(1.035); }
 .character-product-image:hover span,
 .character-product-image:focus-visible span { opacity: 1; }
-.character-product-card > div { display: grid; gap: 3px; padding: 8px 9px 9px; }
+.character-product-copy { display: grid; gap: 3px; padding: 8px 9px 9px; }
 .character-product-card strong { overflow: hidden; color: #344250; font-size: 12px; font-weight: 680; text-overflow: ellipsis; white-space: nowrap; }
+.character-product-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.character-product-actions button { display: inline-flex; align-items: center; gap: 3px; padding: 4px 6px; color: #52606d; font-size: 10px; background: #f8fafc; border: 1px solid #d5dee8; border-radius: 5px; cursor: pointer; }
+.character-product-actions button:hover:not(:disabled) { border-color: #5a95c8; color: #23689f; }
+.character-product-actions button.confirm { color: #fff; background: #2d76b8; border-color: #2d76b8; }
+.character-product-actions button:disabled { opacity: .55; cursor: wait; }
+.character-approved { display: inline-flex; align-items: center; gap: 4px; margin-top: 5px; color: #25815a; font-size: 11px; font-weight: 650; }
+.character-approval-note { margin: 10px 4px 2px; color: #778593; font-size: 10px; line-height: 1.45; }
+.character-edit-dialog { display: grid; width: min(420px, calc(100vw - 32px)); gap: 12px; padding: 20px; color: var(--ink-primary); background: var(--bg-raised); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 18px 48px rgba(0,0,0,.2); }
+.character-edit-dialog h2 { margin: 0; font-size: 16px; }
+.character-edit-dialog label { display: grid; gap: 5px; color: var(--ink-secondary); font-size: 12px; font-weight: 650; }
+.character-edit-dialog input, .character-edit-dialog textarea { width: 100%; padding: 8px; color: var(--ink-primary); background: var(--bg-canvas); border: 1px solid var(--line); border-radius: 6px; font: inherit; font-weight: 400; resize: vertical; }
+.character-edit-dialog p { margin: -2px 0 0; color: var(--ink-faint); font-size: 11px; line-height: 1.45; }
 
 @keyframes run-status-spin { to { transform: rotate(360deg); } }
 

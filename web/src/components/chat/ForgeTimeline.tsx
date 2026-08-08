@@ -2,10 +2,17 @@ import {useEffect, useState} from 'react';
 import {ChevronDown, ChevronUp, Loader2} from 'lucide-react';
 import {humanize} from '../../events';
 import {activityToolKind, ActivityToolIcon} from './activityMeta';
-import type {Message} from '../../types';
+import type {CharacterApproval, CharacterApprovalRole, Message} from '../../types';
 import CharacterProductCard from './CharacterProductCard';
 
-export default function ForgeTimeline({activities, products = []}: {activities: Message[]; products?: Message[]}) {
+export default function ForgeTimeline({activities, products = [], approval, pendingRoleId, onConfirm, onRegenerate}: {
+  activities: Message[];
+  products?: Message[];
+  approval?: CharacterApproval;
+  pendingRoleId?: string;
+  onConfirm?: (role: CharacterApprovalRole, artifactId: string) => void;
+  onRegenerate?: (role: CharacterApprovalRole, action: 'edit' | 'regenerate', displayName?: string, description?: string) => void;
+}) {
   const hasRunning = activities.some((a) => a.status === 'running');
   const [expanded, setExpanded] = useState(hasRunning || products.length > 0);
 
@@ -51,7 +58,7 @@ export default function ForgeTimeline({activities, products = []}: {activities: 
           {activities.map((activity) => (
             <ActivityRow key={activity.id} activity={activity} />
           ))}
-          <CharacterProductCard products={products.flatMap((message) => message.product ? [message.product] : [])} />
+          <CharacterProductCard products={products.flatMap((message) => message.product ? [message.product] : [])} approval={approval} pendingRoleId={pendingRoleId} onConfirm={onConfirm} onRegenerate={onRegenerate} />
         </div>
       )}
     </div>

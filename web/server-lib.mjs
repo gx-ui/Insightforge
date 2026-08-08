@@ -60,7 +60,7 @@ function traceRecords(event, activeStages) {
     records.push({...base, type: 'token_usage', tokens: Number(event.tokens)});
   }
   if (['approval_required', 'approval_resolved'].includes(event.type)) {
-    records.push(compactTrace({...base, type: 'approval', result: event.type === 'approval_required' ? 'required' : event.decision ?? 'resolved', role_id: event.role_id ?? event.roleId}));
+    records.push(compactTrace({...base, type: 'approval', result: event.type === 'approval_required' ? 'required' : event.approval?.action ?? 'resolved', role_id: event.approval?.role_id ?? event.role_id ?? event.roleId}));
   }
   if (['done', 'error', 'run_stopped'].includes(event.type)) {
     const previous = activeStages.get(key);

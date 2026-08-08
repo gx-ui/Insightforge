@@ -126,7 +126,13 @@ export function applyAgentEvent(state: ChatState, event: AgentEvent): ChatState 
     }
     case 'product': {
       const product = characterProductFromEvent(event);
-      if (!product || next.messages.some((message) => message.product?.artifactId === product.artifactId)) return next;
+      if (!product) return next;
+      const existing = next.messages.findIndex((message) => message.product?.artifactId === product.artifactId);
+      if (existing >= 0) {
+        const messages = [...next.messages];
+        messages[existing] = {...messages[existing], runId: turnId, text: product.caption, product};
+        return {...next, messages};
+      }
       return {...next, messages: [...next.messages, {id: `product-${product.artifactId}`, role: 'product', runId: turnId, text: product.caption, product}]};
     }
     case 'approval_required': {

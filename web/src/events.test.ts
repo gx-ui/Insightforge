@@ -97,4 +97,11 @@ describe('agent event mapping', () => {
     expect(state.busy).toBe(true);
     expect(state.messages.at(-1)?.product).toMatchObject({artifactId: 'character:alice:v1:front'});
   });
+
+  it('replaces an initial portrait URL with its immutable version URL', () => {
+    let state = applyAgentEvent(createChatState(), {type: 'product', run_id: 'turn-1', product: {kind: 'character_image', artifact_id: 'character:alice:v1:front', role_id: 'alice', role_version: 1, view: 'front', url: '/raw.png'}});
+    state = applyAgentEvent(state, {type: 'product', run_id: 'turn-1', product: {kind: 'character_image', artifact_id: 'character:alice:v1:front', role_id: 'alice', role_version: 1, view: 'front', url: '/versioned.png'}});
+    expect(state.messages).toHaveLength(1);
+    expect(state.messages[0].product?.url).toBe('/versioned.png');
+  });
 });
