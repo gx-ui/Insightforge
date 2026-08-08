@@ -1,4 +1,4 @@
-import type {AgentEvent, CharacterProduct, ChatState, Message, RunState, StageInfo} from './types';
+import type {AgentEvent, CharacterApproval, CharacterApprovalRole, CharacterProduct, ChatState, Message, RunState, StageInfo} from './types';
 
 export function createChatState(messages: Message[] = [], sessionId = ''): ChatState {
   return {
@@ -119,12 +119,43 @@ export function applyAgentEvent(state: ChatState, event: AgentEvent): ChatState 
       };
     case 'done': {
       const messages = reconcileAssistant(next.messages, turnId, event.assistant || '');
+      if (next.approval?.runId === turnId && next.approval.roles.some((role) => !role.approved)) {
+        return {...next, messages, busy: true, run: finishRun(next.run, turnId, 'waiting_user', approvalStage(next.approval))};
+      }
       return {...next, messages, busy: false, run: finishRun(next.run, turnId, 'completed', stage)};
     }
     case 'product': {
       const product = characterProductFromEvent(event);
       if (!product || next.messages.some((message) => message.product?.artifactId === product.artifactId)) return next;
       return {...next, messages: [...next.messages, {id: `product-${product.artifactId}`, role: 'product', runId: turnId, text: product.caption, product}]};
+    }
+    case 'approval_required': {
+      const approval = approvalFromEvent(event, turnId);
+      if (!approval) return next;
+      return {
+        ...next,
+        busy: true,
+        approval,
+        messages: addApprovalProducts(next.messages, turnId, approval),
+        run: {...next.run, runId: turnId, status: 'waiting_user', stage: approvalStage(approval)},
+      };
+    }
+    case 'approval_resolved': {
+      if (!next.approval || next.approval.runId !== turnId) return next;
+      const roleId = event.approval?.role_id;
+      const roleVersion = Number(event.approval?.role_version);
+      if (!roleId || !Number.isInteger(roleVersion) || event.approval?.action !== 'confirm') return next;
+      const approval = {
+        ...next.approval,
+        roles: next.approval.roles.map((role) => role.roleId === roleId && role.roleVersion === roleVersion ? {...role, approved: true} : role),
+      };
+      const resuming = event.approval?.ready_to_resume === true;
+      return {
+        ...next,
+        busy: true,
+        approval,
+        run: {...next.run, runId: turnId, status: resuming ? 'running' : 'waiting_user', stage: resuming ? {group: 'render', stage: 'rendering', label: '角色已确认，继续渲染'} : approvalStage(approval)},
+      };
     }
     case 'run_stopped':
       return {...next, busy: false, run: finishRun(next.run, turnId, 'stopped', stage), messages: interruptActivities(next.messages, turnId, event.message || '生成已停止')};
@@ -222,6 +253,47 @@ function characterProductFromEvent(event: AgentEvent): CharacterProduct | null {
     url: product.url,
     caption: product.caption || product.role_id,
   };
+}
+
+function approvalFromEvent(event: AgentEvent, fallbackRunId: string): CharacterApproval | null {
+  const approval = event.approval;
+  const roles = approval?.roles;
+  if (!approval || !Array.isArray(roles)) return null;
+  const normalizedRoles: CharacterApprovalRole[] = roles.map((role) => ({
+    roleId: role.role_id || '',
+    roleVersion: Number(role.role_version) || 1,
+    displayName: role.display_name || role.role_id || '未命名角色',
+    description: role.description || '',
+    approved: role.approved === true,
+    products: (role.products || []).flatMap((product) => product.artifact_id && product.role_id && product.url ? [{
+      artifactId: product.artifact_id,
+      roleId: product.role_id,
+      roleVersion: Number(product.role_version) || 1,
+      view: product.view || 'default',
+      url: product.url,
+      caption: product.caption || product.role_id,
+    }] : []),
+  })).filter((role) => role.roleId);
+  return {runId: approval.run_id || fallbackRunId, sessionId: approval.session_id || event.session_id || '', roles: normalizedRoles};
+}
+
+function addApprovalProducts(messages: Message[], runId: string, approval: CharacterApproval): Message[] {
+  const known = new Set(messages.map((message) => message.product?.artifactId).filter(Boolean));
+  return [
+    ...messages,
+    ...approval.roles.flatMap((role) => role.products.filter((product) => !known.has(product.artifactId)).map((product) => ({
+      id: `product-${product.artifactId}`,
+      role: 'product' as const,
+      runId,
+      text: product.caption,
+      product,
+    }))),
+  ];
+}
+
+function approvalStage(approval: CharacterApproval): StageInfo {
+  const pending = approval.roles.filter((role) => !role.approved).length;
+  return {group: 'portraits', stage: 'approval', label: pending ? `等待确认 ${pending} 个角色` : '角色已确认，准备继续渲染'};
 }
 
 export function humanize(value: string) {

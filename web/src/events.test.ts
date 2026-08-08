@@ -74,4 +74,27 @@ describe('agent event mapping', () => {
       expect.objectContaining({status: 'error', stage: 'interrupted'}),
     ]);
   });
+
+  it('waits for every character approval after the first render turn finishes', () => {
+    let state = applyAgentEvent(createChatState([], 's1'), {
+      type: 'approval_required',
+      run_id: 'turn-1',
+      approval: {
+        run_id: 'turn-1',
+        session_id: 's1',
+        roles: [{
+          role_id: 'alice',
+          role_version: 1,
+          display_name: 'Alice',
+          approved: false,
+          products: [{artifact_id: 'character:alice:v1:front', role_id: 'alice', role_version: 1, view: 'front', url: '/portrait.png', caption: 'Alice · 正面'}],
+        }],
+      },
+    });
+    state = applyAgentEvent(state, {type: 'done', run_id: 'turn-1'});
+
+    expect(state.run).toMatchObject({status: 'waiting_user', stage: {label: '等待确认 1 个角色'}});
+    expect(state.busy).toBe(true);
+    expect(state.messages.at(-1)?.product).toMatchObject({artifactId: 'character:alice:v1:front'});
+  });
 });

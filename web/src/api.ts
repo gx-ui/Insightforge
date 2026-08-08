@@ -58,6 +58,20 @@ export async function sendMessage(text: string) {
   return request<{ok: boolean; runId: string}>('/api/messages', {method: 'POST', body: JSON.stringify({text})});
 }
 
+export async function regenerateCharacter(
+  runId: string,
+  command: {roleId: string; roleVersion: number; action: 'edit' | 'regenerate'; displayName?: string; description?: string},
+) {
+  return request<{ok: boolean}>(`/api/runs/${encodeURIComponent(runId)}/character-regeneration`, {method: 'POST', body: JSON.stringify(command)});
+}
+
+export async function confirmCharacter(
+  runId: string,
+  command: {roleId: string; roleVersion: number; artifactId: string; action: 'confirm'},
+) {
+  return request<{ok: boolean}>(`/api/runs/${encodeURIComponent(runId)}/character-approval`, {method: 'POST', body: JSON.stringify(command)});
+}
+
 export async function updatePreferences(prefs: PreferenceSnapshot, version: number) {
   return request<{ok: boolean; version: number}>('/api/preferences', {method: 'POST', body: JSON.stringify({preferences: prefs, version})});
 }

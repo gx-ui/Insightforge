@@ -35,11 +35,12 @@ export function createEventJournal({limit = 10_000} = {}) {
 
   function updateActiveRun(event) {
     if (!event.run_id) return;
-    if (event.type === 'run_started') {
+    if (event.type === 'run_started' || event.type === 'approval_required') {
       activeRuns.set(event.run_id, {...event});
       return;
     }
     if (['done', 'error', 'run_stopped'].includes(event.type)) {
+      if (event.type === 'done' && activeRuns.get(event.run_id)?.type === 'approval_required' && !event.approval_finalized) return;
       activeRuns.delete(event.run_id);
       return;
     }

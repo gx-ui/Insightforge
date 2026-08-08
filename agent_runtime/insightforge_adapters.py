@@ -496,6 +496,207 @@ class InsightForgeAdapters:
             return portraits, {role_id: (role_id, "") for role_id in portraits}
         raise RuntimeError("No render mode matched current session.")
 
+    async def apply_character_command(self, command: dict[str, Any], runtime: ToolRuntimeContext | None = None) -> ToolResult:
+        run_id = str(command.get("run_id") or "").strip()
+        session_id = str(command.get("session_id") or "").strip()
+        role_id = str(command.get("role_id") or "").strip()
+        role_version = command.get("role_version")
+        action = str(command.get("action") or "").strip()
+        if not run_id or not session_id or not role_id or not isinstance(role_version, int) or role_version < 1:
+            return ToolResult("character_approval", False, "角色确认命令参数无效", {"error_type": "invalid_character_command"})
+        session = self.session_index.get(session_id)
+        if session is None:
+            return ToolResult("character_approval", False, "会话不存在", {"error_type": "missing_session"})
+        working_dir = self.session_index.working_dir(session_id)
+        try:
+            checkpoint = load_checkpoint(working_dir, run_id)
+            if checkpoint.session_id != session_id:
+                raise ValueError("checkpoint 与当前会话不匹配")
+            if action == "confirm":
+                changed = checkpoint.confirm(role_id, role_version)
+                save_checkpoint(working_dir, checkpoint)
+                ready_to_resume = checkpoint.ready_to_resume
+                self._emit_approval_resolved(runtime, checkpoint, role_id, role_version, action, changed, ready_to_resume)
+                if not ready_to_resume:
+                    self._emit_approval_required(runtime, checkpoint)
+                    payload = _awaiting_approval_payload(checkpoint)
+                    return ToolResult("character_approval", True, json.dumps(payload, ensure_ascii=False), payload)
+                if not checkpoint.begin_resume():
+                    return ToolResult("character_approval", True, "角色确认已处理", {"run_id": run_id, "resume_started": checkpoint.resume_started})
+                save_checkpoint(working_dir, checkpoint)
+                self.session_index.update_stage(session_id, "resuming_render", "All character portraits confirmed; rendering resumed")
+                if runtime:
+                    runtime.emit_progress("All character portraits confirmed; rendering resumed", stage="rendering", metadata={"session_id": session_id})
+                return await self._resume_checkpoint(checkpoint, session, runtime)
+            if action not in {"edit", "regenerate"}:
+                return ToolResult("character_approval", False, "不支持的角色操作", {"error_type": "invalid_character_action"})
+            current = checkpoint.role(role_id, role_version)
+            display_name = str(command.get("display_name") or current.display_name or role_id).strip()
+            description = str(command.get("description") or current.description).strip()
+            artifact_paths = await self._generate_role_version(checkpoint, current, session, display_name, description, runtime)
+            replacement = checkpoint.replace_role_version(
+                role_id,
+                role_version,
+                display_name=display_name,
+                description=description,
+                artifact_paths=artifact_paths,
+            )
+            save_checkpoint(working_dir, checkpoint)
+            self._emit_approval_resolved(runtime, checkpoint, role_id, role_version, action, True, False)
+            self._emit_role_products(runtime, checkpoint, replacement)
+            self._emit_approval_required(runtime, checkpoint)
+            payload = _awaiting_approval_payload(checkpoint)
+            return ToolResult("character_approval", True, json.dumps(payload, ensure_ascii=False), payload)
+        except (FileNotFoundError, ValueError) as exc:
+            return ToolResult("character_approval", False, str(exc), {"error_type": "invalid_character_command", "run_id": run_id})
+        except Exception as exc:
+            error_text = _sanitize_error_text(str(exc))
+            self.session_index.update_stage(session_id, "error", f"Character approval failed: {error_text}")
+            if runtime:
+                runtime.emit_event({"type": "error", "run_id": run_id, "message": f"角色确认失败: {error_text}"})
+            return ToolResult("character_approval", False, f"角色确认失败: {error_text}", {"error_type": "character_approval_failed", "run_id": run_id})
+
+    def _emit_approval_resolved(
+        self,
+        runtime: ToolRuntimeContext | None,
+        checkpoint: RenderCheckpoint,
+        role_id: str,
+        role_version: int,
+        action: str,
+        changed: bool,
+        ready_to_resume: bool,
+    ) -> None:
+        if runtime:
+            runtime.emit_event({
+                "type": "approval_resolved",
+                "run_id": checkpoint.run_id,
+                "approval": {
+                    "run_id": checkpoint.run_id,
+                    "session_id": checkpoint.session_id,
+                    "role_id": role_id,
+                    "role_version": role_version,
+                    "action": action,
+                    "changed": changed,
+                    "ready_to_resume": ready_to_resume,
+                },
+            })
+
+    def _emit_approval_required(self, runtime: ToolRuntimeContext | None, checkpoint: RenderCheckpoint) -> None:
+        if runtime:
+            runtime.emit_event({"type": "approval_required", "run_id": checkpoint.run_id, "approval": _awaiting_approval_payload(checkpoint)["approval"]})
+
+    def _emit_role_products(self, runtime: ToolRuntimeContext | None, checkpoint: RenderCheckpoint, role: RoleVersionState) -> None:
+        if runtime is None:
+            return
+        working_dir = self.session_index.working_dir(checkpoint.session_id)
+        runtime.metadata["session_root"] = str(working_dir)
+        for view, path in role.artifact_paths.items():
+            emit_character_product(
+                runtime,
+                checkpoint.session_id,
+                checkpoint.run_id,
+                role.role_id,
+                role.role_version,
+                view,
+                working_dir / path,
+                f"{role.display_name or role.role_id} · {_portrait_view_label(view)}",
+            )
+
+    async def _generate_role_version(
+        self,
+        checkpoint: RenderCheckpoint,
+        role: RoleVersionState,
+        session: dict[str, Any],
+        display_name: str,
+        description: str,
+        runtime: ToolRuntimeContext | None,
+    ) -> dict[str, str]:
+        working_dir = self.session_index.working_dir(checkpoint.session_id)
+        version = role.role_version + 1
+        style = str(session.get("style", ""))
+        if runtime:
+            runtime.emit_progress(f"Regenerating portrait for {display_name or role.role_id}", stage="character_portraits_start", metadata={"session_id": checkpoint.session_id, "role_id": role.role_id, "role_version": version})
+        image_generator = _build_image_generator()
+        if checkpoint.mode in {"idea2video", "script2video"}:
+            source_dir = working_dir / checkpoint.mode
+            characters = _load_characters(source_dir / "characters.json")
+            original = next((character for character in characters if character.identifier_in_scene == role.role_id), None)
+            if original is None:
+                raise ValueError(f"当前规划中找不到角色: {role.role_id}")
+            character = original.model_copy(update={"static_features": description or original.static_features})
+            generation_dir = working_dir / ".portrait_regeneration" / safe_path_component(role.role_id) / f"v{version}"
+            pipeline = Script2VideoPipeline(chat_model=object(), image_generator=image_generator, video_generator=object(), working_dir=str(generation_dir))
+            with _suppress_pipeline_output():
+                generated = await pipeline.generate_portraits_for_single_character(character, style, progress=_pipeline_progress(runtime, checkpoint.session_id, session_root=working_dir))
+            return _copy_role_portrait_paths(working_dir, role.role_id, version, generated[role.role_id])
+
+        if checkpoint.mode == "novel2video":
+            destination = working_dir / "character_portrait_versions" / safe_path_component(role.role_id) / f"v{version}" / "front.png"
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            prompt = f"Generate a full-body, front-view portrait for {role.role_id}. Features: {description or role.description}. Style: {style}."
+            image = await image_generator.generate_single_image(prompt=prompt, size="512x512")
+            image.save(destination)
+            return {"front": destination.relative_to(working_dir).as_posix()}
+        raise ValueError("不支持的渲染模式")
+
+    async def _resume_checkpoint(self, checkpoint: RenderCheckpoint, session: dict[str, Any], runtime: ToolRuntimeContext | None) -> ToolResult:
+        working_dir = self.session_index.working_dir(checkpoint.session_id)
+        progress = _pipeline_progress(runtime, checkpoint.session_id, session_root=working_dir)
+        try:
+            chat_model = _build_chat_model()
+            image_generator = _build_image_generator()
+            video_generator = _build_video_generator()
+            registry = _portrait_registry_from_checkpoint(working_dir, checkpoint)
+            if checkpoint.mode == "idea2video":
+                pipeline = Idea2VideoPipeline(chat_model=chat_model, image_generator=image_generator, video_generator=video_generator, working_dir=str(working_dir / "idea2video"))
+                with _suppress_pipeline_output():
+                    final_video = await _run_idea_pipeline(
+                        pipeline,
+                        idea=str(session.get("idea", "")),
+                        user_requirement=str(session.get("user_requirement", "")),
+                        style=str(session.get("style", "")),
+                        character_portraits_registry=registry,
+                        quiet=True,
+                        progress=progress,
+                    )
+                payload = {"session_id": checkpoint.session_id, "run_id": checkpoint.run_id, "render_mode": checkpoint.mode, "render_started": True, "render_completed": True, "final_video_path": str(Path(final_video).relative_to(self.workspace_root)), "missing": []}
+                self.session_index.update_stage(checkpoint.session_id, "rendered", "Final video rendered")
+            elif checkpoint.mode == "script2video":
+                script_dir = working_dir / "script2video"
+                pipeline = Script2VideoPipeline(chat_model=chat_model, image_generator=image_generator, video_generator=video_generator, working_dir=str(script_dir))
+                with _suppress_pipeline_output():
+                    final_video = await pipeline(
+                        script=_load_script_text(working_dir),
+                        user_requirement=str(session.get("user_requirement", "")),
+                        style=str(session.get("style", "")),
+                        characters=_load_characters(script_dir / "characters.json"),
+                        character_portraits_registry=registry,
+                        quiet=True,
+                        progress=progress,
+                    )
+                payload = {"session_id": checkpoint.session_id, "run_id": checkpoint.run_id, "render_mode": checkpoint.mode, "render_started": True, "render_completed": True, "final_video_path": str(Path(final_video).relative_to(self.workspace_root)), "missing": []}
+                self.session_index.update_stage(checkpoint.session_id, "rendered", "Final video rendered")
+            else:
+                pipeline = _build_novel_render_pipeline(working_dir / "novel2video", chat_model, image_generator, video_generator)
+                base_portraits = {role_id: str(working_dir / views["front"]["path"]) for role_id, views in registry.items() if "front" in views}
+                with _suppress_pipeline_output():
+                    render_result = await pipeline.render_video_artifacts(style=str(session.get("style", "")), user_requirement=str(session.get("user_requirement", "")), quiet=True, progress=progress, base_character_portraits=base_portraits)
+                scene_videos_dir = Path(render_result["scene_videos_dir"])
+                payload = {"session_id": checkpoint.session_id, "run_id": checkpoint.run_id, "render_mode": checkpoint.mode, "render_started": True, "render_completed": True, "scene_render_completed": True, "final_video_path": None, "scene_videos_dir": str(scene_videos_dir.relative_to(self.workspace_root)), "scene_video_dirs": [str(Path(path).relative_to(self.workspace_root)) for path in render_result.get("scene_video_dirs", [])], "scene_count": render_result.get("scene_count", 0), "missing": []}
+                self.session_index.update_stage(checkpoint.session_id, "novel_scene_rendered", "Novel scene videos rendered")
+            checkpoint.mark_completed()
+            save_checkpoint(working_dir, checkpoint)
+            _write_render_status(working_dir, status="rendered", payload=payload)
+            return ToolResult("insightforge_render_video", True, json.dumps(payload, ensure_ascii=False, indent=2), payload)
+        except Exception as exc:
+            error_text = _sanitize_error_text(str(_unwrap_retry_error(exc)))
+            self.session_index.update_stage(checkpoint.session_id, "error", f"Render failed: {error_text}")
+            payload = {"error_type": "render_failed", "session_id": checkpoint.session_id, "run_id": checkpoint.run_id, "error": error_text}
+            _write_render_status(working_dir, status="error", payload=payload)
+            if runtime:
+                runtime.emit_event({"type": "error", "run_id": checkpoint.run_id, "message": f"Render failed: {error_text}"})
+            return ToolResult("insightforge_render_video", False, f"Render failed: {error_text}", payload)
+
     def _resolve_session(self, session_id: str, *, idea: str, script: str, user_requirement: str, style: str) -> dict[str, Any]:
         requested_source = idea or script
         if session_id:
@@ -684,6 +885,41 @@ def _create_render_checkpoint(
     )
 
 
+def _copy_role_portrait_paths(
+    session_root: Path,
+    role_id: str,
+    role_version: int,
+    portraits: dict[str, dict[str, str]],
+) -> dict[str, str]:
+    artifact_paths: dict[str, str] = {}
+    for view, artifact in portraits.items():
+        source = Path(str(artifact.get("path") or "")).resolve()
+        if not source.is_file() or (source != session_root and session_root not in source.parents):
+            raise RuntimeError(f"角色肖像不在当前会话中: {role_id}")
+        suffix = source.suffix or ".png"
+        destination = session_root / "character_portrait_versions" / safe_path_component(role_id) / f"v{role_version}" / f"{safe_path_component(view)}{suffix}"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if source != destination:
+            shutil.copy2(source, destination)
+        artifact_paths[str(view)] = destination.relative_to(session_root).as_posix()
+    if not artifact_paths:
+        raise RuntimeError(f"角色肖像生成失败: {role_id}")
+    return artifact_paths
+
+
+def _portrait_registry_from_checkpoint(session_root: Path, checkpoint: RenderCheckpoint) -> dict[str, dict[str, dict[str, str]]]:
+    registry: dict[str, dict[str, dict[str, str]]] = {}
+    for role in checkpoint.roles.values():
+        views: dict[str, dict[str, str]] = {}
+        for view, relative_path in role.artifact_paths.items():
+            path = (session_root / relative_path).resolve()
+            if not path.is_file() or (path != session_root and session_root not in path.parents):
+                raise RuntimeError(f"已确认的角色肖像缺失: {role.role_id}")
+            views[view] = {"path": str(path), "description": role.description or f"A portrait of {role.role_id}."}
+        registry[role.role_id] = views
+    return registry
+
+
 def _load_session_checkpoint(session_root: Path) -> RenderCheckpoint | None:
     checkpoint_path = session_root / CHECKPOINT_FILENAME
     if not checkpoint_path.exists():
@@ -693,17 +929,28 @@ def _load_session_checkpoint(session_root: Path) -> RenderCheckpoint | None:
 
 
 def _awaiting_approval_payload(checkpoint: RenderCheckpoint) -> dict[str, Any]:
-    roles = [
-        {
+    roles = []
+    for role in checkpoint.roles.values():
+        products = [
+            {
+                "artifact_id": f"character:{role.role_id}:v{role.role_version}:{view}",
+                "role_id": role.role_id,
+                "role_version": role.role_version,
+                "view": view,
+                "url": f"/api/artifact?session={quote(checkpoint.session_id, safe='')}&path={quote(path, safe='')}",
+                "caption": f"{role.display_name or role.role_id} · {_portrait_view_label(view)}",
+            }
+            for view, path in role.artifact_paths.items()
+        ]
+        roles.append({
             "role_id": role.role_id,
             "role_version": role.role_version,
             "display_name": role.display_name or role.role_id,
             "description": role.description,
             "approved": role.approved,
-            "artifact_ids": [f"character:{role.role_id}:v{role.role_version}:{view}" for view in role.artifact_paths],
-        }
-        for role in checkpoint.roles.values()
-    ]
+            "artifact_ids": [product["artifact_id"] for product in products],
+            "products": products,
+        })
     return {
         "session_id": checkpoint.session_id,
         "run_id": checkpoint.run_id,

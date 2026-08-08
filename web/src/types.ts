@@ -62,7 +62,7 @@ export type StageInfo = {
 
 export type RunState = {
   runId: string;
-  status: 'idle' | 'running' | 'completed' | 'failed' | 'stopped' | 'reconnecting';
+  status: 'idle' | 'running' | 'waiting_user' | 'completed' | 'failed' | 'stopped' | 'reconnecting';
   stage?: StageInfo;
   startedAt?: number;
   lastEventId?: string;
@@ -75,6 +75,21 @@ export type CharacterProduct = {
   view: string;
   url: string;
   caption: string;
+};
+
+export type CharacterApprovalRole = {
+  roleId: string;
+  roleVersion: number;
+  displayName: string;
+  description: string;
+  approved: boolean;
+  products: CharacterProduct[];
+};
+
+export type CharacterApproval = {
+  runId: string;
+  sessionId: string;
+  roles: CharacterApprovalRole[];
 };
 
 export type AgentEvent = {
@@ -110,6 +125,30 @@ export type AgentEvent = {
     view?: string;
     url?: string;
     caption?: string;
+  };
+  approval?: {
+    run_id?: string;
+    session_id?: string;
+    role_id?: string;
+    role_version?: number;
+    action?: 'edit' | 'regenerate' | 'confirm';
+    changed?: boolean;
+    ready_to_resume?: boolean;
+    roles?: Array<{
+      role_id?: string;
+      role_version?: number;
+      display_name?: string;
+      description?: string;
+      approved?: boolean;
+      products?: Array<{
+        artifact_id?: string;
+        role_id?: string;
+        role_version?: number;
+        view?: string;
+        url?: string;
+        caption?: string;
+      }>;
+    }>;
   };
   tool_result?: {name?: string; ok?: boolean; content?: string; metadata?: Record<string, unknown>};
   session?: {
@@ -156,4 +195,5 @@ export type ChatState = {
   seenEventIds: string[];
   tokenBuffers: Record<string, Record<number, string>>;
   sessionId?: string;
+  approval?: CharacterApproval;
 };

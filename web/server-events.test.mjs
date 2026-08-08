@@ -35,4 +35,15 @@ describe('event journal', () => {
       }),
     ]);
   });
+
+  it('keeps an approval snapshot after the first turn ends', () => {
+    const journal = createEventJournal();
+    journal.publish({type: 'run_started'}, {runId: 'turn-1'});
+    journal.publish({type: 'approval_required', approval: {roles: []}}, {runId: 'turn-1'});
+    journal.publish({type: 'done'}, {runId: 'turn-1'});
+
+    expect(journal.activeSnapshots()).toEqual([expect.objectContaining({type: 'approval_required', run_id: 'turn-1'})]);
+    journal.publish({type: 'done', approval_finalized: true}, {runId: 'turn-1'});
+    expect(journal.activeSnapshots()).toEqual([]);
+  });
 });

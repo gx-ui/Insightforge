@@ -164,6 +164,14 @@ async def amain(argv: list[str] | None = None) -> int:
                 if isinstance(text, str) and text.strip() and isinstance(requested_run_id, str) and requested_run_id.strip():
                     user_input = text.strip()
                     run_id = requested_run_id.strip()
+            if isinstance(payload, dict) and payload.get("type") == "character_approval":
+                stream_command = getattr(runtime, "stream_character_command", None)
+                if not callable(stream_command):
+                    print_event({"type": "error", "run_id": payload.get("run_id", ""), "message": "角色确认运行时不可用"}, jsonl=args.jsonl)
+                    continue
+                async for event in stream_command(payload):
+                    print_event(event, jsonl=args.jsonl)
+                continue
         if user_input.strip() == "/compact":
             turn_id = f"turn-{uuid4().hex[:12]}"
             print_event({"type": "turn", "turn_id": turn_id, "turn": {"id": turn_id}}, jsonl=args.jsonl)

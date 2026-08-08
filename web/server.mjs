@@ -34,6 +34,7 @@ const traceWriter = createTraceWriter(repoRoot);
 let agentProcess = null;
 let activeSessionId = '';
 let activeRunId = '';
+let approvalRunId = '';
 
 let vite = null;
 
@@ -111,6 +112,37 @@ const server = createServer(async (request, response) => {
       broadcast({type: 'status', run_id: runId, stage_group: 'narrative', stage: 'narrative', label: '正在理解你的创作需求', message: '正在理解你的创作需求'});
       agentProcess.stdin.write(`${JSON.stringify({type: 'user_message', run_id: runId, text})}\n`);
       return sendJson(response, 202, {ok: true, runId});
+    }
+    const characterCommand = url.pathname.match(/^\/api\/runs\/([^/]+)\/character-(regeneration|approval)$/);
+    if (characterCommand && request.method === 'POST') {
+      const [, runId, kind] = characterCommand;
+      if (!agentProcess?.stdin.writable) return sendJson(response, 409, {error: 'Agent is not running'});
+      if (runId !== activeRunId || runId !== approvalRunId) return sendJson(response, 409, {error: 'Run is not awaiting character approval'});
+      const body = await readJsonBody(request);
+      const roleId = typeof body.roleId === 'string' ? body.roleId.trim() : '';
+      const roleVersion = body.roleVersion;
+      if (!roleId || !Number.isInteger(roleVersion) || roleVersion < 1) {
+        return sendJson(response, 400, {error: 'roleId and a positive integer roleVersion are required'});
+      }
+      if (kind === 'regeneration') {
+        if (!['edit', 'regenerate'].includes(body.action)) return sendJson(response, 400, {error: 'action must be edit or regenerate'});
+        if (body.displayName !== undefined && typeof body.displayName !== 'string') return sendJson(response, 400, {error: 'displayName must be a string'});
+        if (body.description !== undefined && typeof body.description !== 'string') return sendJson(response, 400, {error: 'description must be a string'});
+      } else if (body.action !== 'confirm' || typeof body.artifactId !== 'string' || !body.artifactId.trim()) {
+        return sendJson(response, 400, {error: 'confirm action and artifactId are required'});
+      }
+      agentProcess.stdin.write(`${JSON.stringify({
+        type: 'character_approval',
+        run_id: runId,
+        session_id: activeSessionId,
+        role_id: roleId,
+        role_version: roleVersion,
+        action: body.action,
+        artifact_id: body.artifactId,
+        display_name: body.displayName,
+        description: body.description,
+      })}\n`);
+      return sendJson(response, 202, {ok: true});
     }
     if (url.pathname === '/api/agent/stop' && request.method === 'POST') {
       stopAgent('user');
@@ -276,9 +308,17 @@ function broadcast(event) {
   });
   void traceWriter.record(published).catch((error) => console.warn('trace write failed:', error?.message));
   for (const subscriber of subscribers) writeSse(subscriber, published);
+  if (published.type === 'approval_required' && published.run_id) {
+    activeRunId = published.run_id;
+    approvalRunId = published.run_id;
+  }
   if (published.run_id && ['done', 'error', 'run_stopped'].includes(published.type)) {
-    eventJournal.clearRun(published.run_id);
-    if (activeRunId === published.run_id) activeRunId = '';
+    const keepsApprovalOpen = published.type === 'done' && approvalRunId === published.run_id && !published.approval_finalized;
+    if (!keepsApprovalOpen) {
+      eventJournal.clearRun(published.run_id);
+      if (activeRunId === published.run_id) activeRunId = '';
+      if (approvalRunId === published.run_id) approvalRunId = '';
+    }
   }
   return published;
 }

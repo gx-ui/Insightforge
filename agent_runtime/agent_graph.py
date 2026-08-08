@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from datetime import datetime
@@ -9,11 +10,11 @@ from langgraph.config import get_stream_writer
 from langgraph.graph import StateGraph, START, END
 from .context_compactor import ContextCompactor, CompactionResult
 from .llm import AssistantMessage, OpenAICompatibleLLM
-from .models import TurnControl, ToolCall
+from .models import TurnControl, ToolCall, ToolResult
 from .prompts import PromptBuilder
 from .session_index import SessionIndex
 from .tool_executor import ToolExecutor
-from .tools import build_builtin_registry
+from .tools import ToolRuntimeContext, build_builtin_registry
 from .streaming import normalize_stage, utc_timestamp_ms
 
 MAX_TOOL_PASSES = 50
@@ -43,6 +44,7 @@ class AgentState(TypedDict, total=False):
     final_text: str
     status: str
     tool_round: int
+    awaiting_approval: bool
 
 
 class AgentLoop:
@@ -106,7 +108,7 @@ class AgentLoop:
         g.add_edge(START, "init")
         g.add_edge("init", "model")
         g.add_conditional_edges("model", self._route_after_model, {"tools": "tools", "finalize": "finalize"})
-        g.add_edge("tools", "model")
+        g.add_conditional_edges("tools", self._route_after_tools, {"model": "model", "finalize": "finalize"})
         g.add_edge("finalize", END)
         return g.compile(checkpointer=self._saver)
 
@@ -155,6 +157,45 @@ class AgentLoop:
         input_state = {"user_input": user_input, "run_id": run_id or ""}
         async for chunk in self._graph.astream(input_state, config=config, stream_mode="custom"):
             yield _stream_event_envelope(chunk, run_id)
+
+    async def stream_character_command(self, command: dict[str, Any]) -> AsyncIterator[dict[str, Any]]:
+        run_id = str(command.get("run_id") or "").strip()
+        spec = self.tool_registry.get_spec("insightforge_render_video")
+        adapter = getattr(spec.handler, "__self__", None) if spec is not None else None
+        apply_command = getattr(adapter, "apply_character_command", None)
+        if not run_id or not callable(apply_command):
+            yield _stream_event_envelope({"type": "error", "run_id": run_id, "message": "角色确认运行时不可用"}, run_id)
+            return
+
+        queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        runtime = ToolRuntimeContext(
+            "character_approval",
+            "character_approval",
+            turn_id=run_id,
+            progress_callback=queue.put_nowait,
+        )
+        task = asyncio.create_task(apply_command(command, runtime))
+        while not task.done() or not queue.empty():
+            if not queue.empty():
+                yield _stream_event_envelope(await queue.get(), run_id)
+                continue
+            next_event = asyncio.create_task(queue.get())
+            done, _ = await asyncio.wait({task, next_event}, return_when=asyncio.FIRST_COMPLETED)
+            if next_event in done:
+                yield _stream_event_envelope(next_event.result(), run_id)
+                continue
+            next_event.cancel()
+            await asyncio.gather(next_event, return_exceptions=True)
+        try:
+            result = task.result()
+        except Exception as exc:
+            result = ToolResult("character_approval", False, str(exc), {"error_type": "character_approval_failed"})
+        if not result.ok:
+            yield _stream_event_envelope({"type": "error", "run_id": run_id, "message": result.content}, run_id)
+            return
+        yield _stream_event_envelope({"type": "tool_result", "run_id": run_id, "tool_result": result.as_dict()}, run_id)
+        if result.metadata.get("render_completed"):
+            yield _stream_event_envelope({"type": "done", "run_id": run_id, "assistant": "角色确认完成，渲染已完成。", "tool_results": [result.as_dict()], "approval_finalized": True}, run_id)
 
     # -- 节点 --
 
@@ -282,6 +323,9 @@ class AgentLoop:
             return "finalize"
         return "tools"
 
+    def _route_after_tools(self, state: AgentState) -> str:
+        return "finalize" if state.get("awaiting_approval") else "model"
+
     async def _tools_node(self, state: AgentState) -> dict:
         writer = get_stream_writer()
         turn_id = state["turn_id"]
@@ -326,16 +370,20 @@ class AgentLoop:
                 "tool_results": [r.as_dict() for r in round_results],
             }
         ]
-        transitions = state.get("transitions", []) + [
-            _transition("executing_tools", "post_tool_decision", "tool_round_completed"),
-            _transition("post_tool_decision", "sampling_assistant", "runtime_continuation_after_tools"),
-        ]
+        awaiting_approval = any(result.metadata.get("awaiting_approval") for result in round_results)
+        transitions = state.get("transitions", []) + [_transition("executing_tools", "post_tool_decision", "tool_round_completed")]
+        if awaiting_approval:
+            transitions.append(_transition("post_tool_decision", "finalizing_answer", "awaiting_character_approval"))
+        else:
+            transitions.append(_transition("post_tool_decision", "sampling_assistant", "runtime_continuation_after_tools"))
         return {
             "runtime_messages": runtime_messages,
             "tool_round": tool_round,
             "tool_rounds": tool_rounds,
             "transitions": transitions,
             "all_tool_results": all_tool_results,
+            "awaiting_approval": awaiting_approval,
+            "final_text": "角色肖像已生成，请确认后继续渲染。" if awaiting_approval else state.get("final_text", ""),
         }
 
     async def _finalize_node(self, state: AgentState) -> dict:
