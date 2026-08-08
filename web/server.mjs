@@ -3,10 +3,13 @@ import {readFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
+import {randomUUID} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {readAgentConfig, saveAgentConfig} from './config-store.mjs';
+import {createEventJournal} from './server-events.mjs';
 import {
   artifactContentType,
+  createTraceWriter,
   deleteSession,
   listSessionArtifacts,
   readSessionHistory,
@@ -26,8 +29,11 @@ const uploadMaxBytes = Number.isFinite(configuredUploadLimit) && configuredUploa
   ? configuredUploadLimit
   : 100 * 1024 * 1024;
 const subscribers = new Set();
+const eventJournal = createEventJournal();
+const traceWriter = createTraceWriter(repoRoot);
 let agentProcess = null;
 let activeSessionId = '';
+let activeRunId = '';
 
 let vite = null;
 
@@ -99,8 +105,12 @@ const server = createServer(async (request, response) => {
       const text = String(body.text || '').trim();
       if (!text) return sendJson(response, 400, {error: 'Message text is required'});
       if (!agentProcess?.stdin.writable) return sendJson(response, 409, {error: 'Agent is not running'});
-      agentProcess.stdin.write(`${text}\n`);
-      return sendJson(response, 202, {ok: true});
+      const runId = randomUUID();
+      activeRunId = runId;
+      broadcast({type: 'run_started', run_id: runId, stage_group: 'narrative', stage: 'narrative', label: '正在理解你的创作需求'});
+      broadcast({type: 'status', run_id: runId, stage_group: 'narrative', stage: 'narrative', label: '正在理解你的创作需求', message: '正在理解你的创作需求'});
+      agentProcess.stdin.write(`${JSON.stringify({type: 'user_message', run_id: runId, text})}\n`);
+      return sendJson(response, 202, {ok: true, runId});
     }
     if (url.pathname === '/api/agent/stop' && request.method === 'POST') {
       stopAgent('user');
@@ -130,7 +140,7 @@ const server = createServer(async (request, response) => {
       return sendJson(response, 202, {ok: true, version});
     }
     if (url.pathname === '/api/health' && request.method === 'GET') {
-      return sendJson(response, 200, {ok: true, agentRunning: Boolean(agentProcess), activeSessionId});
+      return sendJson(response, 200, {ok: true, agentRunning: Boolean(agentProcess), activeSessionId, activeRunId});
     }
     if (url.pathname === '/assets/insightforge.png' && request.method === 'GET') {
       response.writeHead(200, {'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600'});
@@ -239,7 +249,18 @@ function openEventStream(request, response) {
     Connection: 'keep-alive',
     'X-Accel-Buffering': 'no',
   });
-  response.write(`data: ${JSON.stringify({type: 'bridge_status', status: agentProcess ? 'ready' : 'idle', message: agentProcess ? 'Agent connected' : 'Agent idle'})}\n\n`);
+  const lastEventId = request.headers['last-event-id'];
+  const replay = typeof lastEventId === 'string' && lastEventId ? eventJournal.replayAfter(lastEventId) : undefined;
+  if (replay === null) {
+    const unavailable = eventJournal.publish({type: 'sse_replay_unavailable'}, {sessionId: activeSessionId});
+    writeSse(response, unavailable);
+    void traceWriter.record(unavailable).catch((error) => console.warn('trace write failed:', error?.message));
+  } else if (replay) {
+    for (const event of replay) writeSse(response, event);
+  } else {
+    for (const snapshot of eventJournal.activeSnapshots()) writeSse(response, snapshot);
+  }
+  writeSse(response, {type: 'bridge_status', status: agentProcess ? 'ready' : 'idle', message: agentProcess ? 'Agent connected' : 'Agent idle'});
   subscribers.add(response);
   const heartbeat = setInterval(() => response.write(': keepalive\n\n'), 15_000);
   request.on('close', () => {
@@ -249,8 +270,22 @@ function openEventStream(request, response) {
 }
 
 function broadcast(event) {
-  const payload = `data: ${JSON.stringify(event)}\n\n`;
-  for (const subscriber of subscribers) subscriber.write(payload);
+  const published = eventJournal.publish(event, {
+    sessionId: activeSessionId || undefined,
+    runId: event.run_id ?? event.turn_id ?? undefined,
+  });
+  void traceWriter.record(published).catch((error) => console.warn('trace write failed:', error?.message));
+  for (const subscriber of subscribers) writeSse(subscriber, published);
+  if (published.run_id && ['done', 'error', 'run_stopped'].includes(published.type)) {
+    eventJournal.clearRun(published.run_id);
+    if (activeRunId === published.run_id) activeRunId = '';
+  }
+  return published;
+}
+
+function writeSse(response, event) {
+  const id = event.event_id ? `id: ${event.event_id}\n` : '';
+  response.write(`${id}data: ${JSON.stringify(event)}\n\n`);
 }
 
 function stopAgent(reason) {
@@ -263,6 +298,7 @@ function stopAgent(reason) {
     : reason === 'config'
       ? 'Configuration updated'
       : 'Generation stopped';
+  if (activeRunId) broadcast({type: 'run_stopped', run_id: activeRunId, message});
   broadcast({type: 'bridge_status', status: 'stopped', message});
 }
 

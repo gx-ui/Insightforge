@@ -1,10 +1,81 @@
-import {lstat, mkdir, readFile, readdir, rename, rm, stat, writeFile} from 'node:fs/promises';
+import {appendFile, lstat, mkdir, readFile, readdir, rename, rm, stat, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {stringify} from 'yaml';
 
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov']);
 const TEXT_EXTENSIONS = new Set(['.txt', '.md', '.json']);
+
+export function createTraceWriter(repoRoot) {
+  const activeStages = new Map();
+  const tracePath = path.join(repoRoot, '.insightforge', 'logs', 'trace.jsonl');
+
+  async function record(event) {
+    const records = traceRecords(event, activeStages);
+    if (!records.length) return;
+    await mkdir(path.dirname(tracePath), {recursive: true});
+    await appendFile(tracePath, `${records.map((item) => JSON.stringify(item)).join('\n')}\n`, 'utf8');
+  }
+
+  return {record};
+}
+
+function traceRecords(event, activeStages) {
+  const timestamp = Number(event.timestamp) || Date.now();
+  const base = compactTrace({
+    event_id: event.event_id,
+    session_id: event.session_id,
+    run_id: event.run_id ?? event.turn_id,
+    timestamp,
+  });
+  const records = [];
+  const stage = typeof event.stage === 'string' ? event.stage : undefined;
+  const key = `${base.session_id ?? ''}:${base.run_id ?? ''}`;
+
+  if (event.type === 'run_started') {
+    records.push({...base, type: 'run', result: 'started'});
+    if (stage) {
+      activeStages.set(key, {stage, startedAt: timestamp});
+      records.push({...base, type: 'stage_start', stage});
+    }
+  } else if (stage && ['status', 'tool_progress'].includes(event.type)) {
+    const previous = activeStages.get(key);
+    if (previous?.stage !== stage) {
+      if (previous) records.push({...base, type: 'stage_done', stage: previous.stage, duration_ms: Math.max(0, timestamp - previous.startedAt)});
+      activeStages.set(key, {stage, startedAt: timestamp});
+      records.push({...base, type: 'stage_start', stage});
+    }
+  }
+
+  if (event.type === 'tool_start' || event.type === 'tool_result') {
+    records.push(compactTrace({...base, type: 'tool', tool: event.tool?.name ?? event.tool?.requested_name, result: event.type === 'tool_start' ? 'started' : event.tool_result?.ok === false ? 'failed' : 'completed'}));
+  }
+  if (event.type === 'product') {
+    records.push(compactTrace({...base, type: 'product', artifact_id: event.product?.artifact_id ?? event.product?.artifactId, role_id: event.product?.role_id ?? event.product?.roleId, result: 'created'}));
+  }
+  if (event.type === 'bridge_status') {
+    records.push(compactTrace({...base, type: 'network', result: event.status}));
+  }
+  if ((event.type === 'stream_end' || event.type === 'done') && Number.isFinite(event.tokens)) {
+    records.push({...base, type: 'token_usage', tokens: Number(event.tokens)});
+  }
+  if (['approval_required', 'approval_resolved'].includes(event.type)) {
+    records.push(compactTrace({...base, type: 'approval', result: event.type === 'approval_required' ? 'required' : event.decision ?? 'resolved', role_id: event.role_id ?? event.roleId}));
+  }
+  if (['done', 'error', 'run_stopped'].includes(event.type)) {
+    const previous = activeStages.get(key);
+    if (previous) {
+      records.push({...base, type: 'stage_done', stage: previous.stage, duration_ms: Math.max(0, timestamp - previous.startedAt)});
+      activeStages.delete(key);
+    }
+    records.push({...base, type: 'run', result: event.type === 'done' ? 'completed' : event.type === 'error' ? 'failed' : 'stopped'});
+  }
+  return records;
+}
+
+function compactTrace(record) {
+  return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined && value !== null && value !== ''));
+}
 
 export async function readSessionState(repoRoot) {
   const fallback = {activeSessionId: '', sessions: []};

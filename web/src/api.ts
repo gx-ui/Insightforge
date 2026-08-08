@@ -55,7 +55,7 @@ export async function startAgent(options: {sessionId?: string; newSession?: bool
 }
 
 export async function sendMessage(text: string) {
-  return request<{ok: boolean}>('/api/messages', {method: 'POST', body: JSON.stringify({text})});
+  return request<{ok: boolean; runId: string}>('/api/messages', {method: 'POST', body: JSON.stringify({text})});
 }
 
 export async function updatePreferences(prefs: PreferenceSnapshot, version: number) {

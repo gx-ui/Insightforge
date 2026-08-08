@@ -2,7 +2,7 @@ import {mkdtemp, mkdir, readFile, stat, writeFile} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {afterEach, describe, expect, it} from 'vitest';
-import {deleteSession, listSessionArtifacts, readSessionHistory, readSessionState, resolveArtifactPath, saveSessionPreferences, storeWorkspaceUpload} from './server-lib.mjs';
+import {createTraceWriter, deleteSession, listSessionArtifacts, readSessionHistory, readSessionState, resolveArtifactPath, saveSessionPreferences, storeWorkspaceUpload} from './server-lib.mjs';
 
 const roots = [];
 
@@ -129,5 +129,23 @@ describe('preferences persistence', () => {
       sessions: {},
     }));
     await expect(saveSessionPreferences(root, 3, {image: {}, video: {}})).resolves.toBeUndefined();
+  });
+});
+
+describe('local event trace', () => {
+  it('records operational metadata without event text or artifact payloads', async () => {
+    const root = await fixture();
+    const trace = createTraceWriter(root);
+
+    await trace.record({type: 'run_started', event_id: 'evt-1', timestamp: 100, session_id: 'session-1', run_id: 'turn-1', stage: 'narrative'});
+    await trace.record({type: 'token', event_id: 'evt-2', timestamp: 150, session_id: 'session-1', run_id: 'turn-1', delta: 'private assistant text'});
+    await trace.record({type: 'product', event_id: 'evt-3', timestamp: 200, session_id: 'session-1', run_id: 'turn-1', product: {artifact_id: 'role-alice-v1', caption: 'private image description'}});
+    await trace.record({type: 'done', event_id: 'evt-4', timestamp: 250, session_id: 'session-1', run_id: 'turn-1', assistant: 'private final text', tokens: 12});
+
+    const lines = (await readFile(path.join(root, '.insightforge', 'logs', 'trace.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+    expect(lines.map((line) => line.type)).toEqual(['run', 'stage_start', 'product', 'token_usage', 'stage_done', 'run']);
+    expect(lines[2]).toMatchObject({artifact_id: 'role-alice-v1', result: 'created'});
+    expect(lines[3]).toMatchObject({tokens: 12});
+    expect(JSON.stringify(lines)).not.toContain('private');
   });
 });
