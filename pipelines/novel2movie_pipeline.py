@@ -392,6 +392,7 @@ class Novel2MoviePipeline:
             async with sem:
                 image_path = os.path.join(base_character_portrait_dir, f"character_{character.index}_{safe_path_component(character.identifier_in_novel)}.png")
                 if os.path.exists(image_path):
+                    _emit_text_plan_progress(progress, "character_portrait_front_done", f"Loaded novel portrait for {character.identifier_in_novel}", {"identifier": character.identifier_in_novel, "path": image_path})
                     return image_path
                 prompt = f"Generate a full-body, front-view portrait based on the following description, in the style of {style}:"
                 prompt += f"\nCharacter Identifier: {character.identifier_in_novel}"
@@ -399,6 +400,7 @@ class Novel2MoviePipeline:
                 prompt += "\nThe character should be centered in the image, occupying most of the frame. Gazing straight ahead. Standing with arms relaxed at sides. Natural expression. The background should be plain white."
                 image = await self.image_generator.generate_single_image(prompt=prompt, size="512x512")
                 image.save(image_path)
+                _emit_text_plan_progress(progress, "character_portrait_front_done", f"Generated novel portrait for {character.identifier_in_novel}", {"identifier": character.identifier_in_novel, "path": image_path})
                 return image_path
 
         sem = asyncio.Semaphore(5)
@@ -410,9 +412,11 @@ class Novel2MoviePipeline:
                 image_path = os.path.join(working_dir_character_portrait, f"event_{event_idx}", f"scene_{scene_idx}", f"character_{character.idx}_{safe_path_component(character.identifier_in_scene)}.png")
                 os.makedirs(os.path.dirname(image_path), exist_ok=True)
                 if os.path.exists(image_path):
+                    _emit_text_plan_progress(progress, "character_portrait_front_done", f"Loaded scene portrait for {character.identifier_in_scene}", {"identifier": character.identifier_in_scene, "path": image_path})
                     return image_path
                 if not character.is_visible or character.dynamic_features is None:
                     shutil.copy(base_character_image_path, image_path)
+                    _emit_text_plan_progress(progress, "character_portrait_front_done", f"Prepared scene portrait for {character.identifier_in_scene}", {"identifier": character.identifier_in_scene, "path": image_path})
                     return image_path
                 prompt = f"Generate a full-body, front-view portrait based on the provided base image. Modify the base image according to the following dynamic features, in the style of {style}. Keep the character's identity consistent with the base image:"
                 prompt += f"\nCharacter Identifier: {character.identifier_in_scene}"
@@ -421,6 +425,7 @@ class Novel2MoviePipeline:
                 prompt = await self.rewriter(prompt)
                 image = await self.image_generator.generate_single_image(prompt=prompt, reference_image_paths=[base_character_image_path], size="512x512")
                 image.save(image_path)
+                _emit_text_plan_progress(progress, "character_portrait_front_done", f"Generated scene portrait for {character.identifier_in_scene}", {"identifier": character.identifier_in_scene, "path": image_path})
                 return image_path
 
         _emit_text_plan_progress(progress, "novel_portraits_scene_start", "Generating scene character portraits")

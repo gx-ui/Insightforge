@@ -8,6 +8,7 @@ from typing import List, Dict, Optional
 import asyncio
 import json
 import yaml
+from typing import Any, Callable
 from langchain.chat_models import init_chat_model
 from tools.render_backend import RenderBackend
 from utils.provider_presets import resolve_chat_model_config
@@ -18,6 +19,11 @@ from utils.video import concatenate_video_files
 def _pipeline_print(quiet: bool, message: str) -> None:
     if not quiet:
         print(message)
+
+
+def _emit_render_progress(progress, stage: str, message: str, metadata: dict[str, Any] | None = None) -> None:
+    if progress is not None:
+        progress(stage, message, metadata or {})
 
 
 class Idea2VideoPipeline:
@@ -83,6 +89,7 @@ class Idea2VideoPipeline:
         characters: List[CharacterInScene],
         character_portraits_registry: Optional[Dict[str, Dict[str, Dict[str, str]]]],
         style: str,
+        progress: Callable[[str, str, dict[str, Any] | None], None] | None = None,
     ):
         character_portraits_registry_path = os.path.join(
             self.working_dir, "character_portraits_registry.json")
@@ -94,7 +101,7 @@ class Idea2VideoPipeline:
                 character_portraits_registry = {}
 
         tasks = [
-            self.generate_portraits_for_single_character(character, style)
+            self.generate_portraits_for_single_character(character, style, progress=progress)
             for character in characters
             if character.identifier_in_scene not in character_portraits_registry
             # 从不在画面中出现的角色（例如仅语音或仅聊天角色）
@@ -160,6 +167,7 @@ class Idea2VideoPipeline:
         self,
         character: CharacterInScene,
         style: str,
+        progress: Callable[[str, str, dict[str, Any] | None], None] | None = None,
     ):
         character_dir = os.path.join(
             self.working_dir, "character_portraits", f"{character.idx}_{safe_path_component(character.identifier_in_scene)}")
@@ -167,14 +175,16 @@ class Idea2VideoPipeline:
 
         front_portrait_path = os.path.join(character_dir, "front.png")
         if os.path.exists(front_portrait_path):
-            pass
+            _emit_render_progress(progress, "character_portrait_front_done", f"Loaded front portrait for {character.identifier_in_scene}", {"identifier": character.identifier_in_scene, "path": front_portrait_path})
         else:
+            _emit_render_progress(progress, "character_portrait_front_start", f"Generating front portrait for {character.identifier_in_scene}", {"identifier": character.identifier_in_scene})
             front_portrait_output = await self.character_portraits_generator.generate_front_portrait(character, style)
             front_portrait_output.save(front_portrait_path)
+            _emit_render_progress(progress, "character_portrait_front_done", f"Generated front portrait for {character.identifier_in_scene}", {"identifier": character.identifier_in_scene, "path": front_portrait_path})
 
         side_portrait_path = os.path.join(character_dir, "side.png")
         if os.path.exists(side_portrait_path):
-            pass
+            _emit_render_progress(progress, "character_portrait_side_done", f"Loaded side portrait for {character.identifier_in_scene}", {"identifier": character.identifier_in_scene, "path": side_portrait_path})
         else:
             try:
                 side_portrait_output = await self.character_portraits_generator.generate_side_portrait(character, front_portrait_path)
@@ -186,10 +196,11 @@ class Idea2VideoPipeline:
                 # 回退到正面肖像，而非中止整个流水线。
                 print(f"⚠️ {character.identifier_in_scene} 的侧面肖像生成在重试后失败（{e}）；回退使用正面肖像。")
                 shutil.copy(front_portrait_path, side_portrait_path)
+            _emit_render_progress(progress, "character_portrait_side_done", f"Generated side portrait for {character.identifier_in_scene}", {"identifier": character.identifier_in_scene, "path": side_portrait_path})
 
         back_portrait_path = os.path.join(character_dir, "back.png")
         if os.path.exists(back_portrait_path):
-            pass
+            _emit_render_progress(progress, "character_portrait_back_done", f"Loaded back portrait for {character.identifier_in_scene}", {"identifier": character.identifier_in_scene, "path": back_portrait_path})
         else:
             try:
                 back_portrait_output = await self.character_portraits_generator.generate_back_portrait(character, front_portrait_path)
@@ -197,6 +208,7 @@ class Idea2VideoPipeline:
             except Exception as e:
                 print(f"⚠️ {character.identifier_in_scene} 的背面肖像生成在重试后失败（{e}）；回退使用正面肖像。")
                 shutil.copy(front_portrait_path, back_portrait_path)
+            _emit_render_progress(progress, "character_portrait_back_done", f"Generated back portrait for {character.identifier_in_scene}", {"identifier": character.identifier_in_scene, "path": back_portrait_path})
 
         print(
             f"☑️ Completed character portrait generation for {character.identifier_in_scene}.")
@@ -224,6 +236,7 @@ class Idea2VideoPipeline:
         user_requirement: str,
         style: str,
         quiet: bool = False,
+        progress: Callable[[str, str, dict[str, Any] | None], None] | None = None,
     ):
 
         story = await self.develop_story(idea=idea, user_requirement=user_requirement, quiet=quiet)
@@ -234,6 +247,7 @@ class Idea2VideoPipeline:
             characters=characters,
             character_portraits_registry=None,
             style=style,
+            progress=progress,
         )
 
         scene_scripts = await self.write_script_based_on_story(story=story, user_requirement=user_requirement, quiet=quiet)
@@ -256,6 +270,7 @@ class Idea2VideoPipeline:
                 characters=characters,
                 character_portraits_registry=character_portraits_registry,
                 quiet=quiet,
+                progress=progress,
             )
             all_video_paths.append(final_video_path)
 

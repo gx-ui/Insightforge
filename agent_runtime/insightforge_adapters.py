@@ -3,11 +3,13 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
+import inspect
 import json
 import logging
 import os
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from langchain.chat_models import init_chat_model
 from langchain_openai import OpenAIEmbeddings
@@ -40,6 +42,43 @@ class _UnavailableGenerator:
 
     async def generate_single_video(self, *args: Any, **kwargs: Any) -> Any:
         raise RuntimeError("叙事规划模式下视频生成器不可用")
+
+
+def emit_character_product(
+    runtime: ToolRuntimeContext,
+    session_id: str,
+    run_id: str,
+    role_id: str,
+    role_version: int,
+    view: str,
+    artifact_path: Path,
+    caption: str,
+) -> None:
+    session_root_raw = runtime.metadata.get("session_root")
+    if not session_root_raw:
+        return
+    try:
+        session_root = Path(str(session_root_raw)).resolve()
+        relative_path = artifact_path.resolve().relative_to(session_root)
+    except (OSError, ValueError):
+        return
+    if not artifact_path.is_file():
+        return
+    runtime.emit_event(
+        {
+            "type": "product",
+            "run_id": run_id,
+            "product": {
+                "kind": "character_image",
+                "artifact_id": f"character:{role_id}:v{role_version}:{view}",
+                "role_id": role_id,
+                "role_version": role_version,
+                "view": view,
+                "url": f"/api/artifact?session={quote(session_id, safe='')}&path={quote(relative_path.as_posix(), safe='')}",
+                "caption": caption,
+            },
+        }
+    )
 
 
 def build_insightforge_adapter_specs(workspace_root: str | Path, session_index: Any) -> list[ToolSpec]:
@@ -180,7 +219,7 @@ class InsightForgeAdapters:
                     await _run_planning_step(
                         f"Planning scene {idx} storyboard and shots",
                         "plan_scene",
-                        script_pipeline.plan_text_artifacts(script=scene_text, user_requirement=user_requirement, style=style, characters=characters, progress=_pipeline_progress(runtime, session_id, scene_index=idx), quiet=True),
+                    script_pipeline.plan_text_artifacts(script=scene_text, user_requirement=user_requirement, style=style, characters=characters, progress=_pipeline_progress(runtime, session_id, scene_index=idx, session_root=working_dir), quiet=True),
                         runtime,
                         {"session_id": session_id, "scene_index": idx},
                     )
@@ -193,7 +232,7 @@ class InsightForgeAdapters:
                 await _run_planning_step(
                     "Planning storyboard and shots from provided script",
                     "plan_script",
-                    script_pipeline.plan_text_artifacts(script=script, user_requirement=user_requirement, style=style, progress=_pipeline_progress(runtime, session_id), quiet=True),
+                    script_pipeline.plan_text_artifacts(script=script, user_requirement=user_requirement, style=style, progress=_pipeline_progress(runtime, session_id, session_root=working_dir), quiet=True),
                     runtime,
                     {"session_id": session_id},
                 )
@@ -309,7 +348,7 @@ class InsightForgeAdapters:
                     novel_text=novel_text,
                     user_requirement=user_requirement,
                     style=style,
-                    progress=_pipeline_progress(runtime, session_id),
+                    progress=_pipeline_progress(runtime, session_id, session_root=working_dir),
                     quiet=True,
                 ),
                 runtime,
@@ -362,7 +401,14 @@ class InsightForgeAdapters:
             if _idea_mode_ready(checklist):
                 idea_pipeline = Idea2VideoPipeline(chat_model=chat_model, image_generator=image_generator, video_generator=video_generator, working_dir=str(working_dir / "idea2video"))
                 with _suppress_pipeline_output():
-                    final_video = await idea_pipeline(idea=str(session.get("idea", "")), user_requirement=str(session.get("user_requirement", "")), style=str(session.get("style", "")), quiet=True)
+                    final_video = await _run_idea_pipeline(
+                        idea_pipeline,
+                        idea=str(session.get("idea", "")),
+                        user_requirement=str(session.get("user_requirement", "")),
+                        style=str(session.get("style", "")),
+                        quiet=True,
+                        progress=_pipeline_progress(runtime, session_id, session_root=working_dir),
+                    )
                 self.session_index.update_stage(session_id, "rendered", "Final video rendered")
                 payload = {"session_id": session_id, "render_mode": "idea2video", "render_started": True, "render_completed": True, "final_video_path": str(Path(final_video).relative_to(self.workspace_root)), "missing": []}
                 _write_render_status(working_dir, status="rendered", payload=payload)
@@ -373,7 +419,7 @@ class InsightForgeAdapters:
                 characters = _load_characters(script_dir / "characters.json")
                 pipeline = Script2VideoPipeline(chat_model=chat_model, image_generator=image_generator, video_generator=video_generator, working_dir=str(script_dir))
                 with _suppress_pipeline_output():
-                    final_video = await pipeline(script=script_text, user_requirement=str(session.get("user_requirement", "")), style=str(session.get("style", "")), characters=characters, quiet=True, progress=_pipeline_progress(runtime, session_id))
+                    final_video = await pipeline(script=script_text, user_requirement=str(session.get("user_requirement", "")), style=str(session.get("style", "")), characters=characters, quiet=True, progress=_pipeline_progress(runtime, session_id, session_root=working_dir))
                 self.session_index.update_stage(session_id, "rendered", "Final video rendered")
                 payload = {"session_id": session_id, "render_mode": "script2video", "render_started": True, "render_completed": True, "final_video_path": str(Path(final_video).relative_to(self.workspace_root)), "missing": []}
                 _write_render_status(working_dir, status="rendered", payload=payload)
@@ -382,7 +428,7 @@ class InsightForgeAdapters:
                 novel_dir = working_dir / "novel2video"
                 pipeline = _build_novel_render_pipeline(novel_dir, chat_model, image_generator, video_generator)
                 with _suppress_pipeline_output():
-                    render_result = await pipeline.render_video_artifacts(style=str(session.get("style", "")), user_requirement=str(session.get("user_requirement", "")), quiet=True, progress=_pipeline_progress(runtime, session_id))
+                    render_result = await pipeline.render_video_artifacts(style=str(session.get("style", "")), user_requirement=str(session.get("user_requirement", "")), quiet=True, progress=_pipeline_progress(runtime, session_id, session_root=working_dir))
                 scene_videos_dir = Path(render_result["scene_videos_dir"])
                 self.session_index.update_stage(session_id, "novel_scene_rendered", "Novel scene videos rendered")
                 payload = {
@@ -544,9 +590,11 @@ def _narrative_max_tokens() -> int:
         return 4096
 
 
-def _pipeline_progress(runtime: ToolRuntimeContext | None, session_id: str, *, scene_index: int | None = None):
+def _pipeline_progress(runtime: ToolRuntimeContext | None, session_id: str, *, scene_index: int | None = None, session_root: Path | None = None):
     if runtime is None:
         return None
+    if session_root is not None:
+        runtime.metadata["session_root"] = str(session_root)
 
     def emit(stage: str, message: str, metadata: dict[str, Any] | None = None) -> None:
         payload = dict(metadata or {})
@@ -554,8 +602,28 @@ def _pipeline_progress(runtime: ToolRuntimeContext | None, session_id: str, *, s
         if scene_index is not None:
             payload["scene_index"] = scene_index
         runtime.emit_progress(message, stage=stage, metadata=payload)
+        if stage.startswith("character_portrait_") and stage.endswith("_done") and payload.get("path") and payload.get("identifier"):
+            view = next((candidate for candidate in ("front", "side", "back") if f"_{candidate}_" in stage), "default")
+            labels = {"front": "正面", "side": "侧面", "back": "背面", "default": "角色图"}
+            emit_character_product(
+                runtime,
+                session_id,
+                runtime.turn_id,
+                str(payload["identifier"]),
+                int(payload.get("role_version", 1)),
+                view,
+                Path(str(payload["path"])),
+                f"{payload['identifier']} · {labels[view]}",
+            )
 
     return emit
+
+
+async def _run_idea_pipeline(pipeline: Any, **kwargs: Any) -> Any:
+    parameters = inspect.signature(pipeline).parameters
+    if "progress" not in parameters and not any(parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters.values()):
+        kwargs.pop("progress", None)
+    return await pipeline(**kwargs)
 
 
 def _build_chat_model() -> Any:
